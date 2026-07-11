@@ -118,6 +118,13 @@ vi.mock("../odontogram", async () => {
     getToothPlaque: actual.getToothPlaque,
     setPlaque: actual.setPlaque,
     isPerioRowHidden: actual.isPerioRowHidden,
+    // SP-perio PG-C Task 3: cejVisibility/rootConcavity rows <PerioChart/>'s
+    // grid now needs at mount/render (buildCejVisibilityCell/buildRootConcavityCell).
+    getToothRecessionType: actual.getToothRecessionType,
+    getCejVisibility: actual.getCejVisibility,
+    setCejVisibility: actual.setCejVisibility,
+    getRootConcavity: actual.getRootConcavity,
+    setRootConcavity: actual.setRootConcavity,
   };
 });
 

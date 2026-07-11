@@ -211,6 +211,19 @@ export const LOCAL_VALUE_MAPS: Record<string, Record<string, CodeEntry>> = {
     "arrested": { code: "arrested", display: "Arrested root caries" },
     "active-cavitated": { code: "active-cavitated", display: "Active cavitated root caries" },
   },
+  // SP-perio PG-C Task 2: two per-tooth categorical DATA axes (registry/FHIR/
+  // payload only; the Dental Chart rows/UI land in PG-C Task 3). NO svgLayer —
+  // neither renders. Local codes only (no verified SNOMED/LOINC).
+  cejVisibility: {
+    "none": { code: "none", display: "CEJ visibility not assessed" },
+    "detectable": { code: "detectable", display: "CEJ detectable" },
+    "not-detectable": { code: "not-detectable", display: "CEJ not detectable" },
+  },
+  rootConcavity: {
+    "none": { code: "none", display: "No root concavity" },
+    "mild": { code: "mild", display: "Mild root concavity" },
+    "deep": { code: "deep", display: "Deep root concavity" },
+  },
   periImplant: {
     "none": { code: "none", display: "Peri-implant health" },
     "mucositis": { code: "mucositis", display: "Peri-implant mucositis" },

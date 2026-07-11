@@ -1776,3 +1776,29 @@ select:focus{
 .dark .perio-fullgrid-plaque[data-present="1"]{
   background: var(--accent, #4d8bff); border-color: var(--accent, #4d8bff);
 }
+
+/* SP-perio PG-C Task 3: CEJ-visibility + root-concavity cycle controls — one
+   compact button per tooth (mirrors .perio-fullgrid-furc above), face shows
+   a short abbreviation of the current value ("–" when none). */
+.perio-fullgrid-cej,
+.perio-fullgrid-rootconcavity{
+  width: 17px; height: 15px; padding: 0;
+  font-size: 8px; font-weight: 700; line-height: 1;
+  text-align: center; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 3px;
+  background: var(--card); color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.perio-fullgrid-cej[data-value]:not([data-value="none"]),
+.perio-fullgrid-rootconcavity[data-value]:not([data-value="none"]){
+  border-color: var(--accent, #c0392b);
+  background: var(--accent, #c0392b); color: #fff;
+}
+.perio-fullgrid-cej:disabled,
+.perio-fullgrid-rootconcavity:disabled{ opacity: .45; cursor: not-allowed; }
+.dark .perio-fullgrid-cej,
+.dark .perio-fullgrid-rootconcavity{ background: rgba(255,255,255,.04); }
+.dark .perio-fullgrid-cej[data-value]:not([data-value="none"]),
+.dark .perio-fullgrid-rootconcavity[data-value]:not([data-value="none"]){
+  background: var(--accent, #e05252); border-color: var(--accent, #e05252);
+}

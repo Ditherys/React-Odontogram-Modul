@@ -244,6 +244,18 @@ export const AXES: ClinicalAxis[] = [
 
   // SP8 Task 1: peri-implantitis foundation (registry/FHIR/i18n only; SVG layer +
   // render + migration land in later SP8 tasks).
+  // SP-perio PG-C Task 2: two per-tooth categorical DATA axes (data + registry +
+  // FHIR + payload only; the Dental Chart rows/UI are PG-C Task 3). No svgLayer:
+  // neither renders on the odontogram, so SVG-fingerprint parity is byte-identical
+  // (mirrors the periImplant/discoloration foundation axes — declarative FHIR via
+  // FIELD_MAPPINGS, no render metadata here).
+  { id: "cejVisibility", field: "cejVisibility", kind: "enum", valueGroup: "cejVisibility",
+    skipValue: "none", finding: { local: "cej-visibility", display: "CEJ visibility" },
+    values: valuesFrom("cejVisibility") },
+  { id: "rootConcavity", field: "rootConcavity", kind: "enum", valueGroup: "rootConcavity",
+    skipValue: "none", finding: { local: "root-concavity", display: "Root concavity" },
+    values: valuesFrom("rootConcavity") },
+
   { id: "periImplant", field: "periImplant", kind: "enum", valueGroup: "periImplant",
     skipValue: "none", finding: { local: "peri-implant-status", display: "Peri-implant status" },
     // No svgLayer: activation is explicit in applyStateToSvgSingle (mucositis reuses

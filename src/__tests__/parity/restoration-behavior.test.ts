@@ -167,7 +167,7 @@ describe("restoration behavior: Task 4 — crownMaterial/bridgeUnit retirement +
     expect(pontic).not.toHaveProperty("bridgeUnit");
 
     const payload = __collectExportPayloadForTest();
-    expect(payload.version).toBe("2.13");
+    expect(payload.version).toBe("2.14");
     for (const tooth of Object.values(payload.teeth) as Record<string, unknown>[]) {
       expect(tooth).not.toHaveProperty("crownMaterial");
       expect(tooth).not.toHaveProperty("bridgeUnit");

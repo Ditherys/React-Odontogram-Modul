@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.41.0] - 2026-07-11
+### Added
+- **Cairo recession type** (RT1–RT3) — computed from the attachment levels already recorded (interproximal vs buccal CAL on a tooth with buccal recession) and shown as a Dental Chart overlay layer + in the tooth tooltip / whole-mouth summary. Derived, no new data.
+- Two per-tooth findings: **CEJ visibility** (none / detectable / not-detectable — affects CAL/recession accuracy) and **root concavity** (none / mild / deep), each as a Dental Chart row with an info popup, surfaced in the summary, and exported to FHIR. Payload 2.14 (additive).
+
 ## [1.40.0] - 2026-07-11
 ### Added
 - **Index switcher on the Dental Chart.** A toggle row highlights the teeth by a chosen periodontal measure — probing depth, CAL, recession, plaque, bleeding, or ≥5 mm/≥6 mm deep-pocket heat — repainting the same tooth diagram (one canvas, swappable layer). All layers are computed from the data you already entered (no new measurements); API `getPerioOverlayLayer()` / `setPerioOverlayLayer()`.

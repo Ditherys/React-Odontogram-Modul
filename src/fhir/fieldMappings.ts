@@ -82,4 +82,10 @@ export const FIELD_MAPPINGS: FieldMapping[] = [
 
   // SP8 Task 1: peri-implantitis foundation (additive; see axes.ts).
   { field: "periImplant", kind: "enum", valueGroup: "periImplant", skipValue: "none", findingCode: "peri-implant-status", findingDisplay: "Peri-implant status" },
+
+  // SP-perio PG-C Task 2: cejVisibility + rootConcavity data axes (additive; see
+  // axes.ts). Declarative enum path — a set tooth emits the axis coding, a `none`
+  // tooth emits none.
+  { field: "cejVisibility", kind: "enum", valueGroup: "cejVisibility", skipValue: "none", findingCode: "cej-visibility", findingDisplay: "CEJ visibility" },
+  { field: "rootConcavity", kind: "enum", valueGroup: "rootConcavity", skipValue: "none", findingCode: "root-concavity", findingDisplay: "Root concavity" },
 ];

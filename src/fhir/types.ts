@@ -29,6 +29,13 @@ export interface ToothRecord {
   // SP12 design). Enum axis, no svgLayer — see registry/axes.ts.
   discoloration?: string;
   periImplant?: string;
+  // SP-perio PG-C Task 2: two per-tooth categorical DATA axes (payload >=2.14,
+  // additive). `cejVisibility` (none|detectable|not-detectable) and
+  // `rootConcavity` (none|mild|deep). Omitted entirely when `none` (skipValue),
+  // so a tooth that never sets them stays byte-identical. Emitted via the
+  // declarative FIELD_MAPPINGS enum path — no svgLayer, no render.
+  cejVisibility?: string;
+  rootConcavity?: string;
   // SP14 Task 1: orthodontic axes foundation (additive; see registry/axes.ts).
   orthoAppliance?: string;
   orthoDrift?: string;

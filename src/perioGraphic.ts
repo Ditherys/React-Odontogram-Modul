@@ -847,7 +847,7 @@ export function buildMmGridLayer(opts: {
 export interface OverlayMark {
   x: number;
   y: number;
-  kind: "bop" | "plaque" | "pd5" | "pd6" | "heat-shallow" | "heat-moderate" | "heat-deep";
+  kind: "bop" | "plaque" | "pd5" | "pd6" | "heat-shallow" | "heat-moderate" | "heat-deep" | "rt1" | "rt2" | "rt3";
 }
 
 /** One ordered site's reading for the discrete site-based overlays. `pd`
@@ -1026,8 +1026,48 @@ export function perioPlaqueMarks(
   return out;
 }
 
+// ---------------------------------------------------------------------------
+// SP-perio PG-C Task 1: the Cairo (2011) recession-TYPE overlay. Unlike every
+// overlay above (one mark per PROBING SITE or per O'Leary SURFACE), Cairo's
+// RT is a single, per-TOOTH derived classification (see
+// `getToothRecessionType` in odontogram.ts) — the caller collects one RT
+// per tooth (not per site) and passes it in here, mirroring the shape
+// `perioPlaqueMarks` already uses for its own whole-tooth index. RT is
+// specifically a BUCCAL-recession classification (it reads `perio.gm.get
+// ("B")`), so — unlike plaque, which splits across both rows — a mark is
+// only ever placed on the BUCCAL aspect, at the tooth's cervical/CEJ point
+// (the same point the buccal margin sits at when gm=0).
+// ---------------------------------------------------------------------------
+
+/** One tooth's Cairo-overlay input for {@link perioCairoMarks}: its row-local
+ *  x + viewBox width and its derived recession TYPE (`"none"` -> no mark). */
+export interface PerioCairoTooth {
+  x: number;
+  width: number;
+  rt: "none" | "rt1" | "rt2" | "rt3";
+}
+
+/**
+ * Pure geometry for the Cairo recession-type overlay: one mark per tooth
+ * whose derived RT is not `"none"`, centered on the tooth at the shared CEJ
+ * baseline (the same `cejY` every other overlay/curve anchors to). A tooth
+ * with `"none"` (no buccal recession, or not charted) yields no mark.
+ */
+export function perioCairoMarks(
+  teeth: readonly PerioCairoTooth[],
+  opts: { cejY: number },
+): OverlayMark[] {
+  const out: OverlayMark[] = [];
+  for (const tooth of teeth) {
+    if (tooth.rt === "none") continue;
+    out.push({ x: tooth.x + tooth.width * 0.5, y: opts.cejY, kind: tooth.rt });
+  }
+  return out;
+}
+
 /** Per-kind marker radius (row-local units). BOP dots read small + crisp; the
- *  pocket-threshold heat spots are larger fills; plaque sits between. */
+ *  pocket-threshold heat spots are larger fills; plaque sits between. The
+ *  Cairo RT badges scale with severity, mirroring the heat-bucket ramp. */
 const OVERLAY_MARK_RADIUS: Record<OverlayMark["kind"], number> = {
   bop: 2,
   plaque: 2.6,
@@ -1036,6 +1076,9 @@ const OVERLAY_MARK_RADIUS: Record<OverlayMark["kind"], number> = {
   "heat-shallow": 2.4,
   "heat-moderate": 3.2,
   "heat-deep": 4.2,
+  rt1: 2.8,
+  rt2: 3.5,
+  rt3: 4.2,
 };
 
 /**

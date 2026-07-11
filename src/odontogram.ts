@@ -262,6 +262,11 @@ function defaultState(){
     // peri-implant disease axis. none | mucositis | peri-implantitis-mild |
     // peri-implantitis-moderate | peri-implantitis-severe.
     periImplant: "none",
+    // SP-perio PG-C Task 2: two per-tooth categorical DATA axes (registry/FHIR/
+    // payload only; the Dental Chart rows/UI land in PG-C Task 3). Both default
+    // "none" and are omit-when-none on serialize; NO svgLayer, so neither renders.
+    cejVisibility: "none", // none | detectable | not-detectable
+    rootConcavity: "none", // none | mild | deep
     // SP-perio P1 Task 1: per-tooth, per-site periodontal probing data —
     // deliberately a SEPARATE sub-record from the 5-surface caries maps
     // above (perio sites are a different geometry: 6 fixed probing points,
@@ -1345,6 +1350,21 @@ function periImplantSummaryLabel(state: Any): string | null {
   if(state.toothSelection !== "implant") return null;
   if(!state.periImplant || state.periImplant === "none") return null;
   return t("periImplant." + kebabToCamel(state.periImplant));
+}
+// SP-perio PG-C Task 3: CEJ visibility + root concavity — periodontal
+// root-surface data axes (T2 shipped set/get, no svgLayer). Surfaced the same
+// way as periImplantSummaryLabel/getToothRecessionType above: a periodontal
+// PRESENCE line, not a pulp/apical/resorption diagnosis, so these are pushed
+// alongside peri-implant status / recession type (see getStateSummary /
+// getOdontogramSummary's "inflamed" bucket below), never through
+// diagnosisSummaryLabels.
+function cejVisibilitySummaryLabel(state: Any): string | null {
+  if(!state.cejVisibility || state.cejVisibility === "none") return null;
+  return t("perio.cej." + kebabToCamel(state.cejVisibility));
+}
+function rootConcavitySummaryLabel(state: Any): string | null {
+  if(!state.rootConcavity || state.rootConcavity === "none") return null;
+  return t("perio.rootConcavity." + kebabToCamel(state.rootConcavity));
 }
 /** All non-empty clinical diagnosis labels for a tooth, in a stable order.
  *  FIX 1: peri-implant status is deliberately NOT included here — it belongs to
@@ -2752,6 +2772,14 @@ function getStateSummary(toothNo: number): string[]{
   // groups with periodontal findings), so push it here explicitly to keep the
   // tooltip showing it, alongside the other periodontal presence lines.
   { const pi = periImplantSummaryLabel(state); if(pi) summary.push(pi); }
+  // SP-perio PG-C Task 1: derived Cairo recession TYPE (RT1-3), a periodontal
+  // presence line alongside peri-implant status above — never stored, just
+  // read via getToothRecessionType (see its doc comment for the rule).
+  { const rt = getToothRecessionType(toothNo); if(rt !== "none") summary.push(t(`perio.recession.${rt}`)); }
+  // SP-perio PG-C Task 3: CEJ visibility / root concavity — same periodontal
+  // presence grouping as peri-implant status / recession type above.
+  { const cej = cejVisibilitySummaryLabel(state); if(cej) summary.push(cej); }
+  { const rc = rootConcavitySummaryLabel(state); if(rc) summary.push(rc); }
   // SP17 Task 1 Fix #2 (gate-parity follow-up): gate on the SAME FULL predicate
   // the #crownLeakageRow control uses (crownLeakageAllowed, ~line 2974) —
   // !restorationRowHidden(state) AND crown/bridge. Checking crown/bridge alone
@@ -4881,9 +4909,15 @@ function serializeState(s: Any){
     // byte-identical to its pre-furcation serialization.
     ...((s.furcation?.size ?? 0) > 0 ? { furcation: Object.fromEntries(s.furcation) } : {}),
     // SP-perio P2b Task 3: omitted ENTIRELY when no surface has plaque, same
-    // convention as `perio`/`furcation` above — payload stays 2.13 (additive,
-    // no bump) and a no-plaque tooth/payload stays byte-identical.
+    // convention as `perio`/`furcation` above (additive) — a no-plaque
+    // tooth/payload stays byte-identical apart from the version field.
     ...((s.plaque?.size ?? 0) > 0 ? { plaque: Array.from(s.plaque) } : {}),
+    // SP-perio PG-C Task 2: cejVisibility/rootConcavity are emitted ONLY when set
+    // (!== "none"), like the omit-when-empty perio fields above — a default tooth
+    // stays byte-identical (payload bumped to 2.14). Both round-trip via
+    // validateEnum in hydrateState (default "none").
+    ...(s.cejVisibility && s.cejVisibility !== "none" ? { cejVisibility: s.cejVisibility } : {}),
+    ...(s.rootConcavity && s.rootConcavity !== "none" ? { rootConcavity: s.rootConcavity } : {}),
     ...(Object.keys(s.customStates || {}).length > 0 ? { customStates: s.customStates } : {}),
     ...(s.note ? { note: s.note } : {}),
   };
@@ -4926,6 +4960,10 @@ export const VALID_ROOT_CARIES = validValues("rootCaries");
 // SP8 Task 1: peri-implantitis foundation (registry axis; unused until later
 // SP8 tasks wire up render/migration/UI).
 export const VALID_PERI_IMPLANT = validValues("periImplant");
+// SP-perio PG-C Task 2: the two new categorical data axes (registry axes; read
+// from AXES like every other enum).
+export const VALID_CEJ_VISIBILITY = validValues("cejVisibility");
+export const VALID_ROOT_CONCAVITY = validValues("rootConcavity");
 export const VALID_CARS = new Set([0, 1, 2, 3, 4, 5, 6]);
 export const VALID_CARIES_SEVERITY = new Set([0, 1, 2, 3, 4, 5, 6]);
 export const VALID_RADIOGRAPHIC_DEPTH = new Set(["none", "E1", "E2", "D1", "D2", "D3"]);
@@ -5219,6 +5257,11 @@ function hydrateState(raw: Any, inferLegacySecondaryCaries = true){
     if(s.mods.has("inflammation")){ s.periImplant = "mucositis"; s.mods.delete("inflammation"); }
     if(s.mods.has("parodontal")){ s.periImplant = "mucositis"; s.mods.delete("parodontal"); }
   }
+  // SP-perio PG-C Task 2: cejVisibility/rootConcavity (additive enum axes). A
+  // legacy payload (<=2.13) never carried these fields, so absent/invalid ->
+  // "none". No migration needed.
+  s.cejVisibility = validateEnum(raw.cejVisibility, VALID_CEJ_VISIBILITY, "none");
+  s.rootConcavity = validateEnum(raw.rootConcavity, VALID_ROOT_CONCAVITY, "none");
   s.radiographicDepth = new Map();
   if(raw.radiographicDepth && typeof raw.radiographicDepth === "object"){
     for(const [surf, val] of Object.entries(raw.radiographicDepth)){
@@ -5503,7 +5546,7 @@ function collectExportPayload(){
   const planTeeth = planInitialized ? collectTeeth(charts.plan) : null;
   const planDiffers = planTeeth !== null && JSON.stringify(planTeeth) !== JSON.stringify(statusTeeth);
   return {
-    version: "2.13",
+    version: "2.14",
     globals: collectGlobals(),
     teeth: statusTeeth,
     ...(planDiffers ? { plan: planTeeth } : {}),
@@ -5532,7 +5575,7 @@ export function getStatusChart(): Any {
  */
 export function getPlanChart(): Any {
   return {
-    version: "2.13",
+    version: "2.14",
     globals: collectGlobals(),
     teeth: collectTeeth(charts.plan),
   };
@@ -5951,6 +5994,67 @@ export function getToothPlaque(toothNo: number): string[] {
   return Array.from(plaque);
 }
 
+// ---- SP-perio PG-C Task 2: cejVisibility + rootConcavity public API.
+// Two per-tooth categorical DATA axes (data + registry + FHIR + payload only;
+// the Dental Chart rows/UI are PG-C Task 3). Both operate on the ACTIVE-chart
+// `toothState` alias like the perio/furcation/plaque APIs above — transparently
+// Status/Plan dual-state aware. Interactive per-tooth edits, so they route
+// through the DS-1 gate `gateToothEdit` exactly like setFurcation/setPlaque.
+// Pure data — no SVG/DOM touched, no render triggered (neither axis has a chart
+// layer: NO svgLayer → parity byte-identical).
+
+/**
+ * Set a tooth's CEJ-visibility on the active chart. `value` must be one of
+ * {@link VALID_CEJ_VISIBILITY} (none | detectable | not-detectable); anything
+ * else is a silent no-op (state unchanged). Fires {@link notifyStateChange}
+ * only when it actually changes state; never on a rejected/no-op call.
+ */
+export function setCejVisibility(toothNo: number, value: string): void {
+  if(!VALID_CEJ_VISIBILITY.has(value)) return;
+  let s = toothState.get(toothNo);
+  if(!s){ s = defaultState(); toothState.set(toothNo, s); }
+  // DS-1: gate the mutation (see setFurcation/setPlaque). Returns whether it
+  // changed so a no-op edit is neither marked plan-edited nor mirrored.
+  gateToothEdit(toothNo, () => {
+    if(s.cejVisibility === value) return false;
+    s.cejVisibility = value;
+    notifyStateChange();
+    return true;
+  });
+}
+
+/** Read a tooth's CEJ-visibility from the active chart. A tooth never touched
+ *  (or with the default) returns "none". */
+export function getCejVisibility(toothNo: number): string {
+  const s = toothState.get(toothNo);
+  return (s?.cejVisibility as string) ?? "none";
+}
+
+/**
+ * Set a tooth's root-concavity on the active chart. `value` must be one of
+ * {@link VALID_ROOT_CONCAVITY} (none | mild | deep); anything else is a silent
+ * no-op (state unchanged). Fires {@link notifyStateChange} only when it
+ * actually changes state; never on a rejected/no-op call.
+ */
+export function setRootConcavity(toothNo: number, value: string): void {
+  if(!VALID_ROOT_CONCAVITY.has(value)) return;
+  let s = toothState.get(toothNo);
+  if(!s){ s = defaultState(); toothState.set(toothNo, s); }
+  gateToothEdit(toothNo, () => {
+    if(s.rootConcavity === value) return false;
+    s.rootConcavity = value;
+    notifyStateChange();
+    return true;
+  });
+}
+
+/** Read a tooth's root-concavity from the active chart. A tooth never touched
+ *  (or with the default) returns "none". */
+export function getRootConcavity(toothNo: number): string {
+  const s = toothState.get(toothNo);
+  return (s?.rootConcavity as string) ?? "none";
+}
+
 /** Derive Clinical Attachment Level (CAL = pd + gm, gm signed and defaulting
  *  to 0) for every CHARTED site of a tooth on the active chart. CAL is never
  *  stored — this is the single source of truth for it. A site absent from
@@ -5963,6 +6067,55 @@ export function getToothCal(toothNo: number): Map<string, number> {
     cal.set(site, pd + ((s.perio.gm as Map<string, number>).get(site) ?? 0));
   }
   return cal;
+}
+
+/** Cairo RT1 interproximal-CAL "approximately zero" threshold, in mm (SP-perio
+ *  PG-C Task 1 — see {@link getToothRecessionType}). Below this the
+ *  interproximal papilla is considered clinically intact (no measurable
+ *  attachment loss). Small, explicit, and tunable by a maintainer — Cairo
+ *  2011 does not itself prescribe a numeric epsilon for "zero". */
+const CAIRO_RT1_INTERPROX_THRESHOLD_MM = 1;
+
+/** Cairo (2011) gingival-recession TYPE — RT1/RT2/RT3 — or `"none"`. */
+export type RecessionType = "none" | "rt1" | "rt2" | "rt3";
+
+/**
+ * SP-perio PG-C Task 1: the Cairo 2011 recession-TYPE classification,
+ * DERIVED purely from the already-charted per-site CAL ({@link getToothCal})
+ * plus the buccal gingival margin (`perio.gm.get("B")`) — never stored, no
+ * new state/payload/FHIR axis (parity byte-identical). Pure + read-only:
+ * this is the single source of truth for a tooth's RT, mirroring how
+ * {@link getToothCal} is the single source of truth for CAL.
+ *
+ * Cairo classifies BUCCAL recession by comparing it to the WORSE (deeper) of
+ * the two adjacent interproximal (mesio-/disto-buccal) attachment losses:
+ *   - `"none"`: no buccal recession — `gm.B` is <= 0 (the margin is at/
+ *     coronal to the CEJ, i.e. a pseudopocket, not recession) OR the buccal
+ *     site simply isn't charted (`gm.B` undefined). Absence is treated the
+ *     same as "no recession", not "unknown", since RT is a display-only
+ *     derivation with no "uncharted" state of its own to represent.
+ *   - `"rt1"`: buccal recession present, but the interproximal CAL
+ *     (`max(CAL[MB], CAL[DB])`) is below {@link CAIRO_RT1_INTERPROX_THRESHOLD_MM}
+ *     — essentially no interproximal attachment/papilla loss. An uncharted
+ *     MB/DB site contributes `0` to that max (the most conservative/least
+ *     severe reading), so "buccal recession + nothing charted
+ *     interproximally" also reads as RT1.
+ *   - `"rt2"`: interproximal CAL loss is <= the buccal CAL loss — the
+ *     papilla still reaches (or nearly reaches) the contact point.
+ *   - `"rt3"`: interproximal CAL loss EXCEEDS the buccal CAL loss — severe
+ *     papilla loss, apical to the buccal margin.
+ */
+export function getToothRecessionType(toothNo: number): RecessionType {
+  const s = toothState.get(toothNo);
+  if(!s || !s.perio) return "none";
+  const gmB = (s.perio.gm as Map<string, number>).get("B");
+  if(gmB === undefined || gmB <= 0) return "none";
+  const cal = getToothCal(toothNo);
+  const buccal = cal.get("B") ?? 0;
+  const interprox = Math.max(cal.get("MB") ?? 0, cal.get("DB") ?? 0);
+  if(interprox < CAIRO_RT1_INTERPROX_THRESHOLD_MM) return "rt1";
+  if(interprox <= buccal) return "rt2";
+  return "rt3";
 }
 
 /**
@@ -6273,10 +6426,13 @@ export function setPerioViewMode(mode: PerioViewMode): void {
 //   - "bop"     : dots on bleeding-on-probing sites (perio.bop).
 //   - "pd5"/"pd6": highlight sites whose probing depth >= 5 / >= 6 mm.
 //   - "pd"/"cal"/"gr": reserved for T3's continuous heat (no-op stubs here).
+//   - "cairo"   : per-tooth Cairo (2011) recession TYPE (RT1-3), derived
+//     from CAL (see getToothRecessionType) — a whole-tooth classification,
+//     not a per-site reading (PG-C Task 1).
 // Lives alongside `perioViewMode` (same session-state precedent) and reuses
 // the existing `onStateChange` subscription — PerioChart mirrors it into React
 // state (for the active-button/read-out) and redraws the overlay on notify.
-export type PerioOverlayLayer = "none" | "pd" | "cal" | "gr" | "plaque" | "bop" | "pd5" | "pd6";
+export type PerioOverlayLayer = "none" | "pd" | "cal" | "gr" | "cairo" | "plaque" | "bop" | "pd5" | "pd6";
 let perioOverlayLayer: PerioOverlayLayer = "none";
 
 /** Current Dental Chart overlay layer. Defaults to `"none"`. */
@@ -8064,6 +8220,14 @@ export function getOdontogramSummary(): OdontogramSummary {
     // route it into `inflamed` (periodontalText) instead of `diagnoses`, so an
     // implant with peri-implantitis is no longer reported "healthy" there.
     { const pi = periImplantSummaryLabel(s); if(pi) inflamed.push(`${lbl(toothNo)} (${pi})`); }
+    // SP-perio PG-C Task 1: derived Cairo recession TYPE — same periodontal
+    // "inflamed" bucket as calculus/mobility/peri-implant status above.
+    { const rt = getToothRecessionType(toothNo); if(rt !== "none") inflamed.push(`${lbl(toothNo)} (${t(`perio.recession.${rt}`)})`); }
+    // SP-perio PG-C Task 3: CEJ visibility / root concavity — same
+    // periodontal "inflamed" bucket as calculus/mobility/peri-implant/
+    // recession-type above.
+    { const cej = cejVisibilitySummaryLabel(s); if(cej) inflamed.push(`${lbl(toothNo)} (${cej})`); }
+    { const rc = rootConcavitySummaryLabel(s); if(rc) inflamed.push(`${lbl(toothNo)} (${rc})`); }
   }
 
   // Overview sentence — plural-aware phrases keep grammar correct per language

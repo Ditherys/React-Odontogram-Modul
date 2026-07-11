@@ -9,6 +9,7 @@ import {
   getPerioChart,
   getToothPerio,
   getToothCal,
+  getToothRecessionType,
   getPerioSummary,
   setPerioSite,
   getToothMobility,
@@ -18,6 +19,10 @@ import {
   getToothFurcation,
   setPlaque,
   getToothPlaque,
+  setCejVisibility,
+  getCejVisibility,
+  setRootConcavity,
+  getRootConcavity,
   isPerioRowHidden,
   isToothImplant,
   getReadOnly,
@@ -38,6 +43,7 @@ import {
   perioOverlayMarks,
   perioPlaqueMarks,
   perioMmHeatMarks,
+  perioCairoMarks,
   buildPerioOverlayLayer,
   PERIO_MM_PX,
   TOOTH_GAP,
@@ -46,6 +52,7 @@ import {
   type ArchLayout,
   type PerioCurveSite,
   type PerioOverlaySite,
+  type PerioCairoTooth,
   type SiteOverlayLayer,
   type MmHeatOverlayLayer,
 } from "./perioGraphic";
@@ -93,6 +100,16 @@ const PLAQUE_SURFACES: readonly string[] = ["mesial", "distal", "buccal", "lingu
 // Index 0 (no involvement) shows the em-dash placeholder, 1-4 show I-IV.
 const FURCATION_ROMAN = ["–", "I", "II", "III", "IV"];
 
+// SP-perio PG-C Task 3: cejVisibility / rootConcavity cycle-button value
+// order + compact face glyphs (mirrors FURCATION_ROMAN's role). Literal (not
+// imported from "./odontogram") for the same module-eval-safety reason as
+// BUCCAL_SITES/PLAQUE_SURFACES above — order matches VALID_CEJ_VISIBILITY /
+// VALID_ROOT_CONCAVITY (odontogram.ts) / LOCAL_VALUE_MAPS (codesystems.ts).
+const CEJ_VISIBILITY_CYCLE: readonly string[] = ["none", "detectable", "not-detectable"];
+const CEJ_VISIBILITY_FACE: Record<string, string> = { none: "–", detectable: "D", "not-detectable": "ND" };
+const ROOT_CONCAVITY_CYCLE: readonly string[] = ["none", "mild", "deep"];
+const ROOT_CONCAVITY_FACE: Record<string, string> = { none: "–", mild: "Mi", deep: "Dp" };
+
 type PerioSiteData = ReturnType<typeof getToothPerio>;
 type PerioSummaryData = ReturnType<typeof getPerioSummary>;
 
@@ -121,6 +138,10 @@ type ToothCellRefs = {
   // 4 O'Leary plaque-surface toggle buttons.
   furcation: Partial<Record<string, HTMLButtonElement>>;
   plaque: Partial<Record<string, HTMLButtonElement>>;
+  // SP-perio PG-C Task 3: single per-tooth cycle button each (no site/entrance
+  // subdivision — mirrors `mobility` above, which is also one-per-tooth).
+  cejVisibility: HTMLButtonElement | null;
+  rootConcavity: HTMLButtonElement | null;
 };
 
 type GridHandlers = {
@@ -130,6 +151,8 @@ type GridHandlers = {
   onMobility: (toothNo: number, value: string) => void;
   onFurcation: (toothNo: number, entrance: string) => void;
   onPlaque: (toothNo: number, surface: string) => void;
+  onCejVisibility: (toothNo: number) => void;
+  onRootConcavity: (toothNo: number) => void;
 };
 
 // T3 curve overlay: gather the ordered per-site {pd,gm} readings for one row
@@ -200,8 +223,10 @@ function drawArchCurves(cache: TemplateDocCache, container: HTMLElement | null, 
 
 // PG-B Task 2/3 switcher: the overlay layers offered by the switch row, in
 // display order. T2 shipped the discrete highlights (bop/plaque/pd5/pd6); T3
-// adds the continuous mm heat layers (pd/cal/gr).
-const SWITCHER_LAYERS: readonly PerioOverlayLayer[] = ["none", "pd", "cal", "gr", "bop", "plaque", "pd5", "pd6"];
+// adds the continuous mm heat layers (pd/cal/gr). PG-C Task 1 adds "cairo",
+// the derived per-tooth Cairo recession-TYPE overlay, grouped next to "gr"
+// (both are recession-related indices).
+const SWITCHER_LAYERS: readonly PerioOverlayLayer[] = ["none", "pd", "cal", "gr", "cairo", "bop", "plaque", "pd5", "pd6"];
 
 // PG-B Task 2 overlay: gather one row's ordered per-site {x, pd, gm, bop}
 // readings — the SAME per-tooth x/width `archToothLayout` gives the arch teeth
@@ -295,6 +320,23 @@ export function drawArchOverlay(
     );
     palatalParent.appendChild(
       buildPerioOverlayLayer(perioPlaqueMarks(plaqueTeeth, "palatal", opts), { width: layout.totalWidth, className }),
+    );
+    return;
+  }
+
+  // PG-C Task 1: the Cairo recession-TYPE overlay — a per-TOOTH derived
+  // classification (getToothRecessionType), not a per-site reading, so it is
+  // collected once per tooth (mirroring the plaque block above) and — since
+  // RT is specifically a BUCCAL-recession index — drawn ONLY into the buccal
+  // row, never the lingual/palatal row.
+  if (layer === "cairo") {
+    const cairoTeeth: PerioCairoTooth[] = layout.teeth.map((tooth) => ({
+      x: tooth.x,
+      width: tooth.width,
+      rt: getToothRecessionType(tooth.toothNo),
+    }));
+    buccalParent.appendChild(
+      buildPerioOverlayLayer(perioCairoMarks(cairoTeeth, opts), { width: layout.totalWidth, className }),
     );
     return;
   }
@@ -506,6 +548,26 @@ function syncToothCells(
     btn.setAttribute("aria-pressed", present ? "true" : "false");
     btn.disabled = readOnly || hidden;
   }
+  // SP-perio PG-C Task 3: cejVisibility / rootConcavity cycle buttons — face
+  // + value + pressed/disabled state from the active chart (getCejVisibility/
+  // getRootConcavity). Same hidden-row disable gate as PD/GM/mobility above
+  // (both axes are per-tooth, not gated to a furcated position like furcation).
+  if (cells.cejVisibility) {
+    const value = getCejVisibility(toothNo);
+    const btn = cells.cejVisibility;
+    btn.textContent = CEJ_VISIBILITY_FACE[value] ?? "–";
+    btn.dataset.value = value;
+    btn.setAttribute("aria-pressed", value !== "none" ? "true" : "false");
+    btn.disabled = readOnly || hidden;
+  }
+  if (cells.rootConcavity) {
+    const value = getRootConcavity(toothNo);
+    const btn = cells.rootConcavity;
+    btn.textContent = ROOT_CONCAVITY_FACE[value] ?? "–";
+    btn.dataset.value = value;
+    btn.setAttribute("aria-pressed", value !== "none" ? "true" : "false");
+    btn.disabled = readOnly || hidden;
+  }
 }
 
 /** One arch band's built grid plus the placeholder cell the tooth-row graphic
@@ -638,6 +700,52 @@ function buildPlaqueCell(
   return cell;
 }
 
+/** SP-perio PG-C Task 3: build ONE tooth's CEJ-VISIBILITY cell — a single
+ *  compact cycle button (none -> detectable -> not-detectable -> none on
+ *  click, via `setCejVisibility`). Built for EVERY tooth (mirrors the
+ *  mobility select below — this axis applies to any present tooth, not just
+ *  a furcated-position subset) and disabled on a hidden-row tooth (missing /
+ *  implant / under-gum / extraction — `isPerioRowHidden`) via
+ *  `syncToothCells`, the same gate PD/GM/mobility use. */
+function buildCejVisibilityCell(
+  toothNo: number,
+  cells: ToothCellRefs,
+  handlers: GridHandlers,
+): HTMLDivElement {
+  const cell = mkEl("div", "perio-fullgrid-cell perio-fullgrid-cell-cej");
+  cell.dataset.perioField = "cejVisibility";
+  const btn = mkEl("button", "perio-fullgrid-cej") as HTMLButtonElement;
+  btn.type = "button";
+  btn.id = `perio-fg-cej-${toothNo}`;
+  btn.title = t("perio.cej.label");
+  btn.setAttribute("aria-label", t("perio.cej.label"));
+  btn.addEventListener("click", () => handlers.onCejVisibility(toothNo));
+  cell.appendChild(btn);
+  cells.cejVisibility = btn;
+  return cell;
+}
+
+/** SP-perio PG-C Task 3: build ONE tooth's ROOT-CONCAVITY cell — mirrors
+ *  {@link buildCejVisibilityCell} exactly (none -> mild -> deep -> none via
+ *  `setRootConcavity`). */
+function buildRootConcavityCell(
+  toothNo: number,
+  cells: ToothCellRefs,
+  handlers: GridHandlers,
+): HTMLDivElement {
+  const cell = mkEl("div", "perio-fullgrid-cell perio-fullgrid-cell-rootconcavity");
+  cell.dataset.perioField = "rootConcavity";
+  const btn = mkEl("button", "perio-fullgrid-rootconcavity") as HTMLButtonElement;
+  btn.type = "button";
+  btn.id = `perio-fg-rootconcavity-${toothNo}`;
+  btn.title = t("perio.rootConcavity.label");
+  btn.setAttribute("aria-label", t("perio.rootConcavity.label"));
+  btn.addEventListener("click", () => handlers.onRootConcavity(toothNo));
+  cell.appendChild(btn);
+  cells.rootConcavity = btn;
+  return cell;
+}
+
 /**
  * Build ONE arch band, re-laid into the reference (periodontalchart-online.com)
  * structure: the buccal-aspect number rows sit ABOVE the tooth graphic and the
@@ -658,7 +766,10 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   // Initialise every tooth's cell registry up front — the buccal rows built
   // below reference these before the header row (which used to create them).
   for (const toothNo of teeth) {
-    registry.set(toothNo, { pd: {}, gm: {}, bop: {}, cal: {}, mobility: null, furcation: {}, plaque: {} });
+    registry.set(toothNo, {
+      pd: {}, gm: {}, bop: {}, cal: {}, mobility: null, furcation: {}, plaque: {},
+      cejVisibility: null, rootConcavity: null,
+    });
   }
 
   const buccalLabel = t("perio.buccal");
@@ -740,6 +851,19 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
     cell.appendChild(select);
     arch.appendChild(cell);
     registry.get(toothNo)!.mobility = select;
+  }
+
+  // --- CEJ-visibility row: single per-tooth cycle button, no site
+  //     subdivision (SP-perio PG-C Task 3 — mirrors the mobility row above). ---
+  arch.appendChild(mkRowLabelCell(t("perio.cej.label"), "perio.info.cej"));
+  for (const toothNo of teeth) {
+    arch.appendChild(buildCejVisibilityCell(toothNo, registry.get(toothNo)!, handlers));
+  }
+
+  // --- Root-concavity row: mirrors the CEJ-visibility row above. ---
+  arch.appendChild(mkRowLabelCell(t("perio.rootConcavity.label"), "perio.info.rootConcavity"));
+  for (const toothNo of teeth) {
+    arch.appendChild(buildRootConcavityCell(toothNo, registry.get(toothNo)!, handlers));
   }
 
   return { grid: arch, archCell };
@@ -1122,6 +1246,31 @@ export default function PerioChart({
         const present = getToothPlaque(toothNo).includes(surface);
         suppressResyncRef.current = true;
         setPlaque(toothNo, surface, !present);
+        suppressResyncRef.current = false;
+        syncOneTooth(toothNo);
+      },
+      // SP-perio PG-C Task 3: cycle none->detectable->not-detectable->none for
+      // one tooth's CEJ visibility. The current value is read from the ACTIVE
+      // chart (getCejVisibility) so a dual-state switch cycles the right
+      // chart; the write always goes through setCejVisibility (no new
+      // mutation path).
+      onCejVisibility: (toothNo) => {
+        const cur = getCejVisibility(toothNo);
+        const idx = CEJ_VISIBILITY_CYCLE.indexOf(cur);
+        const next = CEJ_VISIBILITY_CYCLE[(idx + 1) % CEJ_VISIBILITY_CYCLE.length];
+        suppressResyncRef.current = true;
+        setCejVisibility(toothNo, next);
+        suppressResyncRef.current = false;
+        syncOneTooth(toothNo);
+      },
+      // SP-perio PG-C Task 3: cycle none->mild->deep->none for one tooth's
+      // root concavity. Mirrors onCejVisibility above.
+      onRootConcavity: (toothNo) => {
+        const cur = getRootConcavity(toothNo);
+        const idx = ROOT_CONCAVITY_CYCLE.indexOf(cur);
+        const next = ROOT_CONCAVITY_CYCLE[(idx + 1) % ROOT_CONCAVITY_CYCLE.length];
+        suppressResyncRef.current = true;
+        setRootConcavity(toothNo, next);
         suppressResyncRef.current = false;
         syncOneTooth(toothNo);
       },
