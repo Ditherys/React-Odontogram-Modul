@@ -1,7 +1,7 @@
 # 🦷 React Odontogram Modul
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-1.46.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-1.47.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
 
@@ -63,8 +63,9 @@ This project is an interactive, browser-based odontogram editor that supports fa
 - 🪨 Calculus, and root resorption typed as internal or external-cervical (`resorptionType`)
 - 📏 Per-surface caries depth (superficial / dentin / deep), or optional ICDAS II scoring (0–6) via `enableIcdas`
 - 🩹 Crown marginal-leakage toggle, shown only for a crown or bridge restoration
-- 🧰 Unified topbar icon row with a tabbed Settings modal (General / Panels / Tooth details / Caries / Pulpa / Notes — numbering, notes, panel visibility, ICDAS, caries-depth toggle, root/radiographic caries granularity, pulp detail level, tooth wear/discoloration detail level, tooth information)
+- 🧰 Unified topbar icon row with a tabbed Settings modal (General / Panels / Tooth details / Caries / Pulpa / Notes / Periodontal — numbering, notes, panel visibility, ICDAS, caries-depth toggle, root/radiographic caries granularity, pulp detail level, tooth wear/discoloration detail level, tooth information)
 - 🗂️ Settings → "Panels" tab: independently show/hide the Statuses and Orthodontics whole-mouth summary panels
+- 🦷🩺 Settings → "Periodontal" tab: 16 per-index show/hide toggles for the perio-chart rows (grouped pocket/hygiene/mucogingival/support/peri-implant — PD/GM/CAL/BOP, plaque, PI, GI, CEJ visibility, root concavity, KG, GT, furcation, mobility, Miller class, mPI, mBI), each with a description, plus a translated-vs-canonical index-name display option (canonical = a fixed English/Latin scientific name in every UI language; tooltips always stay localized regardless of this setting). Both are app-level preferences (like `perioViewMode`) — never part of the export payload
 - 🩹 Secondary-caries (CARS) settings control merged into the Caries settings tab, positioned above Radiographic depth (the separate "Secondary caries" tab is retired)
 - 🎚️ Tooth details detail level (Settings → Tooth details): a simple/complex setting for tooth wear and for discoloration. Simple mode shows a yes/no toggle per finding (wear on → attrition/abrasion, discoloration on → other); complex mode (default) keeps the type/cause dropdowns, and the stored value is preserved when switching levels
 - 📋 Tooth information panel: live text summary of the whole chart (tooth counts, present/missing lists, caries incl. secondary, fillings, root canals, prosthetics, implants, periodontal status) — shown by default, toggleable in Settings
@@ -89,7 +90,7 @@ This project is an interactive, browser-based odontogram editor that supports fa
 - 📝 "What changes" box: whenever the plan differs from the current status, a box under the Tooth-information panel lists every difference per tooth and per treatment axis (presence, substrate, restoration, prosthesis, planned crown, orthodontics, pulp/endo, apical) as a `tooth: axis  from → to` line; also available programmatically via `getPlanChanges()`
 - 🩺 Periodontal charting: per-site **probing depth**, **gingival margin**, **bleeding on probing** (+ suppuration) at the six standard sites per tooth, with derived **clinical attachment level (CAL = PD + gingival margin)**, recession, and whole-mouth **%BOP**. A **graphical full-mouth perio chart** — the teeth drawn in a continuous **occlusal-to-occlusal** arch (reusing the tooth artwork; an **implant graphic** for implant teeth) with a red **CEJ line**, a **numbered millimeter guide grid**, and a **gingival-margin / pocket-depth curve** over the teeth, the number rows (full index names — PD/GM/CAL/BOP + mobility + furcation + plaque — in larger, more touch-friendly cells) aligned in columns and a summary (avg PD/CAL, %BOP, PI%), with **keyboard auto-advance** entry; the chart **dynamically scales to fill the available width**, responsive at any window size. Presented as an `Odontogram | Periodontal Status` **view toggle**, whose right panel is repurposed into a **perio-context sidebar** (patient data, the 2017 classification, and the whole-mouth summary) while that view is active (a Settings option switches the whole presentation back to a **popup**), and still a **separately-invocable component** (`PerioChart` export) so a host app can call up the perio chart independently of the base odontogram. Per-site **FHIR** export via the LOINC periodontal panel (`74029-0`; PD `32910-2`, recession `32911-0`, CAL `32912-8`)
 - 🅿️ Proposed styling: in Plan mode, findings the plan **adds** vs the current status (planned crown, extraction, orthodontic movement, prosthesis, …) render with a distinct **dashed, tinted "proposed" outline** so the plan reads as intent, not fact — with a "dashed = proposed" legend in the chart card. Status-mode rendering is byte-identical; the treatment is plan-only and fully reset on switching back
-- 🧪 1610 automated tests passing (1 additional test skipped) (Vitest) across 149 test files covering numbering, translations, presets, i18n, App component, theme, touch, plugins, accessibility, and clinical-axis/diagnosis parity
+- 🧪 1642 automated tests passing (1 additional test skipped) (Vitest) across 152 test files covering numbering, translations, presets, i18n, App component, theme, touch, plugins, accessibility, and clinical-axis/diagnosis parity
 - 📖 TypeDoc API documentation with JSDoc comments on all public exports (`npm run docs`)
 
 ### 📦 Modules
@@ -259,6 +260,7 @@ Opened from the topbar gear icon; a focus-trapped, ARIA `dialog` with a tabbed l
 - **Caries:** ICDAS II scoring toggle (`enableIcdas`), caries-depth toggle (`cariesDepthEnabled`), root-caries granularity (`rootCariesMode`: simple/severity), secondary/CARS granularity (`secondaryCariesMode`: simple/standard/full), radiographic-depth granularity (`radiographicDepthMode`: off/threeLevel/detailed) — the former separate "Secondary caries" tab is merged into this one, with the CARS control positioned directly above radiographic depth
 - **Pulpa:** pulp detail level (`pulpDetailLevel`: simple/AAE/practical-Latin, default AAE) — controls which vocabulary the "Pulp / Endo status" picker offers; changing it live-refreshes the whole-mouth summary and every open tooltip
 - **Notes:** enable/disable per-tooth notes (`enableNotes`)
+- **Periodontal:** per-index show/hide toggles for all 16 perio-chart rows (`perioRowVisibility`, default all visible), grouped Pocket (PD/GM/CAL/BOP) / Hygiene (Plaque/PI/GI) / Mucogingival (CEJ visibility/Root concavity/KG/GT) / Support (Furcation/Mobility/Miller class) / Peri-implant (mPI/mBI), each row with its own description; plus a translated-vs-canonical index-name mode (`perioIndexNameMode`: `translated` default / `canonical` — a fixed English/Latin scientific name shown in every UI language). App-level preferences only (mirrors `perioViewMode`) — never serialized, tooltips stay localized in either mode
 
 ### 🖼️ SVG Template System
 
@@ -357,7 +359,7 @@ setPluginState(11, "implant-brand", "Straumann");
 
 ### 🧪 Testing
 ```bash
-npm run test           # Run all 1610 tests (1 additional test skipped)
+npm run test           # Run all 1642 tests (1 additional test skipped)
 npm run test:watch     # Watch mode
 npm run test:coverage  # Coverage report
 ```
@@ -529,8 +531,8 @@ The export creates a JSON file (version `2.11`; imports also accept legacy `1.4`
 - `src/registry/` - declarative clinical-axis registry: FHIR field mappings, SVG-clear-set/boolean-flag activation, restoration type×material matrix, UI option lists (single source of truth generating export/import, FHIR, and picker UI)
 - `src/fhir/` - HL7 FHIR R4 export/import: `toFhir.ts`/`fromFhir.ts`, code systems, field mappings, primitives
 - `src/bridgeOverlay.ts` - multi-tooth bridge-span connector overlay (arch-aware saddle geometry)
-- `src/SettingsModal.tsx` - tabbed Settings dialog (General/Panels/Tooth details/Caries/Pulpa/Notes)
-- `src/__tests__/` + `src/registry/__tests__/` - Vitest test suite (1610 tests passing, 1 skipped, across 149 files)
+- `src/SettingsModal.tsx` - tabbed Settings dialog (General/Panels/Tooth details/Caries/Pulpa/Notes/Periodontal)
+- `src/__tests__/` + `src/registry/__tests__/` - Vitest test suite (1642 tests passing, 1 skipped, across 152 files)
 - `src/assets/teeth-svgs/` - SVG tooth templates (6 files: incisors, canines, premolars, molars + occlusal views)
 - `src/assets/icon-svgs/` - toolbar icon SVGs (5 files)
 

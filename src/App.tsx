@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { destroyOdontogram, initOdontogram, setNumberingSystem, clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, openPerioOverlay, closePerioOverlay, isPerioOverlayOpen, getPerioViewMode, setPerioViewMode, isDualStateConfirmPending, acceptDualStateConfirm, cancelDualStateConfirm } from "./odontogram";
-export { clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, getPerioViewMode, setPerioViewMode, isDualStateConfirmPending, acceptDualStateConfirm, cancelDualStateConfirm };
+import { destroyOdontogram, initOdontogram, setNumberingSystem, clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, openPerioOverlay, closePerioOverlay, isPerioOverlayOpen, getPerioViewMode, setPerioViewMode, getPerioRowVisibility, setPerioRowVisibility, getPerioIndexNameMode, setPerioIndexNameMode, isDualStateConfirmPending, acceptDualStateConfirm, cancelDualStateConfirm } from "./odontogram";
+export { clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, getPerioViewMode, setPerioViewMode, getPerioRowVisibility, setPerioRowVisibility, getPerioIndexNameMode, setPerioIndexNameMode, isDualStateConfirmPending, acceptDualStateConfirm, cancelDualStateConfirm };
 export { default as PerioChart } from "./PerioChart";
-import type { OdontogramSummary, PulpDetailLevel, SecondaryCariesMode, RootCariesMode, RadiographicDepthMode, ToothDetailLevel, SurfaceNotation, PerioViewMode } from "./odontogram";
-export type { PulpDetailLevel, SecondaryCariesMode, RootCariesMode, RadiographicDepthMode, ToothDetailLevel, SurfaceNotation, PerioViewMode } from "./odontogram";
+import type { OdontogramSummary, PulpDetailLevel, SecondaryCariesMode, RootCariesMode, RadiographicDepthMode, ToothDetailLevel, SurfaceNotation, PerioViewMode, PerioRowId, PerioIndexNameMode } from "./odontogram";
+export type { PulpDetailLevel, SecondaryCariesMode, RootCariesMode, RadiographicDepthMode, ToothDetailLevel, SurfaceNotation, PerioViewMode, PerioRowId, PerioIndexNameMode } from "./odontogram";
 export type { OdontogramSummary, OdontogramSummarySection } from "./odontogram";
 export type { FhirExportOptions } from "./fhir/types";
 import { startIntroTour } from "./tour";
@@ -233,6 +233,16 @@ export default function App({
   // showing, only meaningful while `viewMode === "toggle"`.
   const [viewMode, setViewMode] = useState<PerioViewMode>(() => getPerioViewMode());
   const [activeView, setActiveView] = useState<"odontogram" | "dentalChart">("odontogram");
+  // UI-2 Task 1: mirror the two Settings -> Periodontal tab module flags into
+  // React state, same precedent as `viewMode` mirroring `perioViewMode` above
+  // — kept in sync via the shared `onStateChange` subscription so a host
+  // calling the setters directly still re-renders the Settings modal.
+  const [perioRowVisibility, setPerioRowVisibilityState] = useState<Record<PerioRowId, boolean>>(
+    () => getPerioRowVisibility(),
+  );
+  const [perioIndexNameMode, setPerioIndexNameModeState] = useState<PerioIndexNameMode>(
+    () => getPerioIndexNameMode(),
+  );
   // UI-1 Task 1: whether the perio (Dental Chart) view is the one currently
   // showing — ONLY true in toggle-mode dentalChart; popup mode never gates
   // the shared right panel this way (the popup itself renders <PerioSidebar/>
@@ -383,6 +393,17 @@ export default function App({
     return onStateChange(refresh);
   }, []);
 
+  // UI-2 Task 1: mirror the module-level perioRowVisibility/perioIndexNameMode
+  // flags into React state the same way perioViewMode is mirrored above.
+  useEffect(() => {
+    const refresh = () => {
+      setPerioRowVisibilityState(getPerioRowVisibility());
+      setPerioIndexNameModeState(getPerioIndexNameMode());
+    };
+    refresh();
+    return onStateChange(refresh);
+  }, []);
+
   // DS-1 Task 2: mirror the pending-confirm flag into React state. Subscribe
   // only (no initial read) — a confirm is only ever requested by a post-mount
   // edit, so `confirmOpen` starts false and this never calls the module during
@@ -446,6 +467,10 @@ export default function App({
     onShowOrthoCard: (v) => setShowOrthoCard(v),
     perioViewMode: viewMode,
     onPerioViewMode: (v) => setPerioViewMode(v),
+    perioRowVisibility,
+    onPerioRowVisibility: (id, v) => setPerioRowVisibility(id, v),
+    perioIndexNameMode,
+    onPerioIndexNameMode: (v) => setPerioIndexNameMode(v),
   };
 
   return (

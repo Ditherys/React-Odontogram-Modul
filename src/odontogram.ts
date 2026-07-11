@@ -7176,6 +7176,76 @@ export function setPerioViewMode(mode: PerioViewMode): void {
   notifyStateChange();
 }
 
+// ---- UI-2 Task 1: Settings -> Periodontal tab app-level preferences ----
+// Two session-level UI preferences (no payload/FHIR change), mirroring the
+// `perioViewMode` precedent immediately above: a module `let` + getter +
+// setter that calls `notifyStateChange()`. Neither is part of the tooth
+// state, so neither is ever serialized (`collectExportPayload`/
+// `getPlanChart`/hydrate never reference these) — round-trip/FHIR/SVG
+// goldens are unaffected. `perioRowVisibility` drives which perio-chart
+// index rows the Dental Chart renders (T2); `perioIndexNameMode` drives
+// whether index row labels show the localized name or a static
+// English/Latin canonical name (T3). Both are wired into the Settings ->
+// Periodontal tab via `SettingsState` in `SettingsModal.tsx`.
+
+/** The 16 toggleable periodontal index rows the Dental Chart can show/hide. */
+export type PerioRowId =
+  | "plaque"
+  | "bop"
+  | "cal"
+  | "gm"
+  | "pd"
+  | "furcation"
+  | "mobility"
+  | "cej"
+  | "rootConcavity"
+  | "pi"
+  | "gi"
+  | "mpi"
+  | "mbi"
+  | "kg"
+  | "gt"
+  | "miller";
+
+const PERIO_ROW_IDS: readonly PerioRowId[] = [
+  "plaque", "bop", "cal", "gm", "pd", "furcation", "mobility", "cej",
+  "rootConcavity", "pi", "gi", "mpi", "mbi", "kg", "gt", "miller",
+];
+
+function defaultPerioRowVisibility(): Record<PerioRowId, boolean> {
+  const record = {} as Record<PerioRowId, boolean>;
+  for (const id of PERIO_ROW_IDS) record[id] = true;
+  return record;
+}
+
+let perioRowVisibility: Record<PerioRowId, boolean> = defaultPerioRowVisibility();
+
+/** Current per-index perio-chart row visibility. Defaults to all-visible. */
+export function getPerioRowVisibility(): Record<PerioRowId, boolean> {
+  return perioRowVisibility;
+}
+
+/** Show/hide one perio-chart index row. No-op (still notifies) if unchanged. */
+export function setPerioRowVisibility(id: PerioRowId, visible: boolean): void {
+  perioRowVisibility = { ...perioRowVisibility, [id]: visible };
+  notifyStateChange();
+}
+
+/** How perio-chart index row labels are rendered. */
+export type PerioIndexNameMode = "translated" | "canonical";
+let perioIndexNameMode: PerioIndexNameMode = "translated";
+
+/** Current perio index-name display mode. Defaults to `"translated"`. */
+export function getPerioIndexNameMode(): PerioIndexNameMode {
+  return perioIndexNameMode;
+}
+
+/** Switch the perio index-name display mode. No-op (still notifies) if unchanged. */
+export function setPerioIndexNameMode(mode: PerioIndexNameMode): void {
+  perioIndexNameMode = mode;
+  notifyStateChange();
+}
+
 // ---- Periodontal "Dental Chart" PG-B Task 2: the index-switcher overlay ----
 // Session-level UI preference (no payload/FHIR change) selecting WHICH
 // clinical index is highlighted OVER the Dental Chart arch graphic, on top of

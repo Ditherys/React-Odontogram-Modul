@@ -91,6 +91,10 @@ vi.mock("../odontogram", async () => {
     isPerioOverlayOpen: actual.isPerioOverlayOpen,
     getPerioViewMode: actual.getPerioViewMode,
     setPerioViewMode: actual.setPerioViewMode,
+    getPerioRowVisibility: actual.getPerioRowVisibility,
+    setPerioRowVisibility: actual.setPerioRowVisibility,
+    getPerioIndexNameMode: actual.getPerioIndexNameMode,
+    setPerioIndexNameMode: actual.setPerioIndexNameMode,
     // PG-B Task 2: PerioChart now reads/sets the overlay-layer flag — forward
     // the real implementations so its switcher/overlay effects work here.
     getPerioOverlayLayer: actual.getPerioOverlayLayer,

@@ -18,7 +18,9 @@ import {
   setStageOverride,
   setGradeOverride,
   setExtentOverride,
+  getPerioIndexNameMode,
 } from "./odontogram";
+import { indexName } from "./perioIndexNames";
 
 // UI-1 Task 1: extracted from `PerioChart.tsx` (the whole-mouth summary bar +
 // the "Páciens adatok" case-metadata form + the 2017 classification block),
@@ -152,25 +154,44 @@ export default function PerioSidebar() {
   const cigsDisabled = caseMeta.smokingStatus !== "current";
   const hba1cDisabled = caseMeta.diabetesStatus !== "present";
 
+  // UI-2 Task 3: the whole-mouth summary items that name a specific index
+  // (PD/CAL/BOP/Furcation/Plaque) compose their label from the qualifier
+  // (Avg/Worst/Max/%) + `indexName(...)`, so canonical mode swaps in the
+  // fixed English/Latin index name instead of the localized `t(...)` string
+  // — same effect as `buildArch`'s composed buccal/palatal labels in
+  // `PerioChart.tsx`. The qualifier itself is a plain English literal in
+  // canonical mode by design: canonical mode is explicitly NOT localized
+  // (that is the whole point of it), so it never round-trips through `t()`.
+  // "Charted sites" isn't tied to one specific index — left translated in
+  // both modes.
+  const canonicalNames = getPerioIndexNameMode() === "canonical";
+  const avgPdLabel = canonicalNames ? `Avg ${indexName("pd")}` : t("perio.summary.avgPd");
+  const avgCalLabel = canonicalNames ? `Avg ${indexName("cal")}` : t("perio.summary.avgCal");
+  const bopSummaryLabel = canonicalNames ? `${indexName("bop")}%` : t("perio.bopPercent");
+  const worstCalLabel = canonicalNames ? `Worst ${indexName("cal")}` : t("perio.summary.worstCal");
+  const maxPdLabel = canonicalNames ? `Max ${indexName("pd")}` : t("perio.summary.maxPd");
+  const maxFurcationLabel = canonicalNames ? `Max ${indexName("furcation")}` : t("perio.summary.maxFurcation");
+  const plaquePercentLabel = canonicalNames ? `${indexName("plaque")}%` : t("plaque.percent");
+
   return (
     <div className="panel-body">
       <div className="perio-summary-card">
         <div className="perio-summary-card-title">{t("perio.summary.title")}</div>
         <div className="perio-fullgrid-summary" role="status">
           <span className="perio-fullgrid-summary-item">
-            <span className="perio-fullgrid-summary-label">{t("perio.summary.avgPd")}</span>
+            <span className="perio-fullgrid-summary-label">{avgPdLabel}</span>
             <span className="perio-fullgrid-summary-value" id="perio-fg-summary-avgpd">
               {summary.avgPd === null ? "–" : summary.avgPd}
             </span>
           </span>
           <span className="perio-fullgrid-summary-item">
-            <span className="perio-fullgrid-summary-label">{t("perio.summary.avgCal")}</span>
+            <span className="perio-fullgrid-summary-label">{avgCalLabel}</span>
             <span className="perio-fullgrid-summary-value" id="perio-fg-summary-avgcal">
               {summary.avgCal === null ? "–" : summary.avgCal}
             </span>
           </span>
           <span className="perio-fullgrid-summary-item">
-            <span className="perio-fullgrid-summary-label">{t("perio.bopPercent")}</span>
+            <span className="perio-fullgrid-summary-label">{bopSummaryLabel}</span>
             <span className="perio-fullgrid-summary-value" id="perio-fg-summary-bop">
               {summary.bopPercent}%
             </span>
@@ -182,25 +203,25 @@ export default function PerioSidebar() {
             </span>
           </span>
           <span className="perio-fullgrid-summary-item">
-            <span className="perio-fullgrid-summary-label">{t("perio.summary.worstCal")}</span>
+            <span className="perio-fullgrid-summary-label">{worstCalLabel}</span>
             <span className="perio-fullgrid-summary-value" id="perio-fg-summary-cal">
               {worstCalText}
             </span>
           </span>
           <span className="perio-fullgrid-summary-item">
-            <span className="perio-fullgrid-summary-label">{t("perio.summary.maxPd")}</span>
+            <span className="perio-fullgrid-summary-label">{maxPdLabel}</span>
             <span className="perio-fullgrid-summary-value" id="perio-fg-summary-maxpd">
               {summary.maxPd === null ? "–" : summary.maxPd}
             </span>
           </span>
           <span className="perio-fullgrid-summary-item">
-            <span className="perio-fullgrid-summary-label">{t("perio.summary.maxFurcation")}</span>
+            <span className="perio-fullgrid-summary-label">{maxFurcationLabel}</span>
             <span className="perio-fullgrid-summary-value" id="perio-fg-summary-maxfurc">
               {summary.maxFurcation === null ? "–" : FURCATION_ROMAN[summary.maxFurcation]}
             </span>
           </span>
           <span className="perio-fullgrid-summary-item">
-            <span className="perio-fullgrid-summary-label">{t("plaque.percent")}</span>
+            <span className="perio-fullgrid-summary-label">{plaquePercentLabel}</span>
             <span className="perio-fullgrid-summary-value" id="perio-fg-summary-plaque">
               {summary.plaquePercent}%
             </span>

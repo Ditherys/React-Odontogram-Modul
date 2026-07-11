@@ -53,6 +53,14 @@ function makeSettings(overrides: Partial<SettingsState> = {}): SettingsState {
     onShowOrthoCard: vi.fn(),
     perioViewMode: "toggle",
     onPerioViewMode: vi.fn(),
+    perioRowVisibility: {
+      plaque: true, bop: true, cal: true, gm: true, pd: true, furcation: true,
+      mobility: true, cej: true, rootConcavity: true, pi: true, gi: true,
+      mpi: true, mbi: true, kg: true, gt: true, miller: true,
+    },
+    onPerioRowVisibility: vi.fn(),
+    perioIndexNameMode: "translated",
+    onPerioIndexNameMode: vi.fn(),
     ...overrides,
   };
 }
@@ -138,5 +146,25 @@ describe("SP15 Task 4 (B2): merged Caries / Secondary-caries settings", () => {
     // Guards against accidentally leaving a stray/duplicate tab entry behind.
     const ids = SETTINGS_TABS.map((tab) => tab.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe("UI-2 Task 1: Periodontal settings tab", () => {
+  it("is present in the tab registry, uniquely", () => {
+    const ids = SETTINGS_TABS.map((tab) => tab.id);
+    expect(ids).toEqual([
+      "general",
+      "panels",
+      "toothDetails",
+      "caries",
+      "pulpa",
+      "notes",
+      "periodontal",
+    ]);
+  });
+
+  it("has the expected titleKey", () => {
+    const tab = SETTINGS_TABS.find((t) => t.id === "periodontal");
+    expect(tab?.titleKey).toBe("settings.tab.periodontal");
   });
 });

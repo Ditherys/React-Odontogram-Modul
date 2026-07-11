@@ -9,6 +9,8 @@ import type {
   ToothDetailLevel,
   SurfaceNotation,
   PerioViewMode,
+  PerioRowId,
+  PerioIndexNameMode,
 } from "./odontogram";
 
 /** Translation function signature (subset of `useI18n`'s `t`). */
@@ -56,6 +58,10 @@ export type SettingsState = {
   onShowOrthoCard: (value: boolean) => void;
   perioViewMode: PerioViewMode;
   onPerioViewMode: (value: PerioViewMode) => void;
+  perioRowVisibility: Record<PerioRowId, boolean>;
+  onPerioRowVisibility: (id: PerioRowId, visible: boolean) => void;
+  perioIndexNameMode: PerioIndexNameMode;
+  onPerioIndexNameMode: (value: PerioIndexNameMode) => void;
 };
 
 /** Context handed to every tab's `render()`. */
@@ -126,6 +132,24 @@ const SURFACE_NOTATION_OPTIONS: { value: SurfaceNotation; labelKey: string }[] =
 const PERIO_VIEW_MODE_OPTIONS: { value: PerioViewMode; labelKey: string }[] = [
   { value: "toggle", labelKey: "settings.perioViewMode.toggle" },
   { value: "popup", labelKey: "settings.perioViewMode.popup" },
+];
+
+const PERIO_INDEX_NAME_MODE_OPTIONS: { value: PerioIndexNameMode; labelKey: string }[] = [
+  { value: "translated", labelKey: "settings.perioIndexNameMode.translated" },
+  { value: "canonical", labelKey: "settings.perioIndexNameMode.canonical" },
+];
+
+/**
+ * Declarative row-id groups for the Periodontal settings tab. Each group is a
+ * sub-heading + the row ids it covers; a `ToggleRow` is rendered per id,
+ * bound to `s.perioRowVisibility[id]` / `s.onPerioRowVisibility(id, v)`.
+ */
+const PERIO_ROW_GROUPS: { titleKey: string; ids: PerioRowId[] }[] = [
+  { titleKey: "settings.perio.group.pocket", ids: ["pd", "gm", "cal", "bop"] },
+  { titleKey: "settings.perio.group.hygiene", ids: ["plaque", "pi", "gi"] },
+  { titleKey: "settings.perio.group.mucogingival", ids: ["cej", "rootConcavity", "kg", "gt"] },
+  { titleKey: "settings.perio.group.support", ids: ["furcation", "mobility", "miller"] },
+  { titleKey: "settings.perio.group.periimplant", ids: ["mpi", "mbi"] },
 ];
 
 /** A single settings row: label + description + a control on the right. */
@@ -400,6 +424,37 @@ export const SETTINGS_TABS: SettingsTab[] = [
         checked={s.notes}
         onChange={s.onNotes}
       />
+    ),
+  },
+  {
+    id: "periodontal",
+    titleKey: "settings.tab.periodontal",
+    render: ({ t, s }) => (
+      <>
+        {PERIO_ROW_GROUPS.map((group) => (
+          <div key={group.titleKey}>
+            <div className="odon-settings-group-title">{t(group.titleKey)}</div>
+            {group.ids.map((id) => (
+              <ToggleRow
+                key={id}
+                t={t}
+                label={t(`settings.perio.row.${id}`)}
+                descKey={`settings.perio.row.${id}.desc`}
+                checked={s.perioRowVisibility[id]}
+                onChange={(v) => s.onPerioRowVisibility(id, v)}
+              />
+            ))}
+          </div>
+        ))}
+        <SelectRow<PerioIndexNameMode>
+          t={t}
+          label={t("settings.perioIndexNameMode")}
+          descKey="settings.perioIndexNameMode.desc"
+          value={s.perioIndexNameMode}
+          options={PERIO_INDEX_NAME_MODE_OPTIONS}
+          onChange={s.onPerioIndexNameMode}
+        />
+      </>
     ),
   },
 ];
