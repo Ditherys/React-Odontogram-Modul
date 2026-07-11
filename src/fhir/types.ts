@@ -170,6 +170,15 @@ export interface OdontogramExportPayload {
   globals?: Record<string, boolean>;
   teeth: Record<string, ToothRecord>;
   plan?: Record<string, ToothRecord>;
+  case?: {
+    age?: number;
+    smokingStatus?: string;
+    cigarettesPerDay?: number;
+    diabetesStatus?: string;
+    hba1c?: number;
+    toothLossPerio?: number;
+    maxRblPercent?: number;
+  };
 }
 
 /** Options for buildFhirBundle / exportFhir. */

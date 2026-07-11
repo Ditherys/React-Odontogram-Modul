@@ -45,6 +45,14 @@ import {
   setPeriImplantPlaque,
   getPeriImplantBleeding,
   setPeriImplantBleeding,
+  getCaseMeta,
+  setCaseAge,
+  setSmokingStatus,
+  setCigarettesPerDay,
+  setDiabetesStatus,
+  setHba1c,
+  setToothLossPerio,
+  setMaxRblPercent,
   type PerioCellCoord,
   type PerioOverlayLayer,
 } from "./odontogram";
@@ -169,6 +177,21 @@ const EMPTY_SUMMARY: PerioSummaryData = {
   // getPerioSummary(); null when nothing is charted (empty-chart default here).
   mpiScore: null,
   mbiScore: null,
+};
+
+// P4a Task 2: case-metadata panel — static default (NOT getCaseMeta()), same
+// module-eval-safety reason as EMPTY_SUMMARY/EMPTY_PERIO above (this hook
+// runs on every mount regardless of `active`; the real value is read in the
+// `active`-gated effect below).
+type CaseMetaData = ReturnType<typeof getCaseMeta>;
+const EMPTY_CASE_META: CaseMetaData = {
+  age: null,
+  smokingStatus: "unknown",
+  cigarettesPerDay: null,
+  diabetesStatus: "unknown",
+  hba1c: null,
+  toothLossPerio: null,
+  maxRblPercent: null,
 };
 
 type ToothCellRefs = {
@@ -1327,6 +1350,12 @@ export default function PerioChart({
   // the real value is read in the `active`-gated effect below (never at module
   // eval), keeping the partial-mock tests unaffected.
   const [overlayLayer, setOverlayLayer] = useState<PerioOverlayLayer>("none");
+  // P4a Task 2: the case/patient-context metadata, mirrored from the shared
+  // module-level object into React state so the panel's controls re-render on
+  // any change (this instance's own edits, or another consumer's). Static
+  // default (see EMPTY_CASE_META) — the real value is read in the
+  // `active`-gated effect below.
+  const [caseMeta, setCaseMetaState] = useState<CaseMetaData>(EMPTY_CASE_META);
 
   const fullResync = useCallback(() => {
     const registry = registryRef.current;
@@ -1849,6 +1878,18 @@ export default function PerioChart({
     return unsubscribe;
   }, [active]);
 
+  // P4a Task 2: mirror the shared case-metadata object into React state, same
+  // active-gated + onStateChange pattern as the overlay-layer effect above —
+  // every setter (setCaseAge etc.) fires notifyStateChange, so the panel
+  // re-reads getCaseMeta() and re-renders on any edit, from this instance or
+  // another mounted consumer.
+  useEffect(() => {
+    if (!active) return;
+    setCaseMetaState(getCaseMeta());
+    const unsubscribe = onStateChange(() => setCaseMetaState(getCaseMeta()));
+    return unsubscribe;
+  }, [active]);
+
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Escape") {
@@ -1878,6 +1919,12 @@ export default function PerioChart({
   );
 
   if (!active) return null;
+
+  // Read directly (not React state) — safe past the `active` guard above,
+  // same as every other real-module call in this render body. Only gates the
+  // P4a case-metadata panel's inputs (`disabled`); the perio grid's own
+  // read-only lock is applied separately at build/resync time.
+  const readOnly = getReadOnly();
 
   const worstCalText =
     summary.worstCal === null
@@ -1931,6 +1978,164 @@ export default function PerioChart({
         </span>
       )}
     </div>
+  );
+
+  // P4a Task 2: a collapsible case/patient-context panel — age, smoking (+
+  // conditional cigarettes/day), diabetes (+ conditional HbA1c), max
+  // radiographic bone loss %, and teeth lost to periodontitis. Each control
+  // writes straight through its Task 1 setter; an emptied number input passes
+  // `null` (the setter's clear signal). The cigarettes/day and HbA1c fields
+  // stay mounted but `disabled` (never removed from the DOM) when their
+  // gating condition (smoking = current / diabetes = present) isn't met, so
+  // a value already charted is never silently hidden away.
+  const cigsDisabled = caseMeta.smokingStatus !== "current";
+  const hba1cDisabled = caseMeta.diabetesStatus !== "present";
+  const caseMetaSection = (
+    <details id="caseMetaPanel" className="case-meta-panel">
+      <summary className="case-meta-panel-title">{t("case.panelTitle")}</summary>
+      <div className="case-meta-panel-body">
+        <div className="odon-settings-row">
+          <div className="odon-settings-row-text">
+            <div className="odon-settings-row-label">{t("case.age")}</div>
+          </div>
+          <div className="odon-settings-row-control">
+            <input
+              id="caseMetaAge"
+              type="number"
+              min={0}
+              max={120}
+              aria-label={t("case.age")}
+              disabled={readOnly}
+              value={caseMeta.age ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                setCaseAge(v === "" ? null : Number(v));
+              }}
+            />
+          </div>
+        </div>
+        <div className="odon-settings-row">
+          <div className="odon-settings-row-text">
+            <div className="odon-settings-row-label">{t("case.smoking.label")}</div>
+          </div>
+          <div className="odon-settings-row-control">
+            <select
+              id="caseMetaSmoking"
+              className="odon-settings-select"
+              aria-label={t("case.smoking.label")}
+              disabled={readOnly}
+              value={caseMeta.smokingStatus}
+              onChange={(e) => setSmokingStatus(e.target.value)}
+            >
+              <option value="unknown">{t("case.smoking.unknown")}</option>
+              <option value="never">{t("case.smoking.never")}</option>
+              <option value="former">{t("case.smoking.former")}</option>
+              <option value="current">{t("case.smoking.current")}</option>
+            </select>
+          </div>
+        </div>
+        <div className={"odon-settings-row" + (cigsDisabled ? " odon-settings-row-disabled" : "")}>
+          <div className="odon-settings-row-text">
+            <div className="odon-settings-row-label">{t("case.cigarettesPerDay")}</div>
+          </div>
+          <div className="odon-settings-row-control">
+            <input
+              id="caseMetaCigarettesPerDay"
+              type="number"
+              min={0}
+              max={99}
+              aria-label={t("case.cigarettesPerDay")}
+              disabled={readOnly || cigsDisabled}
+              value={caseMeta.cigarettesPerDay ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                setCigarettesPerDay(v === "" ? null : Number(v));
+              }}
+            />
+          </div>
+        </div>
+        <div className="odon-settings-row">
+          <div className="odon-settings-row-text">
+            <div className="odon-settings-row-label">{t("case.diabetes.label")}</div>
+          </div>
+          <div className="odon-settings-row-control">
+            <select
+              id="caseMetaDiabetes"
+              className="odon-settings-select"
+              aria-label={t("case.diabetes.label")}
+              disabled={readOnly}
+              value={caseMeta.diabetesStatus}
+              onChange={(e) => setDiabetesStatus(e.target.value)}
+            >
+              <option value="unknown">{t("case.diabetes.unknown")}</option>
+              <option value="none">{t("case.diabetes.none")}</option>
+              <option value="present">{t("case.diabetes.present")}</option>
+            </select>
+          </div>
+        </div>
+        <div className={"odon-settings-row" + (hba1cDisabled ? " odon-settings-row-disabled" : "")}>
+          <div className="odon-settings-row-text">
+            <div className="odon-settings-row-label">{t("case.hba1c")}</div>
+          </div>
+          <div className="odon-settings-row-control">
+            <input
+              id="caseMetaHba1c"
+              type="number"
+              min={3}
+              max={20}
+              step={0.1}
+              aria-label={t("case.hba1c")}
+              disabled={readOnly || hba1cDisabled}
+              value={caseMeta.hba1c ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                setHba1c(v === "" ? null : Number(v));
+              }}
+            />
+          </div>
+        </div>
+        <div className="odon-settings-row">
+          <div className="odon-settings-row-text">
+            <div className="odon-settings-row-label">{t("case.rbl")}</div>
+          </div>
+          <div className="odon-settings-row-control">
+            <input
+              id="caseMetaRbl"
+              type="number"
+              min={0}
+              max={100}
+              aria-label={t("case.rbl")}
+              disabled={readOnly}
+              value={caseMeta.maxRblPercent ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                setMaxRblPercent(v === "" ? null : Number(v));
+              }}
+            />
+          </div>
+        </div>
+        <div className="odon-settings-row">
+          <div className="odon-settings-row-text">
+            <div className="odon-settings-row-label">{t("case.toothLoss")}</div>
+          </div>
+          <div className="odon-settings-row-control">
+            <input
+              id="caseMetaToothLoss"
+              type="number"
+              min={0}
+              max={32}
+              aria-label={t("case.toothLoss")}
+              disabled={readOnly}
+              value={caseMeta.toothLossPerio ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                setToothLossPerio(v === "" ? null : Number(v));
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </details>
   );
 
   // Shared body (grid + summary bar) — identical in both chrome variants,
@@ -1989,6 +2194,7 @@ export default function PerioChart({
           </span>
         </span>
       </div>
+      {caseMetaSection}
       <div className="perio-fullgrid-scroll" ref={scrollRef}></div>
     </div>
   );

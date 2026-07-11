@@ -148,6 +148,17 @@ vi.mock("../odontogram", async () => {
     setPeriImplantPlaque: actual.setPeriImplantPlaque,
     getPeriImplantBleeding: actual.getPeriImplantBleeding,
     setPeriImplantBleeding: actual.setPeriImplantBleeding,
+    // P4a Task 2: case-metadata panel — <PerioChart/> now reads/writes the
+    // shared case-level metadata object at mount/render.
+    getCaseMeta: actual.getCaseMeta,
+    setCaseAge: actual.setCaseAge,
+    setSmokingStatus: actual.setSmokingStatus,
+    setCigarettesPerDay: actual.setCigarettesPerDay,
+    setDiabetesStatus: actual.setDiabetesStatus,
+    setHba1c: actual.setHba1c,
+    setToothLossPerio: actual.setToothLossPerio,
+    setMaxRblPercent: actual.setMaxRblPercent,
+    resetCaseMeta: actual.resetCaseMeta,
   };
 });
 

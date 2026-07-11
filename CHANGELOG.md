@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.44.0] - 2026-07-31
+### Added
+- **Case-level metadata object.** The engine's first case-level object — a single shared block (not per-tooth, not dual-state, mirrors the top-level `globals` payload key), carrying patient **age**, **smoking status** (never/former/current, + cigarettes/day), **diabetes status** (none/present, + HbA1c %), and two perio summary stats: **teeth lost to periodontitis** and **max radiographic bone loss %**. Surfaced as a collapsible panel on the Dental Chart (7 controls, live-updating, read-only-aware) and as a compact fragment appended to the whole-mouth periodontal summary line (e.g. "Age 54 · current smoker (12/day) · diabetic (HbA1c 7.8%) · max RBL 45% · 3 teeth lost to perio") — only the fields actually charted are shown. Public API: `getCaseMeta()`, `setCaseAge`/`setSmokingStatus`/`setCigarettesPerDay`/`setDiabetesStatus`/`setHba1c`/`setToothLossPerio`/`setMaxRblPercent`, `resetCaseMeta()`. Both charts (status + plan) carry the same shared case block; cleared on Reset All.
+- No FHIR representation yet — this is pure case-context data feeding the periodontal staging/grading classification that follows in the next sub-project. SVG-fingerprint parity byte-identical (no `svgLayer`, nothing renders on the odontogram). Payload version **2.17** (additive).
+
 ## [1.43.0] - 2026-07-31
 ### Added
 - **Mombelli modified Plaque Index (mPI)** and **Mombelli modified Sulcus Bleeding Index (mBI)** — implant-only, per-surface graded findings (0-3, mesial/distal/buccal/lingual), each surfaced as a Dental Chart row with an info popup, in the tooth tooltip, and in the whole-mouth summary. Both are gated to implant teeth end-to-end — the setter no-ops on a non-implant tooth, and the Dental Chart cell is active only on an implant. Exported to FHIR as additional per-surface graded components on the per-tooth periodontal Observation (engine-local codes; no dedicated LOINC yet).

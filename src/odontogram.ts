@@ -434,6 +434,115 @@ const charts: Record<"status" | "plan", Map<Any, Any>> = {
 let toothState = charts.status; // active-chart ALIAS — reassigned by setChartMode()
 export type ChartMode = "status" | "plan";
 let chartMode: ChartMode = "status";
+
+// ---- P4a Task 1: case-level metadata object -------------------------------
+// The engine's FIRST case-level object: a single SHARED module-level record
+// (NOT per-tooth, NOT part of the status/plan dual-state) for chart-independent
+// case context — patient age, smoking, diabetes/HbA1c, and perio summary stats
+// (tooth loss attributable to periodontitis, max radiographic bone loss %).
+// Mirrors the existing top-level `globals` payload key: one shared block,
+// serialized once into the payload's top-level `case` key (omit-when-empty),
+// hydrated in the shared `hydrateImportedCharts` data-path used by both
+// `importStatus()` and `__hydrateImportedChartsForTest()`.
+type CaseMeta = {
+  age: number | null;
+  smokingStatus: "unknown" | "never" | "former" | "current";
+  cigarettesPerDay: number | null;
+  diabetesStatus: "unknown" | "none" | "present";
+  hba1c: number | null;
+  toothLossPerio: number | null;
+  maxRblPercent: number | null;
+};
+function defaultCaseMeta(): CaseMeta {
+  return { age: null, smokingStatus: "unknown", cigarettesPerDay: null,
+    diabetesStatus: "unknown", hba1c: null, toothLossPerio: null, maxRblPercent: null };
+}
+let caseMeta: CaseMeta = defaultCaseMeta();
+const VALID_SMOKING = new Set(["unknown", "never", "former", "current"]);
+const VALID_DIABETES = new Set(["unknown", "none", "present"]);
+function clampInt(v: unknown, lo: number, hi: number): number | null {
+  const n = Number(v);
+  if(!Number.isFinite(n)) return null;
+  return Math.max(lo, Math.min(hi, Math.round(n)));
+}
+function setNumField(cur: number | null, v: unknown, lo: number, hi: number): number | null {
+  // non-finite (bad keystroke) is a no-op: keep current; explicit null clears.
+  if(v === null) return null;
+  const c = clampInt(v, lo, hi);
+  return c === null ? cur : c;
+}
+/** Current shared case-level metadata (age/smoking/diabetes/HbA1c/perio
+ *  summary stats). Not part of the status/plan dual-state — chart-independent. */
+export function getCaseMeta(): CaseMeta { return { ...caseMeta }; }
+export function setCaseAge(v: number | null): void { const n = setNumField(caseMeta.age, v, 0, 120); if(n !== caseMeta.age){ caseMeta.age = n; notifyStateChange(); } }
+export function setCigarettesPerDay(v: number | null): void { const n = setNumField(caseMeta.cigarettesPerDay, v, 0, 99); if(n !== caseMeta.cigarettesPerDay){ caseMeta.cigarettesPerDay = n; notifyStateChange(); } }
+export function setToothLossPerio(v: number | null): void { const n = setNumField(caseMeta.toothLossPerio, v, 0, 32); if(n !== caseMeta.toothLossPerio){ caseMeta.toothLossPerio = n; notifyStateChange(); } }
+export function setMaxRblPercent(v: number | null): void { const n = setNumField(caseMeta.maxRblPercent, v, 0, 100); if(n !== caseMeta.maxRblPercent){ caseMeta.maxRblPercent = n; notifyStateChange(); } }
+export function setHba1c(v: number | null): void {
+  // one-decimal % in 3.0–20.0; non-finite no-op, null clears.
+  if(v === null){ if(caseMeta.hba1c !== null){ caseMeta.hba1c = null; notifyStateChange(); } return; }
+  const n = Number(v);
+  if(!Number.isFinite(n)) return;
+  const clamped = Math.max(3, Math.min(20, Math.round(n * 10) / 10));
+  if(clamped !== caseMeta.hba1c){ caseMeta.hba1c = clamped; notifyStateChange(); }
+}
+export function setSmokingStatus(v: string): void { if(VALID_SMOKING.has(v) && v !== caseMeta.smokingStatus){ caseMeta.smokingStatus = v as CaseMeta["smokingStatus"]; notifyStateChange(); } }
+export function setDiabetesStatus(v: string): void { if(VALID_DIABETES.has(v) && v !== caseMeta.diabetesStatus){ caseMeta.diabetesStatus = v as CaseMeta["diabetesStatus"]; notifyStateChange(); } }
+export function resetCaseMeta(): void { caseMeta = defaultCaseMeta(); }
+function caseMetaIsEmpty(c: CaseMeta): boolean {
+  return c.age === null && c.smokingStatus === "unknown" && c.cigarettesPerDay === null
+    && c.diabetesStatus === "unknown" && c.hba1c === null && c.toothLossPerio === null && c.maxRblPercent === null;
+}
+function serializeCaseMeta(c: CaseMeta): Record<string, unknown> {
+  const o: Record<string, unknown> = {};
+  if(c.age !== null) o.age = c.age;
+  if(c.smokingStatus !== "unknown") o.smokingStatus = c.smokingStatus;
+  if(c.cigarettesPerDay !== null) o.cigarettesPerDay = c.cigarettesPerDay;
+  if(c.diabetesStatus !== "unknown") o.diabetesStatus = c.diabetesStatus;
+  if(c.hba1c !== null) o.hba1c = c.hba1c;
+  if(c.toothLossPerio !== null) o.toothLossPerio = c.toothLossPerio;
+  if(c.maxRblPercent !== null) o.maxRblPercent = c.maxRblPercent;
+  return o;
+}
+function hydrateCaseMeta(raw: Any): void {
+  caseMeta = defaultCaseMeta();
+  if(!raw || typeof raw !== "object") return;
+  caseMeta.age = clampInt(raw.age, 0, 120);
+  if(VALID_SMOKING.has(raw.smokingStatus)) caseMeta.smokingStatus = raw.smokingStatus;
+  caseMeta.cigarettesPerDay = clampInt(raw.cigarettesPerDay, 0, 99);
+  if(VALID_DIABETES.has(raw.diabetesStatus)) caseMeta.diabetesStatus = raw.diabetesStatus;
+  { const n = Number(raw.hba1c); caseMeta.hba1c = Number.isFinite(n) ? Math.max(3, Math.min(20, Math.round(n * 10) / 10)) : null; }
+  caseMeta.toothLossPerio = clampInt(raw.toothLossPerio, 0, 32);
+  caseMeta.maxRblPercent = clampInt(raw.maxRblPercent, 0, 100);
+}
+/** P4a Task 2: builds the compact, labelled case-context fragment
+ *  (e.g. "Age 54 · current smoker (12/day) · diabetic (HbA1c 7.8%) · max
+ *  RBL 45% · 3 teeth lost to perio") appended to {@link getOdontogramSummary}'s
+ *  `periodontalText` whenever `!caseMetaIsEmpty(caseMeta)`. Skips any field
+ *  still at its default (age null, smoking/diabetes "unknown") — never claims
+ *  a case fact that wasn't actually charted. */
+function caseContextSummaryFragment(c: CaseMeta): string {
+  const parts: string[] = [];
+  if(c.age !== null) parts.push(t("case.summary.age", { age: c.age }));
+  if(c.smokingStatus === "never") parts.push(t("case.summary.smokingNever"));
+  else if(c.smokingStatus === "former") parts.push(t("case.summary.smokingFormer"));
+  else if(c.smokingStatus === "current"){
+    parts.push(c.cigarettesPerDay !== null
+      ? t("case.summary.smokingCurrentCigs", { n: c.cigarettesPerDay })
+      : t("case.summary.smokingCurrent"));
+  }
+  if(c.diabetesStatus === "none") parts.push(t("case.summary.diabetesNone"));
+  else if(c.diabetesStatus === "present"){
+    parts.push(c.hba1c !== null
+      ? t("case.summary.diabetesPresentHba1c", { value: c.hba1c })
+      : t("case.summary.diabetesPresent"));
+  }
+  if(c.maxRblPercent !== null) parts.push(t("case.summary.rbl", { value: c.maxRblPercent }));
+  if(c.toothLossPerio !== null){
+    parts.push(t(`case.summary.toothLoss${c.toothLossPerio === 1 ? "One" : "Other"}`, { n: c.toothLossPerio }));
+  }
+  return parts.join(" · ");
+}
 // Plan chart is lazily deep-cloned from status the FIRST time plan mode is
 // entered; subsequent entries reuse whatever is already in charts.plan (so
 // plan edits are never silently overwritten by re-cloning from status).
@@ -2628,6 +2737,7 @@ export function __resetChartStateForTest(): void {
   pendingDualStateConfirm = null;
   chartMode = "status";
   toothState = charts.status;
+  resetCaseMeta();
 }
 
 /** TEST-ONLY (DS-1 Task 2 seam): set the active tooth (and lazily vivify its
@@ -5703,9 +5813,10 @@ function collectExportPayload(){
   const planTeeth = planInitialized ? collectTeeth(charts.plan) : null;
   const planDiffers = planTeeth !== null && JSON.stringify(planTeeth) !== JSON.stringify(statusTeeth);
   return {
-    version: "2.16",
+    version: "2.17",
     globals: collectGlobals(),
     teeth: statusTeeth,
+    ...(caseMetaIsEmpty(caseMeta) ? {} : { case: serializeCaseMeta(caseMeta) }),
     ...(planDiffers ? { plan: planTeeth } : {}),
   };
 }
@@ -5732,9 +5843,10 @@ export function getStatusChart(): Any {
  */
 export function getPlanChart(): Any {
   return {
-    version: "2.16",
+    version: "2.17",
     globals: collectGlobals(),
     teeth: collectTeeth(charts.plan),
+    ...(caseMetaIsEmpty(caseMeta) ? {} : { case: serializeCaseMeta(caseMeta) }),
   };
 }
 
@@ -7208,6 +7320,9 @@ function hydrateImportedCharts(data: Any): void {
     const raw = teeth[toothNo];
     charts.status.set(toothNo, hydrateState(raw, inferLegacySecondaryCaries));
   }
+  // P4a: shared case-level metadata — mirrors `globals`, hydrated once here
+  // regardless of status/plan, self-healing any bad/missing values.
+  hydrateCaseMeta(data.case);
   if(data.plan && typeof data.plan === "object"){
     for(const toothNo of ALL_TEETH){
       const raw = data.plan[toothNo];
@@ -8085,6 +8200,7 @@ function wireControls(){
 
   $("#btnResetAll").addEventListener("click", ()=>{
     setEdentulous(false);
+    resetCaseMeta(); // case-level patient metadata is part of the blank-slate reset (like edentulous)
     for(const toothNo of ALL_TEETH){
       toothState.set(toothNo, defaultState());
       applyStateToSvg(toothNo);
@@ -8094,6 +8210,11 @@ function wireControls(){
       setControlsEnabled(true);
       syncControlsFromState(toothState.get(activeTooth));
     }
+    // caseMeta was cleared above (resetCaseMeta) AFTER setEdentulous's early
+    // notify fired, so the mounted case-metadata panel would otherwise show
+    // stale patient data until the next unrelated change — notify once more now
+    // that all blank-slate resets are done, so subscribers re-read cleared state.
+    notifyStateChange();
   });
 
   $("#btnPrimaryDentition").addEventListener("click", applyPrimaryDentition);
@@ -8374,6 +8495,7 @@ export function destroyOdontogram(){
   pendingDualStateConfirm = null;
   chartMode = "status";
   toothState = charts.status;
+  resetCaseMeta();
   toothSvgRoot.clear();
   toothTile.clear();
   toothLabelUpper.clear();
@@ -8740,9 +8862,16 @@ export function getOdontogramSummary(): OdontogramSummary {
     { key: "prosthetics", heading: t("toothInfo.prosthetics"), items: prosthetics, emptyText: t("toothInfo.prostheticsEmpty") },
   ];
 
-  const periodontalText = inflamed.length
+  let periodontalText = inflamed.length
     ? t("toothInfo.periodontalInflamed", { list: inflamed.join(", ") })
     : t("toothInfo.periodontalHealthy");
+  // P4a Task 2: append the labelled case-context fragment (age/smoking/
+  // diabetes/HbA1c/RBL/tooth-loss) when any case metadata was charted; skip
+  // entirely on an empty case so a chart with no case data reads unchanged.
+  if(!caseMetaIsEmpty(caseMeta)){
+    const fragment = caseContextSummaryFragment(caseMeta);
+    if(fragment) periodontalText = `${periodontalText} – ${fragment}`;
+  }
 
   const implantInfo = implants.length
     ? { heading: t("toothInfo.implants"), text: implants.map(lbl).join(", ") }
