@@ -83,6 +83,14 @@ vi.mock("../odontogram", async () => {
     openPerioOverlay: actual.openPerioOverlay,
     closePerioOverlay: actual.closePerioOverlay,
     isPerioOverlayOpen: actual.isPerioOverlayOpen,
+    // "Dental Chart" graphical redesign, Task 1: this whole suite exercises
+    // P2's classic popup housing (launch button + modal), which now only
+    // renders while `perioViewMode === "popup"` — stubbed (not forwarded from
+    // the real, session-level, default-"toggle" module) so this file's App
+    // mounts stay in popup housing regardless of what any other test file
+    // did to the shared module state.
+    getPerioViewMode: vi.fn().mockReturnValue("popup"),
+    setPerioViewMode: vi.fn(),
     // P2 Task 2: <PerioChart/>'s grid + summary bar need the full perio data
     // core + these small read helpers, not just the open/close flag.
     PERIO_SITES: actual.PERIO_SITES,

@@ -71,6 +71,8 @@ vi.mock("../odontogram", async () => {
     openPerioOverlay: vi.fn(),
     closePerioOverlay: vi.fn(),
     isPerioOverlayOpen: vi.fn().mockReturnValue(false),
+    getPerioViewMode: vi.fn().mockReturnValue("toggle"),
+    setPerioViewMode: vi.fn(),
     exportFhir: vi.fn(),
     exportImage: vi.fn(),
     exportSvg: vi.fn(),

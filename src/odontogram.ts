@@ -30,7 +30,11 @@ import tooth14OcclUrl from "./assets/teeth-svgs/14_occl.svg";
 import tooth16OcclUrl from "./assets/teeth-svgs/16_occl.svg";
 /* Tooth SVG Test UI (v2) - vanilla JS */
 
-const TEMPLATES = {
+// Exported (read-only use) so `perioGraphic.ts` can load + clone the same
+// tooth-base artwork for the perio "Dental Chart" tooth-row graphic without
+// re-fetching or duplicating these URLs/mappings. Purely additive — no
+// existing call site or behavior changes.
+export const TEMPLATES = {
   11: tooth11Url,
   13: tooth13Url,
   14: tooth14Url,
@@ -47,7 +51,7 @@ const TEMPLATES_OCCL = {
 // 13: 13 -> no rotate; 23 -> mirror Y; 33 -> rotate 180; 43 -> rotate 180 + mirror Y
 // 14: 14,15 -> no rotate; 24,25 -> mirror Y; 34,35 -> rotate 180; 44,45 -> rotate 180 + mirror Y
 // 16: 16,17,18 -> no rotate; 26,27,28 -> mirror Y; 36,37,38 -> rotate 180; 46,47,48 -> rotate 180 + mirror Y
-const TOOTH_TEMPLATE = new Map([
+export const TOOTH_TEMPLATE = new Map([
   // 11 template
   [11, {tpl:11, rot:0, mirror:false}], [12,{tpl:11,rot:0,mirror:false}],
   [21,{tpl:11,rot:0,mirror:true}], [22,{tpl:11,rot:0,mirror:true}],
@@ -5396,9 +5400,11 @@ export function getToothCal(toothNo: number): Map<string, number> {
 export function getPerioSummary(): {
   chartedSites: number; bleedingSites: number; bopPercent: number;
   worstCal: number | null; worstCalTooth: number | null; maxPd: number | null;
+  avgPd: number | null; avgCal: number | null;
 } {
   let chartedSites = 0, bleedingSites = 0;
   let worstCal: number | null = null, worstCalTooth: number | null = null, maxPd: number | null = null;
+  let sumPd = 0, sumCal = 0;
   for(const toothNo of ALL_TEETH){
     const s = toothState.get(toothNo);
     if(!s || !s.perio) continue;
@@ -5409,12 +5415,18 @@ export function getPerioSummary(): {
       chartedSites++;
       if(bopSet.has(site)) bleedingSites++;
       const cal = pd + (gmMap.get(site) ?? 0);
+      sumPd += pd;
+      sumCal += cal;
       if(worstCal === null || cal > worstCal){ worstCal = cal; worstCalTooth = toothNo; }
       if(maxPd === null || pd > maxPd) maxPd = pd;
     }
   }
   const bopPercent = chartedSites > 0 ? Math.round((bleedingSites / chartedSites) * 1000) / 10 : 0;
-  return { chartedSites, bleedingSites, bopPercent, worstCal, worstCalTooth, maxPd };
+  // Averages over all charted sites, one decimal — null (not 0/NaN) when
+  // nothing is charted, mirroring worstCal/maxPd's "absence = not charted".
+  const avgPd = chartedSites > 0 ? Math.round((sumPd / chartedSites) * 10) / 10 : null;
+  const avgCal = chartedSites > 0 ? Math.round((sumCal / chartedSites) * 10) / 10 : null;
+  return { chartedSites, bleedingSites, bopPercent, worstCal, worstCalTooth, maxPd, avgPd, avgCal };
 }
 
 /** Per-tooth perio for every tooth on the active chart that has at least one
@@ -5585,6 +5597,29 @@ export function closePerioOverlay(): void {
 /** Whether the perio-chart overlay is currently open. */
 export function isPerioOverlayOpen(): boolean {
   return perioOverlayOpen;
+}
+
+// ---- Periodontal "Dental Chart" graphical redesign, Task 1: presentation ----
+// Session-level UI preference (no payload/FHIR change) governing how the P2
+// perio content is HOUSED: "toggle" (default) shows an Odontogram | Dental
+// Chart segmented control that renders <PerioChart inline/> in the chart
+// area (odontogram hidden via CSS, never unmounted); "popup" keeps P2's
+// classic launch-button + modal-overlay housing. Lives alongside
+// `perioOverlayOpen` (same session-state precedent) and reuses the existing
+// `onStateChange` subscription — App.tsx mirrors it into React state exactly
+// like `perioOpen` mirrors `isPerioOverlayOpen()`.
+export type PerioViewMode = "toggle" | "popup";
+let perioViewMode: PerioViewMode = "toggle";
+
+/** Current perio-chart housing mode. Defaults to `"toggle"`. */
+export function getPerioViewMode(): PerioViewMode {
+  return perioViewMode;
+}
+
+/** Switch the perio-chart housing mode. No-op (still notifies) if unchanged. */
+export function setPerioViewMode(mode: PerioViewMode): void {
+  perioViewMode = mode;
+  notifyStateChange();
 }
 
 function downloadJson(payload: Any, filenamePrefix: string){

@@ -171,6 +171,7 @@ describe("%BOP derivation", () => {
     expect(summary).toEqual({
       chartedSites: 0, bleedingSites: 0, bopPercent: 0,
       worstCal: null, worstCalTooth: null, maxPd: null,
+      avgPd: null, avgCal: null,
     });
   });
 

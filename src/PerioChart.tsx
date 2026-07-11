@@ -20,6 +20,31 @@ import {
   prevPerioCell,
   type PerioCellCoord,
 } from "./odontogram";
+import {
+  loadTemplateCache,
+  buildArchGraphic,
+  archToothLayout,
+  perioCurve,
+  buildPerioCurveLayer,
+  PERIO_MM_PX,
+  TOOTH_GAP,
+  type TemplateDocCache,
+  type ArchLayout,
+  type PerioCurveSite,
+} from "./perioGraphic";
+
+// Width of the sticky left-hand row-label column (px). The arch graphic and
+// every number row share ONE CSS grid whose first track is this label column,
+// so the tooth columns (tracks 2..N+1) start at the same x in every row.
+const ROW_LABEL_WIDTH = 132;
+
+// Provisional per-tooth column width (px) used until the tooth-template cache
+// loads and the real, per-tooth arch-layout widths are applied
+// (`applyArchColumns`). Wide enough to hold a 3-site cell so the grid is fully
+// usable for charting even when the graphic never loads (e.g. no network in a
+// unit test) — the graphic + column alignment is a presentation enhancement,
+// never a hard dependency for data entry.
+const PROVISIONAL_COL_WIDTH = 46;
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -52,6 +77,8 @@ const EMPTY_SUMMARY: PerioSummaryData = {
   worstCal: null,
   worstCalTooth: null,
   maxPd: null,
+  avgPd: null,
+  avgCal: null,
 };
 
 type ToothCellRefs = {
@@ -68,6 +95,60 @@ type GridHandlers = {
   onBop: (toothNo: number, site: PerioSite, checked: boolean) => void;
   onMobility: (toothNo: number, value: string) => void;
 };
+
+// T3 curve overlay: gather the ordered per-site {pd,gm} readings for one row
+// (buccal MB/B/DB or lingual ML/L/DL) plus each site's x. The 3 sites of a
+// tooth spread evenly across that tooth's width (reusing the SAME per-tooth
+// x/width `archToothLayout` gives the arch teeth, so the curve tracks them):
+// site j lands at x + width*(j+0.5)/3 → the 1/6, 1/2, 5/6 fractions. Reads
+// getToothPerio (active chart) → status/plan aware + live-updates.
+function collectCurveInput(
+  layout: ArchLayout,
+  siteKeys: readonly PerioSite[],
+): { sites: PerioCurveSite[]; xs: number[] } {
+  const sites: PerioCurveSite[] = [];
+  const xs: number[] = [];
+  for (const tooth of layout.teeth) {
+    const perio = getToothPerio(tooth.toothNo);
+    siteKeys.forEach((site, j) => {
+      const charted = Object.prototype.hasOwnProperty.call(perio.pd, site);
+      sites.push({
+        site,
+        pd: charted ? perio.pd[site] : undefined,
+        gm: Object.prototype.hasOwnProperty.call(perio.gm, site) ? perio.gm[site] : undefined,
+      });
+      xs.push(tooth.x + (tooth.width * (j + 0.5)) / 3);
+    });
+  }
+  return { sites, xs };
+}
+
+// Draw (or redraw) both curve rows of ONE arch band into the arch SVG the T2
+// `buildArchGraphic` produced. Stale curve layers are removed first, so this
+// is safe to call on every state change. The palatal curve is computed in the
+// SAME buccal-space (cejY at the shared baseline) then wrapped in the SAME
+// vertical-mirror transform T2 mirrors the palatal teeth with (matrix
+// 1 0 0 -1 0 2*mirrorAxisY), keeping the curve locked to the palatal teeth.
+function drawArchCurves(cache: TemplateDocCache, container: HTMLElement | null, teeth: readonly number[]): void {
+  if (!container) return;
+  const svg = container.querySelector("svg.perio-tooth-arch");
+  if (!svg) return;
+  svg.querySelectorAll(".perio-curve").forEach((el) => el.remove());
+
+  const layout = archToothLayout(cache, teeth);
+  const opts = { cejY: layout.cejY, mmPx: PERIO_MM_PX };
+
+  const buccalIn = collectCurveInput(layout, BUCCAL_SITES);
+  const buccalCurve = perioCurve(buccalIn.sites, { ...opts, siteX: (i) => buccalIn.xs[i] });
+  const buccalLayer = buildPerioCurveLayer(buccalCurve, { width: layout.totalWidth, className: "perio-curve perio-curve-buccal" });
+  svg.appendChild(buccalLayer);
+
+  const lingualIn = collectCurveInput(layout, LINGUAL_SITES);
+  const lingualCurve = perioCurve(lingualIn.sites, { ...opts, siteX: (i) => lingualIn.xs[i] });
+  const lingualLayer = buildPerioCurveLayer(lingualCurve, { width: layout.totalWidth, className: "perio-curve perio-curve-palatal" });
+  lingualLayer.setAttribute("transform", `matrix(1 0 0 -1 0 ${2 * layout.mirrorAxisY})`);
+  svg.appendChild(lingualLayer);
+}
 
 function mkEl<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
@@ -125,92 +206,146 @@ function syncToothCells(
   }
 }
 
-/** Build one arch band's dense grid (header row + 4 buccal + 4 lingual/
- *  palatal field rows + a mobility row), appending every tooth's cell refs
- *  into `registry` as it goes. Built ONCE per overlay-open (not
- *  React-controlled) — see the perf note on the calling `useEffect`. */
-function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs>, handlers: GridHandlers): HTMLDivElement {
+/** One arch band's built grid plus the placeholder cell the tooth-row graphic
+ *  SVG is injected into (spans all tooth columns, between the buccal and
+ *  palatal number rows). */
+type BuiltArch = { grid: HTMLDivElement; archCell: HTMLDivElement };
+
+/** Build ONE tooth's field cell for a given field/site-set — the SAME cell +
+ *  `data-perio` locator + `change`-listener wiring P2 shipped, just factored
+ *  out of the old single loop so it can be reused by the buccal-aspect rows
+ *  (built ABOVE the graphic) and the palatal-aspect rows (built BELOW it).
+ *  Every id / `dataset.perio` is byte-identical to before — the keyboard +
+ *  sync code locates cells by these, unchanged; only WHERE the cell sits in
+ *  the DOM moves. */
+function buildFieldCell(
+  toothNo: number,
+  field: "pd" | "gm" | "cal" | "bop",
+  sites: readonly PerioSite[],
+  aspect: "buccal" | "palatal",
+  cells: ToothCellRefs,
+  handlers: GridHandlers,
+): HTMLDivElement {
+  const cell = mkEl("div", "perio-fullgrid-cell");
+  cell.dataset.perioAspect = aspect;
+  cell.dataset.perioField = field;
+  const group = mkEl("div", "perio-fullgrid-sitegroup");
+  for (const site of sites) {
+    if (field === "cal") {
+      const span = mkEl("span", "perio-fullgrid-cal");
+      span.id = `perio-fg-cal-${toothNo}-${site}`;
+      group.appendChild(span);
+      cells.cal[site] = span;
+    } else if (field === "bop") {
+      const input = mkEl("input", "perio-fullgrid-bop");
+      input.type = "checkbox";
+      input.id = `perio-fg-bop-${toothNo}-${site}`;
+      input.title = t(`perio.site.${site}`);
+      input.dataset.perio = `${toothNo}:${site}:bop`;
+      input.addEventListener("change", () => handlers.onBop(toothNo, site, input.checked));
+      group.appendChild(input);
+      cells.bop[site] = input;
+    } else if (field === "pd") {
+      const input = mkEl("input", "perio-fullgrid-input");
+      input.type = "number";
+      input.min = "1";
+      input.max = "15";
+      input.step = "1";
+      input.id = `perio-fg-pd-${toothNo}-${site}`;
+      input.title = t(`perio.site.${site}`);
+      input.dataset.perio = `${toothNo}:${site}:pd`;
+      input.addEventListener("change", () => handlers.onPd(toothNo, site, input.value));
+      group.appendChild(input);
+      cells.pd[site] = input;
+    } else {
+      const input = mkEl("input", "perio-fullgrid-input");
+      input.type = "number";
+      input.min = "-10";
+      input.max = "20";
+      input.step = "1";
+      input.id = `perio-fg-gm-${toothNo}-${site}`;
+      input.title = t(`perio.site.${site}`);
+      input.dataset.perio = `${toothNo}:${site}:gm`;
+      input.addEventListener("change", () => handlers.onGm(toothNo, site, input.value));
+      group.appendChild(input);
+      cells.gm[site] = input;
+    }
+  }
+  cell.appendChild(group);
+  return cell;
+}
+
+/**
+ * Build ONE arch band, re-laid into the reference (periodontalchart-online.com)
+ * structure: the buccal-aspect number rows sit ABOVE the tooth graphic and the
+ * palatal-aspect rows BELOW it, PD innermost on each side (nearest the teeth),
+ * with the tooth-number header just above the graphic and a mobility row at the
+ * foot. Everything shares ONE CSS grid (`132px` label column + one column per
+ * tooth), so the tooth graphic (spanning `archCell`, tracks 2..N+1) and every
+ * number column line up in the same coordinate space — the columns are widened
+ * to the real per-tooth arch-layout widths once the template cache loads
+ * (`applyArchColumns`). Reuses the P2 cell wiring via `buildFieldCell`; built
+ * ONCE per active session (not React-controlled) — see the calling `useEffect`.
+ */
+function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs>, handlers: GridHandlers): BuiltArch {
   const arch = mkEl("div", "perio-fullgrid-arch");
-  arch.style.gridTemplateColumns = `132px repeat(${teeth.length}, minmax(64px, 1fr))`;
+  arch.style.gridTemplateColumns = `${ROW_LABEL_WIDTH}px repeat(${teeth.length}, ${PROVISIONAL_COL_WIDTH}px)`;
   const isUpper = teeth.length > 0 && isUpperTooth(teeth[0]);
 
-  // Header row: corner cell + one tooth-number cell per column.
-  arch.appendChild(mkRowLabelCell(""));
+  // Initialise every tooth's cell registry up front — the buccal rows built
+  // below reference these before the header row (which used to create them).
   for (const toothNo of teeth) {
-    const header = mkEl("div", "perio-fullgrid-header-cell");
-    header.setAttribute("data-perio-tooth-header", String(toothNo));
-    header.textContent = formatToothLabel(toothNo);
-    arch.appendChild(header);
     registry.set(toothNo, { pd: {}, gm: {}, bop: {}, cal: {}, mobility: null });
   }
 
   const buccalLabel = t("perio.buccal");
   const lingualLabel = isUpper ? t("perio.palatal") : t("perio.lingual");
 
-  const fieldRows: { field: "pd" | "gm" | "cal" | "bop"; sites: readonly PerioSite[]; label: string }[] = [
-    { field: "pd", sites: BUCCAL_SITES, label: `${buccalLabel} ${t("perio.pd")}` },
-    { field: "gm", sites: BUCCAL_SITES, label: `${buccalLabel} ${t("perio.gm")}` },
-    { field: "cal", sites: BUCCAL_SITES, label: `${buccalLabel} ${t("perio.cal")}` },
-    { field: "bop", sites: BUCCAL_SITES, label: `${buccalLabel} ${t("perio.bop")}` },
-    { field: "pd", sites: LINGUAL_SITES, label: `${lingualLabel} ${t("perio.pd")}` },
-    { field: "gm", sites: LINGUAL_SITES, label: `${lingualLabel} ${t("perio.gm")}` },
-    { field: "cal", sites: LINGUAL_SITES, label: `${lingualLabel} ${t("perio.cal")}` },
-    { field: "bop", sites: LINGUAL_SITES, label: `${lingualLabel} ${t("perio.bop")}` },
-  ];
-
-  for (const row of fieldRows) {
-    arch.appendChild(mkRowLabelCell(row.label));
+  // Append one full field row (label cell + one field cell per tooth).
+  const appendFieldRow = (
+    field: "pd" | "gm" | "cal" | "bop",
+    sites: readonly PerioSite[],
+    aspect: "buccal" | "palatal",
+    label: string,
+  ) => {
+    arch.appendChild(mkRowLabelCell(label));
     for (const toothNo of teeth) {
-      const cell = mkEl("div", "perio-fullgrid-cell");
-      const group = mkEl("div", "perio-fullgrid-sitegroup");
-      const cells = registry.get(toothNo)!;
-      for (const site of row.sites) {
-        if (row.field === "cal") {
-          const span = mkEl("span", "perio-fullgrid-cal");
-          span.id = `perio-fg-cal-${toothNo}-${site}`;
-          group.appendChild(span);
-          cells.cal[site] = span;
-        } else if (row.field === "bop") {
-          const input = mkEl("input", "perio-fullgrid-bop");
-          input.type = "checkbox";
-          input.id = `perio-fg-bop-${toothNo}-${site}`;
-          input.title = t(`perio.site.${site}`);
-          input.dataset.perio = `${toothNo}:${site}:bop`;
-          input.addEventListener("change", () => handlers.onBop(toothNo, site, input.checked));
-          group.appendChild(input);
-          cells.bop[site] = input;
-        } else if (row.field === "pd") {
-          const input = mkEl("input", "perio-fullgrid-input");
-          input.type = "number";
-          input.min = "1";
-          input.max = "15";
-          input.step = "1";
-          input.id = `perio-fg-pd-${toothNo}-${site}`;
-          input.title = t(`perio.site.${site}`);
-          input.dataset.perio = `${toothNo}:${site}:pd`;
-          input.addEventListener("change", () => handlers.onPd(toothNo, site, input.value));
-          group.appendChild(input);
-          cells.pd[site] = input;
-        } else {
-          const input = mkEl("input", "perio-fullgrid-input");
-          input.type = "number";
-          input.min = "-10";
-          input.max = "20";
-          input.step = "1";
-          input.id = `perio-fg-gm-${toothNo}-${site}`;
-          input.title = t(`perio.site.${site}`);
-          input.dataset.perio = `${toothNo}:${site}:gm`;
-          input.addEventListener("change", () => handlers.onGm(toothNo, site, input.value));
-          group.appendChild(input);
-          cells.gm[site] = input;
-        }
-      }
-      cell.appendChild(group);
-      arch.appendChild(cell);
+      arch.appendChild(buildFieldCell(toothNo, field, sites, aspect, registry.get(toothNo)!, handlers));
     }
+  };
+
+  // --- Buccal-aspect rows, ABOVE the graphic (PD innermost / nearest teeth) ---
+  appendFieldRow("bop", BUCCAL_SITES, "buccal", `${buccalLabel} ${t("perio.bop")}`);
+  appendFieldRow("cal", BUCCAL_SITES, "buccal", `${buccalLabel} ${t("perio.cal")}`);
+  appendFieldRow("gm", BUCCAL_SITES, "buccal", `${buccalLabel} ${t("perio.gm")}`);
+  appendFieldRow("pd", BUCCAL_SITES, "buccal", `${buccalLabel} ${t("perio.pd")}`);
+
+  // --- Tooth-number header row, just above the tooth graphic ---
+  arch.appendChild(mkRowLabelCell(""));
+  for (const toothNo of teeth) {
+    const header = mkEl("div", "perio-fullgrid-header-cell");
+    header.setAttribute("data-perio-tooth-header", String(toothNo));
+    header.textContent = formatToothLabel(toothNo);
+    arch.appendChild(header);
   }
 
-  // Mobility row: one select per tooth, no site subdivision.
+  // --- Tooth-row graphic cell: spans all tooth columns (buccal teeth on top,
+  //     palatal teeth mirrored below), filled by the graphic effect once the
+  //     template cache loads. An empty sticky label cell keeps the label
+  //     column continuous. ---
+  arch.appendChild(mkRowLabelCell(""));
+  const archCell = mkEl("div", "perio-fullgrid-graphic-cell");
+  archCell.dataset.perioArch = isUpper ? "upper" : "lower";
+  archCell.style.gridColumn = "2 / -1";
+  arch.appendChild(archCell);
+
+  // --- Palatal-aspect rows, BELOW the graphic (PD innermost / nearest teeth) ---
+  appendFieldRow("pd", LINGUAL_SITES, "palatal", `${lingualLabel} ${t("perio.pd")}`);
+  appendFieldRow("gm", LINGUAL_SITES, "palatal", `${lingualLabel} ${t("perio.gm")}`);
+  appendFieldRow("cal", LINGUAL_SITES, "palatal", `${lingualLabel} ${t("perio.cal")}`);
+  appendFieldRow("bop", LINGUAL_SITES, "palatal", `${lingualLabel} ${t("perio.bop")}`);
+
+  // --- Mobility row: one select per tooth, no site subdivision. ---
   arch.appendChild(mkRowLabelCell(t("perio.mobility")));
   const mobilityOptions = optionsFor("mobility").map((o) => ({ value: o.value, label: t(o.labelKey) }));
   for (const toothNo of teeth) {
@@ -229,7 +364,21 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
     registry.get(toothNo)!.mobility = select;
   }
 
-  return arch;
+  return { grid: arch, archCell };
+}
+
+/** Widen an already-built arch grid's tooth columns to the real per-tooth
+ *  arch-layout widths (viewBox width + `TOOTH_GAP`, baked in — NO CSS
+ *  column-gap — so the cumulative column edges match the arch SVG's per-tooth
+ *  x positions exactly, with no progressive drift). Called once the template
+ *  cache loads, so a tooth's number columns sit directly under/over that
+ *  tooth in the graphic. */
+function applyArchColumns(grid: HTMLElement | null, teeth: readonly number[], cache: TemplateDocCache): void {
+  if (!grid) return;
+  const layout = archToothLayout(cache, teeth);
+  if (layout.teeth.length === 0) return;
+  const cols = layout.teeth.map((tooth) => `${(tooth.width + TOOTH_GAP).toFixed(3)}px`).join(" ");
+  grid.style.gridTemplateColumns = `${ROW_LABEL_WIDTH}px ${cols}`;
 }
 
 /**
@@ -258,19 +407,44 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
  * closes, backdrop click closes, focus trap + focus-restore on close — on a
  * single element (`#perioOverlay` itself is the dialog; there is no separate
  * backdrop element, unlike `SettingsModal`).
+ *
+ * **"Dental Chart" graphical redesign, Task 1 (presentation only):** the
+ * optional `inline` prop selects a second chrome for the SAME body (grid +
+ * summary bar) — a plain panel (`#perioInlinePanel`) meant to fill the chart
+ * area in place of the hidden-but-mounted odontogram, instead of the
+ * fixed-position modal dialog. `open`/`onClose` are the MODAL chrome's
+ * contract and are ignored when `inline` is true (the caller controls
+ * mount/unmount of an inline instance directly via conditional rendering,
+ * the same way any other React content area would be swapped) — there is
+ * nothing to "close" in an embedded panel. Dialog-only concerns (focus
+ * trap/restore, Esc-to-close, backdrop click, `role="dialog"`) do not apply
+ * to the inline chrome at all.
  */
 export default function PerioChart({
-  open,
+  open = false,
   onClose,
+  inline = false,
 }: {
-  open: boolean;
-  onClose: () => void;
+  open?: boolean;
+  onClose?: () => void;
+  inline?: boolean;
 }) {
+  const active = inline || open;
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  // The tooth-row graphic containers (`archCell`s) and the grid elements are
+  // created inside the plain-DOM grid build (`buildArch`), NOT rendered as JSX
+  // — the graphic sits INSIDE the number-row grid now (buccal rows above it,
+  // palatal below), so these refs are assigned by the grid-building effect and
+  // read by the graphic effect (which runs after it on the same commit).
+  const archUpperRef = useRef<HTMLDivElement | null>(null);
+  const archLowerRef = useRef<HTMLDivElement | null>(null);
+  const gridUpperRef = useRef<HTMLDivElement | null>(null);
+  const gridLowerRef = useRef<HTMLDivElement | null>(null);
+  const archCacheRef = useRef<TemplateDocCache | null>(null);
   const registryRef = useRef<Map<number, ToothCellRefs> | null>(null);
   const suppressResyncRef = useRef(false);
   // Static default, NOT getPerioSummary() — this hook runs on every mount
@@ -445,9 +619,11 @@ export default function PerioChart({
   }, []);
 
   // Capture the opener + move focus into the dialog when it opens; restore
-  // focus to the opener when it closes/unmounts.
+  // focus to the opener when it closes/unmounts. MODAL-ONLY — an inline panel
+  // is embedded page content, not a dialog, so mounting it must never steal
+  // focus the way opening a modal legitimately does.
   useEffect(() => {
-    if (!open) return;
+    if (inline || !open) return;
     openerRef.current = (document.activeElement as HTMLElement | null) ?? null;
     const dialog = dialogRef.current;
     const first = dialog?.querySelector<HTMLElement>(FOCUSABLE);
@@ -455,14 +631,15 @@ export default function PerioChart({
     return () => {
       openerRef.current?.focus?.();
     };
-  }, [open]);
+  }, [inline, open]);
 
-  // Build the grid fresh each time the overlay opens (its DOM is fully
-  // unmounted on close — `if (!open) return null` below — so `scrollRef` is
-  // a brand-new node each time) and subscribe to onStateChange for the
-  // lifetime of this open session only.
+  // Build the grid fresh each time this becomes active — either the modal
+  // opens, or an inline instance mounts (its DOM is fully torn down when
+  // inactive — `if (!active) return null` below — so `scrollRef` is a
+  // brand-new node each time) — and subscribe to onStateChange for the
+  // lifetime of this active session only.
   useEffect(() => {
-    if (!open) return;
+    if (!active) return;
     const container = scrollRef.current;
     if (!container) return;
     const registry = new Map<number, ToothCellRefs>();
@@ -496,9 +673,15 @@ export default function PerioChart({
       },
     };
     container.innerHTML = "";
-    container.appendChild(buildArch(UPPER_ARCH, registry, handlers));
-    container.appendChild(buildArch(LOWER_ARCH, registry, handlers));
+    const upper = buildArch(UPPER_ARCH, registry, handlers);
+    const lower = buildArch(LOWER_ARCH, registry, handlers);
+    container.appendChild(upper.grid);
+    container.appendChild(lower.grid);
     registryRef.current = registry;
+    gridUpperRef.current = upper.grid;
+    gridLowerRef.current = lower.grid;
+    archUpperRef.current = upper.archCell;
+    archLowerRef.current = lower.archCell;
     fullResync();
     container.addEventListener("keydown", handleGridKeyDown);
     container.addEventListener("focusout", handleGridFocusOut);
@@ -512,14 +695,85 @@ export default function PerioChart({
       container.removeEventListener("focusout", handleGridFocusOut);
       unsubscribe();
       registryRef.current = null;
+      gridUpperRef.current = null;
+      gridLowerRef.current = null;
+      archUpperRef.current = null;
+      archLowerRef.current = null;
     };
-  }, [open, fullResync, syncOneTooth, handleGridKeyDown, handleGridFocusOut]);
+  }, [active, fullResync, syncOneTooth, handleGridKeyDown, handleGridFocusOut]);
+
+  // "Dental Chart" graphical redesign, Task 2: the tooth-row graphic — draws
+  // the perio arch by reusing the odontogram's own `tooth-base` artwork
+  // (see `perioGraphic.ts`). Fully READ-ONLY (no pointer handlers) and
+  // independent of the grid-building effect above — it fetches + parses the
+  // 4 tooth templates once (`loadTemplateCache()`, memoized at module scope
+  // in `perioGraphic.ts`, so re-opening/re-mounting this component never
+  // re-fetches) and, once loaded, builds one composite arch SVG per arch
+  // band into its own container. A load failure (e.g. no network) is
+  // swallowed — this graphic is a presentation enhancement over the
+  // existing data grid, never a hard dependency for charting to work.
+  //
+  // "Dental Chart" graphical redesign, Task 3: the curve overlay (CEJ +
+  // gingival-margin + pocket-base line + a filled band) is drawn OVER each
+  // arch SVG here, driven by the per-site PD/GM data via `perioCurve` /
+  // `buildPerioCurveLayer` (see `drawArchCurves`). It reuses the SAME layout
+  // constants (`archToothLayout` / `ROW_BASELINE_Y` / `MIRROR_AXIS_Y`) T2 laid
+  // the teeth out with, so it can never drift out of alignment. A dedicated
+  // `onStateChange` subscription (NOT gated by `suppressResyncRef` — the grid
+  // suppress flag only exists to skip a redundant *grid* fullResync on the
+  // grid's own edit; the curve genuinely must redraw on every edit, grid or
+  // external) recomputes the curves from the active chart, so they live-update
+  // and reflect the status/plan chart. All still READ-ONLY — no pointer
+  // handlers, all data via the P1 API.
+  useEffect(() => {
+    if (!active) return;
+    let cancelled = false;
+    const redraw = () => {
+      const cache = archCacheRef.current;
+      if (!cache) return;
+      drawArchCurves(cache, archUpperRef.current, UPPER_ARCH);
+      drawArchCurves(cache, archLowerRef.current, LOWER_ARCH);
+    };
+    loadTemplateCache()
+      .then((cache) => {
+        if (cancelled) return;
+        archCacheRef.current = cache;
+        // Align the number-row columns to the real per-tooth arch widths so a
+        // tooth's cells sit directly under/over that tooth (resolves the
+        // T2-deferred "grid doesn't line up column-for-column with the teeth").
+        applyArchColumns(gridUpperRef.current, UPPER_ARCH, cache);
+        applyArchColumns(gridLowerRef.current, LOWER_ARCH, cache);
+        const upperContainer = archUpperRef.current;
+        const lowerContainer = archLowerRef.current;
+        if (upperContainer) {
+          upperContainer.innerHTML = "";
+          upperContainer.appendChild(buildArchGraphic(cache, UPPER_ARCH));
+        }
+        if (lowerContainer) {
+          lowerContainer.innerHTML = "";
+          lowerContainer.appendChild(buildArchGraphic(cache, LOWER_ARCH));
+        }
+        redraw();
+      })
+      .catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error("perio tooth-row graphic: failed to load tooth templates", err);
+      });
+    const unsubscribe = onStateChange(() => {
+      if (!cancelled) redraw();
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+      archCacheRef.current = null;
+    };
+  }, [active]);
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onClose();
+        onClose?.();
         return;
       }
       if (e.key !== "Tab") return;
@@ -531,11 +785,11 @@ export default function PerioChart({
       if (items.length === 0) return;
       const firstEl = items[0];
       const lastEl = items[items.length - 1];
-      const active = document.activeElement as HTMLElement | null;
-      if (e.shiftKey && active === firstEl) {
+      const activeEl = document.activeElement as HTMLElement | null;
+      if (e.shiftKey && activeEl === firstEl) {
         e.preventDefault();
         lastEl.focus();
-      } else if (!e.shiftKey && active === lastEl) {
+      } else if (!e.shiftKey && activeEl === lastEl) {
         e.preventDefault();
         firstEl.focus();
       }
@@ -543,12 +797,75 @@ export default function PerioChart({
     [onClose],
   );
 
-  if (!open) return null;
+  if (!active) return null;
 
   const worstCalText =
     summary.worstCal === null
       ? "–"
       : `${summary.worstCal}${summary.worstCalTooth !== null ? ` (${formatToothLabel(summary.worstCalTooth)})` : ""}`;
+
+  // Shared body (grid + summary bar) — identical in both chrome variants,
+  // only the wrapping id/class differs (`#perioInlineGrid` vs
+  // `#perioOverlayGrid`) so the two never collide with each other or with the
+  // P1 tooth-panel's always-present `#perioGrid`.
+  const gridBody = (
+    <div id={inline ? "perioInlineGrid" : "perioOverlayGrid"} className="perio-overlay-body" aria-label={t("perio.chart.title")}>
+      <div className="perio-fullgrid-summary" role="status">
+        <span className="perio-fullgrid-summary-item">
+          <span className="perio-fullgrid-summary-label">{t("perio.summary.avgPd")}</span>
+          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-avgpd">
+            {summary.avgPd === null ? "–" : summary.avgPd}
+          </span>
+        </span>
+        <span className="perio-fullgrid-summary-item">
+          <span className="perio-fullgrid-summary-label">{t("perio.summary.avgCal")}</span>
+          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-avgcal">
+            {summary.avgCal === null ? "–" : summary.avgCal}
+          </span>
+        </span>
+        <span className="perio-fullgrid-summary-item">
+          <span className="perio-fullgrid-summary-label">{t("perio.bopPercent")}</span>
+          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-bop">
+            {summary.bopPercent}%
+          </span>
+        </span>
+        <span className="perio-fullgrid-summary-item">
+          <span className="perio-fullgrid-summary-label">{t("perio.summary.charted")}</span>
+          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-charted">
+            {summary.chartedSites}
+          </span>
+        </span>
+        <span className="perio-fullgrid-summary-item">
+          <span className="perio-fullgrid-summary-label">{t("perio.summary.worstCal")}</span>
+          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-cal">
+            {worstCalText}
+          </span>
+        </span>
+        <span className="perio-fullgrid-summary-item">
+          <span className="perio-fullgrid-summary-label">{t("perio.summary.maxPd")}</span>
+          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-maxpd">
+            {summary.maxPd === null ? "–" : summary.maxPd}
+          </span>
+        </span>
+      </div>
+      <div className="perio-fullgrid-scroll" ref={scrollRef}></div>
+    </div>
+  );
+
+  if (inline) {
+    // Plain embedded panel — no dialog semantics, no close button, no
+    // backdrop/Esc/focus-trap (see the class-level doc comment). Reuses the
+    // existing `.chart`/`.chart-header`/`.chart-title` card look (index.css)
+    // so it visually matches the odontogram card it's replacing in place.
+    return (
+      <section id="perioInlinePanel" className="chart perio-inline-panel" aria-label={t("perio.chart.title")}>
+        <div className="chart-header">
+          <div className="chart-title">{t("perio.chart.title")}</div>
+        </div>
+        {gridBody}
+      </section>
+    );
+  }
 
   return (
     <div
@@ -561,7 +878,7 @@ export default function PerioChart({
       tabIndex={-1}
       onKeyDown={onKeyDown}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) onClose?.();
       }}
     >
       <div className="perio-overlay-panel">
@@ -591,35 +908,7 @@ export default function PerioChart({
             </svg>
           </button>
         </div>
-        <div id="perioOverlayGrid" className="perio-overlay-body" aria-label={t("perio.chart.title")}>
-          <div className="perio-fullgrid-summary" role="status">
-            <span className="perio-fullgrid-summary-item">
-              <span className="perio-fullgrid-summary-label">{t("perio.summary.charted")}</span>
-              <span className="perio-fullgrid-summary-value" id="perio-fg-summary-charted">
-                {summary.chartedSites}
-              </span>
-            </span>
-            <span className="perio-fullgrid-summary-item">
-              <span className="perio-fullgrid-summary-label">{t("perio.bopPercent")}</span>
-              <span className="perio-fullgrid-summary-value" id="perio-fg-summary-bop">
-                {summary.bopPercent}%
-              </span>
-            </span>
-            <span className="perio-fullgrid-summary-item">
-              <span className="perio-fullgrid-summary-label">{t("perio.summary.worstCal")}</span>
-              <span className="perio-fullgrid-summary-value" id="perio-fg-summary-cal">
-                {worstCalText}
-              </span>
-            </span>
-            <span className="perio-fullgrid-summary-item">
-              <span className="perio-fullgrid-summary-label">{t("perio.summary.maxPd")}</span>
-              <span className="perio-fullgrid-summary-value" id="perio-fg-summary-maxpd">
-                {summary.maxPd === null ? "–" : summary.maxPd}
-              </span>
-            </span>
-          </div>
-          <div className="perio-fullgrid-scroll" ref={scrollRef}></div>
-        </div>
+        {gridBody}
       </div>
     </div>
   );

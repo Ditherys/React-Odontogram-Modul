@@ -386,6 +386,13 @@ select:focus{
 .tooth-svg [data-active="0"]{display:none !important}
 
 .panel{
+  /* "Dental Chart" graphical redesign, Task 1: pin the right Controls panel
+     explicitly to grid column 2. Needed because .chart-column can now be
+     `display:none` (never unmounted — see .chart-column below) while the
+     Dental Chart view is active; without an explicit column, CSS grid's
+     default auto-placement would skip the hidden item and reflow .panel into
+     column 1, breaking the two-column layout. */
+  grid-column: 2;
   background: rgba(255,255,255,.95);
   border:1px solid var(--line);
   border-radius:18px;
@@ -668,7 +675,11 @@ select:focus{
 
 @media (max-width: 1100px){
   .layout{grid-template-columns:1fr}
-  .panel{order:2}
+  /* Single-column layout: reset the explicit column pin (Task 1) so .panel
+     stacks below .chart-column/.dental-chart-column via `order` instead of
+     forming a second implicit grid column. */
+  .chart-column, .dental-chart-column{grid-column:auto}
+  .panel{grid-column:auto; order:2}
 }
 
 /* ── Dark mode ────────────────────────────────── */
@@ -1116,7 +1127,16 @@ select:focus{
 .surf-depth.icdas i{display:none}
 
 /* Left column: chart card + the separate tooth-information card stacked below it */
-.chart-column{display:flex; flex-direction:column; gap:14px; min-width:0}
+.chart-column{grid-column:1; display:flex; flex-direction:column; gap:14px; min-width:0}
+
+/* "Dental Chart" graphical redesign, Task 1: the inline perio panel that
+   replaces .chart-column (hidden via display:none, never unmounted — see
+   above) in the same grid cell when the Odontogram | Dental Chart toggle
+   (#appViewToggle) selects "Dental Chart". Pinned to the SAME explicit
+   column as .chart-column (see the .panel comment above for why the pin is
+   needed at all). */
+.dental-chart-column{grid-column:1; display:flex; flex-direction:column; min-width:0}
+.perio-inline-panel{min-height:480px}
 
 /* Tooth information panel — its own card below (outside) the dental chart box */
 .tooth-info{margin-top:0}
@@ -1358,6 +1378,50 @@ select:focus{
 .perio-fullgrid-summary-label{ color: var(--muted); }
 .perio-fullgrid-summary-value{ font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 
+/* "Dental Chart" graphical redesign, Task 2: the tooth-row graphic — one
+   composite arch SVG per arch band (upper/lower), each built by
+   `buildArchGraphic` (perioGraphic.ts). Purely decorative (`aria-hidden` is
+   set directly on the SVG itself by `buildArchGraphic` — the accessible
+   data lives in the `.perio-fullgrid-*` grid it sits inside, unaffected).
+   The SVG carries its own explicit `width`/`height` (perioGraphic.ts) so it
+   renders at a fixed, legible intrinsic size — the graphic lives inside
+   `.perio-fullgrid-graphic-cell`, which scrolls horizontally together with
+   the rest of the grid via `.perio-fullgrid-scroll` (Task 4) rather than
+   shrinking the whole arch to fit a narrow panel. */
+.perio-tooth-arch{
+  display: block;
+}
+
+/* T3 curve overlay: CEJ baseline + gingival-margin line + pocket-base line +
+   a filled band between them, drawn over the T2 tooth arch. */
+.perio-curve-cej{
+  stroke: #e11d48; /* red CEJ reference line */
+  stroke-width: 0.8;
+  opacity: 0.85;
+}
+.perio-curve-band{
+  fill: #3b82f6; /* blue, semi-transparent pocket band (reference style) */
+  fill-opacity: 0.18;
+  stroke: none;
+}
+.perio-curve-margin{
+  fill: none;
+  stroke: #f472b6; /* gingival margin */
+  stroke-width: 0.9;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.perio-curve-pocket{
+  fill: none;
+  stroke: #1d4ed8; /* pocket base (probing depth) */
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.dark .perio-curve-band{ fill-opacity: 0.24; }
+.dark .perio-curve-pocket{ stroke: #60a5fa; }
+.dark .perio-curve-margin{ stroke: #f9a8d4; }
+
 .perio-fullgrid-scroll{
   flex: 1 1 auto;
   overflow: auto;
@@ -1392,38 +1456,56 @@ select:focus{
 .perio-fullgrid-header-cell + .perio-fullgrid-header-cell:first-of-type{
   z-index: 4;
 }
+/* Task 4: the tooth-row graphic now lives INSIDE the number-row grid (buccal
+   rows above, palatal below), spanning all tooth columns. The archCell holds
+   the composite arch SVG (fixed width == sum of the tooth columns) so the
+   teeth line up column-for-column with the number cells; the whole grid
+   scrolls horizontally in `.perio-fullgrid-scroll`. */
+.perio-fullgrid-graphic-cell{
+  display: block; overflow: hidden; line-height: 0;
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+.perio-fullgrid-graphic-cell .perio-tooth-arch{ display: block; }
 .perio-fullgrid-cell{
   display: flex; align-items: center; justify-content: center;
-  padding: 3px 2px;
+  padding: 2px 1px;
   border-bottom: 1px solid var(--line);
   border-left: 1px solid var(--line);
 }
 .perio-fullgrid-sitegroup{
-  display: flex; gap: 3px;
+  display: flex; gap: 1px;
 }
 .perio-fullgrid-input{
-  width: 30px;
-  font-size: 11px; text-align: center;
-  padding: 2px 1px;
-  border: 1px solid var(--line); border-radius: 4px;
+  width: 13px; box-sizing: content-box;
+  font-size: 10px; text-align: center;
+  padding: 2px 0;
+  border: 1px solid var(--line); border-radius: 3px;
   background: var(--card); color: var(--text);
+  -moz-appearance: textfield;
+}
+/* Hide the native number spinners — the compact tooth-aligned columns have no
+   room for them (charting is single-keystroke / spinner-free anyway). */
+.perio-fullgrid-input::-webkit-outer-spin-button,
+.perio-fullgrid-input::-webkit-inner-spin-button{
+  -webkit-appearance: none; margin: 0;
 }
 .perio-fullgrid-input:disabled,
 .perio-fullgrid-mobility-select:disabled{
   opacity: .45; cursor: not-allowed;
 }
 .perio-fullgrid-cal{
-  width: 30px;
+  width: 15px;
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 11px; font-variant-numeric: tabular-nums;
+  font-size: 10px; font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
-.perio-fullgrid-bop{ width: 14px; height: 14px; margin: auto; }
-.perio-fullgrid-cell-mobility{ padding: 3px 4px; }
+.perio-fullgrid-bop{ width: 11px; height: 11px; margin: auto; }
+.perio-fullgrid-cell-mobility{ padding: 2px 3px; }
 .perio-fullgrid-mobility-select{
   width: 100%;
-  font-size: 11px;
-  padding: 2px 3px;
-  border: 1px solid var(--line); border-radius: 4px;
+  font-size: 10px;
+  padding: 1px 2px;
+  border: 1px solid var(--line); border-radius: 3px;
   background: var(--card); color: var(--text);
 }

@@ -51,6 +51,8 @@ function makeSettings(overrides: Partial<SettingsState> = {}): SettingsState {
     onShowStatusCard: vi.fn(),
     showOrthoCard: true,
     onShowOrthoCard: vi.fn(),
+    perioViewMode: "toggle",
+    onPerioViewMode: vi.fn(),
     ...overrides,
   };
 }

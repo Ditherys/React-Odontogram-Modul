@@ -8,6 +8,7 @@ import type {
   RadiographicDepthMode,
   ToothDetailLevel,
   SurfaceNotation,
+  PerioViewMode,
 } from "./odontogram";
 
 /** Translation function signature (subset of `useI18n`'s `t`). */
@@ -53,6 +54,8 @@ export type SettingsState = {
   onShowStatusCard: (value: boolean) => void;
   showOrthoCard: boolean;
   onShowOrthoCard: (value: boolean) => void;
+  perioViewMode: PerioViewMode;
+  onPerioViewMode: (value: PerioViewMode) => void;
 };
 
 /** Context handed to every tab's `render()`. */
@@ -118,6 +121,11 @@ const TOOTH_DETAIL_OPTIONS: { value: ToothDetailLevel; labelKey: string }[] = [
 const SURFACE_NOTATION_OPTIONS: { value: SurfaceNotation; labelKey: string }[] = [
   { value: "full", labelKey: "settings.surfaceNotation.full" },
   { value: "simple", labelKey: "settings.surfaceNotation.simple" },
+];
+
+const PERIO_VIEW_MODE_OPTIONS: { value: PerioViewMode; labelKey: string }[] = [
+  { value: "toggle", labelKey: "settings.perioViewMode.toggle" },
+  { value: "popup", labelKey: "settings.perioViewMode.popup" },
 ];
 
 /** A single settings row: label + description + a control on the right. */
@@ -277,6 +285,14 @@ export const SETTINGS_TABS: SettingsTab[] = [
           descKey="settings.panels.orthodontics.desc"
           checked={s.showOrthoCard}
           onChange={s.onShowOrthoCard}
+        />
+        <SelectRow<PerioViewMode>
+          t={t}
+          label={t("settings.perioViewMode")}
+          descKey="settings.perioViewMode.desc"
+          value={s.perioViewMode}
+          options={PERIO_VIEW_MODE_OPTIONS}
+          onChange={s.onPerioViewMode}
         />
       </>
     ),

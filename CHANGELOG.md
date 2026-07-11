@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.36.0] - 2026-07-11
+### Added
+- **Graphical periodontal chart ("Dental Chart" view).** The periodontal chart is now drawn like a real perio chart — the teeth rendered in a continuous arch (reusing the existing tooth artwork), with a red **CEJ reference line** and a **gingival-margin / pocket-depth curve** (a filled band) plotted over the teeth from the per-site data, the number rows (probing depth, gingival margin, CAL, bleeding, mobility) aligned in columns above/below the teeth, and a summary (avg PD, avg CAL, %BOP). Deep pockets visibly dip toward the root; recession shows the margin below the CEJ.
+- **Presentation is switchable:** an `Odontogram | Dental Chart` **view toggle** (default) swaps the main chart area, and a **Settings option (`perioViewMode`)** can switch it back to the previous **popup** overlay. New API `getPerioViewMode()` / `setPerioViewMode()`. The perio chart remains a separately-invocable component (`PerioChart` export + `openPerioOverlay`/…) for host integration. The base odontogram is never re-rendered (hidden but mounted) — SVG parity byte-identical; no payload/FHIR change.
+
 ## [1.35.0] - 2026-07-11
 ### Added
 - **Periodontal charting grid** — a full-mouth clinician-style perio chart: all teeth × 6 sites, with probing depth, gingival margin, bleeding-on-probing, derived CAL, and mobility, plus a whole-mouth summary (charted sites, %BOP, worst CAL, max PD). **Keyboard auto-advance** entry (type a probing-depth digit → focus jumps to the next site in charting order; arrows navigate; space toggles BOP; a leading `-` primes a negative gingival margin; clearing a depth un-charts the site).

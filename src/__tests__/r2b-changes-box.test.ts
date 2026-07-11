@@ -76,6 +76,8 @@ vi.mock("../odontogram", async () => {
     openPerioOverlay: actual.openPerioOverlay,
     closePerioOverlay: actual.closePerioOverlay,
     isPerioOverlayOpen: actual.isPerioOverlayOpen,
+    getPerioViewMode: vi.fn().mockReturnValue("toggle"),
+    setPerioViewMode: vi.fn(),
     setChartMode: actual.setChartMode,
     __setToothStateForTest: actual.__setToothStateForTest,
     __resetChartStateForTest: actual.__resetChartStateForTest,

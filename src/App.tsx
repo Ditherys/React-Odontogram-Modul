@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { destroyOdontogram, initOdontogram, setNumberingSystem, clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, openPerioOverlay, closePerioOverlay, isPerioOverlayOpen } from "./odontogram";
-export { clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat };
+import { destroyOdontogram, initOdontogram, setNumberingSystem, clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, openPerioOverlay, closePerioOverlay, isPerioOverlayOpen, getPerioViewMode, setPerioViewMode } from "./odontogram";
+export { clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, getPerioViewMode, setPerioViewMode };
 export { default as PerioChart } from "./PerioChart";
-import type { OdontogramSummary, PulpDetailLevel, SecondaryCariesMode, RootCariesMode, RadiographicDepthMode, ToothDetailLevel, SurfaceNotation } from "./odontogram";
-export type { PulpDetailLevel, SecondaryCariesMode, RootCariesMode, RadiographicDepthMode, ToothDetailLevel, SurfaceNotation } from "./odontogram";
+import type { OdontogramSummary, PulpDetailLevel, SecondaryCariesMode, RootCariesMode, RadiographicDepthMode, ToothDetailLevel, SurfaceNotation, PerioViewMode } from "./odontogram";
+export type { PulpDetailLevel, SecondaryCariesMode, RootCariesMode, RadiographicDepthMode, ToothDetailLevel, SurfaceNotation, PerioViewMode } from "./odontogram";
 export type { OdontogramSummary, OdontogramSummarySection } from "./odontogram";
 export type { FhirExportOptions } from "./fhir/types";
 import { startIntroTour } from "./tour";
@@ -222,6 +222,15 @@ export default function App({
   // below so a host that calls openPerioOverlay()/closePerioOverlay() directly
   // (bypassing this button entirely) still gets <PerioChart/> to re-render.
   const [perioOpen, setPerioOpen] = useState(false);
+  // "Dental Chart" graphical redesign, Task 1: demo state mirroring the
+  // module-level perioViewMode flag (odontogram.ts) — same precedent as
+  // `perioOpen` above, kept in sync via onStateChange so a host calling
+  // setPerioViewMode() directly (e.g. from the Settings modal) re-renders the
+  // housing without a dedicated local setter. `activeView` is purely local UI
+  // state (never exposed to a host) — which of the toggle's two segments is
+  // showing, only meaningful while `viewMode === "toggle"`.
+  const [viewMode, setViewMode] = useState<PerioViewMode>(() => getPerioViewMode());
+  const [activeView, setActiveView] = useState<"odontogram" | "dentalChart">("odontogram");
 
   // Dark mode: controlled via prop or standalone via internal state
   const [internalDark, setInternalDark] = useState<boolean>(() => {
@@ -350,6 +359,15 @@ export default function App({
     return onStateChange(refresh);
   }, []);
 
+  // "Dental Chart" graphical redesign, Task 1: mirror the module-level
+  // perioViewMode flag into React state the same way perioOpen mirrors
+  // isPerioOverlayOpen() above.
+  useEffect(() => {
+    const refresh = () => setViewMode(getPerioViewMode());
+    refresh();
+    return onStateChange(refresh);
+  }, []);
+
   useEffect(() => {
     const handler = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -403,6 +421,8 @@ export default function App({
     onShowStatusCard: (v) => setShowStatusCard(v),
     showOrthoCard,
     onShowOrthoCard: (v) => setShowOrthoCard(v),
+    perioViewMode: viewMode,
+    onPerioViewMode: (v) => setPerioViewMode(v),
   };
 
   return (
@@ -502,18 +522,46 @@ export default function App({
 
       <main className="layout">
         <div className="perio-launch-bar">
-          <button
-            type="button"
-            id="openPerioOverlayBtn"
-            className="btn btn-ghost"
-            onClick={() => openPerioOverlay()}
-            title={t("perio.open")}
-            aria-label={t("perio.open")}
-          >
-            {t("perio.open")}
-          </button>
+          {viewMode === "toggle" ? (
+            <div id="appViewToggle" className="chart-mode-toggle" role="tablist">
+              <button
+                id="appViewOdontogram"
+                type="button"
+                className={"chart-mode-btn" + (activeView === "odontogram" ? " is-active" : "")}
+                role="tab"
+                aria-selected={activeView === "odontogram"}
+                onClick={() => setActiveView("odontogram")}
+              >
+                {t("view.odontogram")}
+              </button>
+              <button
+                id="appViewDentalChart"
+                type="button"
+                className={"chart-mode-btn" + (activeView === "dentalChart" ? " is-active" : "")}
+                role="tab"
+                aria-selected={activeView === "dentalChart"}
+                onClick={() => setActiveView("dentalChart")}
+              >
+                {t("view.dentalChart")}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              id="openPerioOverlayBtn"
+              className="btn btn-ghost"
+              onClick={() => openPerioOverlay()}
+              title={t("perio.open")}
+              aria-label={t("perio.open")}
+            >
+              {t("perio.open")}
+            </button>
+          )}
         </div>
-        <div className="chart-column">
+        <div
+          className="chart-column"
+          style={viewMode === "toggle" && activeView === "dentalChart" ? { display: "none" } : undefined}
+        >
         <section className="chart">
           <div className="chart-header">
             <div>
@@ -584,6 +632,11 @@ export default function App({
           </section>
         )}
         </div>
+        {viewMode === "toggle" && activeView === "dentalChart" && (
+          <div className="dental-chart-column">
+            <PerioChart inline />
+          </div>
+        )}
         <aside className="panel">
           <div className="panel-header">
             <div>
@@ -856,7 +909,7 @@ export default function App({
         </aside>
       </main>
 
-      <PerioChart open={perioOpen} onClose={closePerioOverlay} />
+      {viewMode === "popup" && <PerioChart open={perioOpen} onClose={closePerioOverlay} />}
 
       <SettingsModal
         open={settingsOpen}
