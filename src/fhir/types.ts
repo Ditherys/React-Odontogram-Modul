@@ -69,6 +69,23 @@ export interface ToothRecord {
   // SP10 Task 1: per-surface filling-defect scalar map (none/marginal/fracture/wear),
   // modeled the same way as `radiographicDepth` above.
   fillingDefect?: Record<string, string>;
+  // SP-perio P1 Task 1: per-site periodontal probing data (payload >=2.12).
+  // Present only when at least one of the 6 sites (PERIO_SITES in
+  // odontogram.ts) is charted — omitted entirely otherwise. `pd` (probing
+  // depth, mm) is the charting key: a site absent from `pd` is "not
+  // charted", never zero. `gm` (gingival margin offset, mm; signed) defaults
+  // to 0 when a charted site has no entry. CAL (pd + gm) is always derived,
+  // never stored here. SP-perio P1 Task 3: emitted by FHIR EXPORT as a
+  // periodontal-panel Observation (LOINC 74029-0) with per-site components —
+  // see toFhirPerio.ts, called from buildFhirBundle() (toFhir.ts). FHIR
+  // IMPORT (fromFhir.ts/registry/fromFhir.ts) does not read it back yet —
+  // still JSON-payload-only round-trip until a later task.
+  perio?: {
+    pd: Record<string, number>;
+    gm: Record<string, number>;
+    bop: string[];
+    sup: string[];
+  };
   customStates?: Record<string, unknown>;
   note?: string;
 }

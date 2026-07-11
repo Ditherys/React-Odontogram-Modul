@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.34.0] - 2026-07-11
+### Added
+- **Periodontal charting — data core (6 sites/tooth).** Each tooth now carries a `perio` record with per-site **probing depth (PD)**, **gingival-margin position** (signed vs the CEJ), **bleeding on probing (BOP)**, and suppuration, over the six standard sites (MB/B/DB buccal, ML/L/DL lingual). **Clinical attachment level (CAL = PD + gingival margin)**, recession, and whole-mouth **%BOP** are derived (never stored). A minimal per-site input on the selected-tooth panel authors the data with a live CAL/%BOP read-out; the polished perio-chart grid follows in a later release. First sub-project of the periodontal-parameters arc.
+- **Per-site FHIR export** for periodontal data — one periodontal-panel `Observation` (LOINC `74029-0`) per charted tooth, with per-site components for PD (`32910-2`), recession (`32911-0`), CAL (`32912-8`), and BOP; the tooth+probe-site qualifier is carried R4-conformantly via HL7's `component.bodySite` backport extension. SNOMED coding for periodontal findings is deferred (LOINC-primary for now); FHIR *import* of perio is deferred (it round-trips through the JSON payload).
+- Public API: `setPerioSite()`, `getToothPerio()`, `getToothCal()`, `getPerioSummary()`, `getPerioChart()`. Payload version **2.12** (additive — a case with no perio data is byte-identical apart from the version bump). Dual-state aware: perio participates in the status/plan charts and the status→plan diff.
+
 ## [1.33.0] - 2026-07-11
 ### Added
 - **Proposed styling** in Plan mode: any finding the plan *adds* relative to the current status (a planned crown, extraction, orthodontic movement, prosthesis, etc.) now renders with a distinct **dashed, tinted "proposed" outline**, so the plan chart reads as intent rather than fact. Findings unchanged from the status render solid as usual; a finding the plan *removes* simply doesn't appear. A small **"dashed = proposed" legend** shows in the chart card while Plan mode is active. Completes the round-2 Status/Plan split (after 1.31.0's dual-state core and 1.32.0's diff box).

@@ -806,6 +806,11 @@ export default function App({
                   <span>{t("inflammation.mobilityLabel")}</span>
                   <select id="mobilitySelect"></select>
                 </div>
+                <div id="perioRow" className="perio-block">
+                  <div className="perio-block-title">{t("perio.title")}</div>
+                  <div id="perioGrid" className="perio-grid"></div>
+                  <div id="perioReadout" className="hint perio-readout"></div>
+                </div>
                 <div id="modsChecks" className="check-grid"></div>
                 <div id="calculusRow" className="row inline-checks hidden">
                   <label><input type="checkbox" id="calculusToggle" /><span>{t("calculus.label")}</span></label>

@@ -637,6 +637,25 @@ select:focus{
 .radio-list label{display:flex; gap:10px; align-items:center; font-size:13px; padding:6px 8px; border-radius:12px; border:1px solid var(--line); background: rgba(0,0,0,.02)}
 .radio-list label:hover{background: rgba(59,123,255,.06)}
 .divider{height:1px;background:var(--line); margin:10px 0}
+
+/* SP-perio P1 Task 2: minimal, deliberately plain 6-site PD/GM/BOP/SUP grid
+   (the polished clinical perio chart is a later sub-project). Two site-group
+   rows (buccal MB/B/DB, then lingual/palatal ML/L/DL); each site is a small
+   bordered cell with a PD + GM number input and BOP/SUP checkboxes. Reuses
+   the existing --line/--card/--text/--muted variables, which already flip
+   under .dark — no separate dark-mode block needed. */
+.perio-block{margin-top:10px}
+.perio-block-title{font-size:13px; font-weight:600; margin-bottom:6px; color:var(--text)}
+.perio-grid{display:flex; flex-direction:column; gap:6px}
+.perio-site-row{display:grid; grid-template-columns:repeat(3,1fr); gap:6px}
+.perio-site-cell{display:flex; flex-direction:column; gap:3px; padding:6px; border:1px solid var(--line); border-radius:8px; background:rgba(0,0,0,.02)}
+.perio-site-label{font-weight:700; text-align:center; font-size:12px; margin-bottom:2px; color:var(--text)}
+.perio-field{display:flex; justify-content:space-between; align-items:center; gap:4px; font-size:11px}
+.perio-field span{color:var(--muted)}
+.perio-field input[type="number"]{width:46px; font-size:11px; padding:2px 4px; border:1px solid var(--line); border-radius:4px; background:var(--card); color:var(--text)}
+.perio-check{display:flex; align-items:center; gap:4px; font-size:11px}
+.perio-check span{color:var(--muted)}
+.perio-readout{margin-top:4px; font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size:11px}
 .hidden{display:none !important}
 
 @media (max-width: 1100px){

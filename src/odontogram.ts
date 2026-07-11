@@ -157,6 +157,14 @@ const PROSTHESIS_SUMMARY_KEY: Record<string, string> = {
   "removable-full": "prosthesis.type.removableFull",
 };
 
+// SP-perio P1 Task 1: canonical 6-site periodontal probing order — buccal row
+// (mesio-buccal, buccal, disto-buccal), then lingual/palatal row (mesio-
+// lingual, lingual/palatal, disto-lingual). Shared verbatim by the data core
+// here and every later perio task (UI charting grid, FHIR mapping) — the
+// exact array identity/order those tasks key their per-site controls to.
+export const PERIO_SITES = ["MB", "B", "DB", "ML", "L", "DL"] as const;
+export type PerioSite = typeof PERIO_SITES[number];
+
 function defaultState(){
   return {
     toothSelection: "tooth-base", // none | tooth-base | milktooth | implant | variants
@@ -226,6 +234,18 @@ function defaultState(){
     // peri-implant disease axis. none | mucositis | peri-implantitis-mild |
     // peri-implantitis-moderate | peri-implantitis-severe.
     periImplant: "none",
+    // SP-perio P1 Task 1: per-tooth, per-site periodontal probing data —
+    // deliberately a SEPARATE sub-record from the 5-surface caries maps
+    // above (perio sites are a different geometry: 6 fixed probing points,
+    // not tooth surfaces). `pd` (probing depth, mm) is the CHARTING key: a
+    // site exists in this record iff `pd` has an entry for it — "absence
+    // means not charted", never zero. `gm` (gingival margin offset, mm;
+    // signed — positive = recession, negative = coronal/pseudopocket)
+    // defaults to 0 when unset. Clinical attachment level (CAL = pd + gm) is
+    // ALWAYS derived (see getToothCal()) — never stored. `bop`/`sup`
+    // (bleeding/suppuration on probing) are membership-only Sets, and are
+    // only ever meaningful for a charted site (see setPerioSite()).
+    perio: { pd: new Map(), gm: new Map(), bop: new Set(), sup: new Set() },
     customStates: {} as Record<string, unknown>,
     note: "",
   };
@@ -908,6 +928,21 @@ function isUnderGum(sel: Any){
 
 function isExtraction(sel: Any){
   return sel === "no-tooth-after-extraction";
+}
+
+// SP-perio P1 Task 2: #perioRow gate. Periodontal probing applies only to a
+// tooth actually present in the mouth chairside — missing/implant/under-gum/
+// extraction-socket teeth have no probing site to chart at all, so (unlike
+// mobilityRowHidden, which stays visible-but-disabled for some of those) this
+// hides the whole row outright. `!isToothPresent(sel)` covers BOTH "none"
+// (missing) and "implant" in one check; isUnderGum/isExtraction carve out the
+// remaining two non-present-but-not-"none" selections.
+function perioRowHidden(s: Any): boolean {
+  const sel = s?.toothSelection;
+  return !isToothPresent(sel) || isUnderGum(sel) || isExtraction(sel);
+}
+export function __perioRowHiddenForTest(s: Record<string, unknown>): boolean {
+  return perioRowHidden(s);
 }
 
 function getDisplayedToothNumber(toothNo: Any){
@@ -2889,6 +2924,150 @@ export function __syncToothDetailControlsForTest(state: Record<string, unknown>)
   syncToothDetailControls(state);
 }
 
+/**
+ * SP-perio P1 Task 2: sync the #perioRow six-site PD/GM/BOP/SUP grid (built
+ * once by {@link buildPerioGrid}) + the live derived read-out (per-site CAL,
+ * tooth %BOP) for `toothNo`. Values are read via the SAME public
+ * getToothPerio()/getToothCal() API the write path (buildPerioGrid's change
+ * listeners) and later FHIR/export tasks use — this never re-derives CAL or
+ * %BOP itself, it only formats what those functions already return. The row
+ * is hidden via {@link perioRowHidden} (missing/implant/under-gum/
+ * extraction-socket teeth have no probing site to chart); when hidden (or
+ * `toothNo` is unset — e.g. no active tooth yet) the per-input sync is
+ * skipped, mirroring syncToothDetailControls' small-standalone-sync shape.
+ * Null-safe throughout (no-op when the grid/row/readout elements aren't
+ * mounted — e.g. a DOM-free test harness), exactly like every other small
+ * sync helper called from syncControlsFromState.
+ */
+function syncPerioRow(state: Any, toothNo: Any = activeTooth): void {
+  const row = $("#perioRow");
+  const hidden = perioRowHidden(state);
+  if(row) row.classList.toggle("hidden", hidden);
+  if(hidden || toothNo == null) return;
+  const perio = getToothPerio(toothNo);
+  const cal = getToothCal(toothNo);
+  for(const site of PERIO_SITES){
+    const pdInput = $(`#perio-pd-${site}`) as HTMLInputElement | null;
+    if(!pdInput) continue; // grid not built (e.g. DOM-free test harness)
+    const gmInput = $(`#perio-gm-${site}`) as HTMLInputElement;
+    const bopInput = $(`#perio-bop-${site}`) as HTMLInputElement;
+    const supInput = $(`#perio-sup-${site}`) as HTMLInputElement;
+    const charted = Object.prototype.hasOwnProperty.call(perio.pd, site);
+    pdInput.value = charted ? String(perio.pd[site]) : "";
+    gmInput.value = (charted && Object.prototype.hasOwnProperty.call(perio.gm, site)) ? String(perio.gm[site]) : "";
+    bopInput.checked = perio.bop.includes(site);
+    supInput.checked = perio.sup.includes(site);
+    // GM/BOP/SUP only ever apply to an already-charted site (see
+    // setPerioSite's own contract) — disable them until PD is set, so an
+    // edit there can never be a silent no-op the user doesn't understand.
+    setDisabled(gmInput, !charted);
+    setDisabled(bopInput, !charted);
+    setDisabled(supInput, !charted);
+  }
+  const readoutEl = $("#perioReadout");
+  if(readoutEl){
+    const chartedSites = (PERIO_SITES as readonly string[]).filter((s) => Object.prototype.hasOwnProperty.call(perio.pd, s));
+    if(chartedSites.length === 0){
+      readoutEl.textContent = t("perio.readout.empty");
+    }else{
+      const calStr = chartedSites.map((s) => `${s} ${t("perio.cal")} ${cal.get(s)}`).join("   ");
+      const bopCount = perio.bop.length;
+      const pct = Math.round((bopCount / chartedSites.length) * 1000) / 10;
+      readoutEl.textContent = `${calStr}   ${t("perio.bopPercent")} ${pct}% (${bopCount}/${chartedSites.length})`;
+    }
+  }
+}
+
+/** TEST-ONLY: apply {@link syncPerioRow} to a hand-built #perioRow DOM
+ *  fragment for a given `toothNo`, without requiring a live initOdontogram()
+ *  or a real `activeTooth`. Mirrors __syncToothDetailControlsForTest /
+ *  __syncInflammationModVisibilityForTest. Not part of the public API. */
+export function __syncPerioRowForTest(state: Record<string, unknown>, toothNo: number): void {
+  syncPerioRow(state, toothNo);
+}
+
+/**
+ * SP-perio P1 Task 2: build the static 6-site PD/GM/BOP/SUP grid ONCE — site
+ * identities never change across teeth, mirroring buildSurfaceCross/
+ * buildChecks building their option lists once in wireControls(); per-tooth
+ * VALUES are synced separately by {@link syncPerioRow} (called from
+ * syncControlsFromState on tooth select), exactly like the caries/filling
+ * surface checkboxes' `.checked` is synced from state while the surface list
+ * itself is built once. Two site-group rows in PERIO_SITES' own canonical
+ * order (buccal MB/B/DB, then lingual/palatal ML/L/DL). Every control calls
+ * setPerioSite(activeTooth, site, patch) DIRECTLY — NOT applyToSelected():
+ * perio is inherently single-tooth, per-site data, not a bulk-across-
+ * selection axis like mobility/caries — then re-syncs the row immediately,
+ * since setPerioSite deliberately never touches DOM/SVG itself (see its own
+ * doc comment).
+ */
+function buildPerioGrid(container: Any): void {
+  if(!container) return;
+  container.innerHTML = "";
+  const buildSiteRow = (sites: readonly string[], rowClass: string) => {
+    const rowEl = el("div", { class: `perio-site-row ${rowClass}` });
+    for(const site of sites){
+      const cell = el("div", { class: "perio-site-cell", "data-site": site }, [
+        el("div", { class: "perio-site-label", title: t(`perio.site.${site}`), text: site }),
+      ]);
+
+      const pdInput = el("input", { type: "number", id: `perio-pd-${site}`, "data-site": site, "data-field": "pd", min: "1", max: "15", step: "1" });
+      cell.appendChild(el("label", { class: "perio-field" }, [ el("span", { text: t("perio.pd") }), pdInput ]));
+
+      const gmInput = el("input", { type: "number", id: `perio-gm-${site}`, "data-site": site, "data-field": "gm", min: "-10", max: "20", step: "1" });
+      cell.appendChild(el("label", { class: "perio-field" }, [ el("span", { text: t("perio.gm") }), gmInput ]));
+
+      const bopInput = el("input", { type: "checkbox", id: `perio-bop-${site}`, "data-site": site, "data-field": "bop" });
+      cell.appendChild(el("label", { class: "perio-check" }, [ bopInput, el("span", { text: t("perio.bop") }) ]));
+
+      const supInput = el("input", { type: "checkbox", id: `perio-sup-${site}`, "data-site": site, "data-field": "sup" });
+      cell.appendChild(el("label", { class: "perio-check" }, [ supInput, el("span", { text: t("perio.sup") }) ]));
+
+      const resync = () => {
+        if(activeTooth == null) return;
+        syncPerioRow(toothState.get(activeTooth), activeTooth);
+      };
+      pdInput.addEventListener("change", ()=>{
+        if(activeTooth == null) return;
+        const raw = pdInput.value.trim();
+        setPerioSite(activeTooth, site, { pd: raw === "" ? null : Number(raw) });
+        resync();
+      });
+      gmInput.addEventListener("change", ()=>{
+        if(activeTooth == null) return;
+        const raw = gmInput.value.trim();
+        if(raw === "") return; // no explicit gm edit -> no-op (gm has no "unset" signal)
+        setPerioSite(activeTooth, site, { gm: Number(raw) });
+        resync();
+      });
+      bopInput.addEventListener("change", ()=>{
+        if(activeTooth == null) return;
+        setPerioSite(activeTooth, site, { bop: bopInput.checked });
+        resync();
+      });
+      supInput.addEventListener("change", ()=>{
+        if(activeTooth == null) return;
+        setPerioSite(activeTooth, site, { sup: supInput.checked });
+        resync();
+      });
+
+      rowEl.appendChild(cell);
+    }
+    container.appendChild(rowEl);
+  };
+  buildSiteRow(PERIO_SITES.slice(0, 3), "perio-buccal-row");
+  buildSiteRow(PERIO_SITES.slice(3, 6), "perio-lingual-row");
+}
+
+/** TEST-ONLY: apply {@link buildPerioGrid} to a hand-built container, without
+ *  requiring a live initOdontogram() (there is no full-DOM mount harness for
+ *  the tooth panel — see sp14-ortho-ui.test.ts's header comment). Lets a test
+ *  verify the real grid-building DOM shape (ids/data-attributes/types) that
+ *  production wireControls() builds once at init. Not part of the public API. */
+export function __buildPerioGridForTest(container: Element): void {
+  buildPerioGrid(container);
+}
+
 function syncControlsFromState(state: Any){
   // SP4 Task 5: apical (AAE) diagnosis picker.
   setSelectOptions($("#apicalDxSelect"), getApicalDxOptions(), state.apicalDx);
@@ -3231,6 +3410,10 @@ function syncControlsFromState(state: Any){
     inflammationLabel.textContent = extraction ? t("mods.periodontalInflammation") : t("mods.periapicalInflammation");
   }
   $("#mobilityRow").classList.toggle("hidden", mobilityRowHidden(state));
+  // SP-perio P1 Task 2: sync the #perioRow six-site grid + derived read-out
+  // from state on every syncControlsFromState() call — i.e. on tooth select,
+  // mirroring exactly how mobility syncs its own control above.
+  syncPerioRow(state);
   const parodontalInput = $("#chk-parodontal");
   if(parodontalInput){
     setDisabled(parodontalInput, extraction);
@@ -4301,6 +4484,15 @@ function serializeState(s: Any){
     rootCaries: s.rootCaries,
     radiographicDepth: Object.fromEntries(s.radiographicDepth || new Map()),
     fillingDefect: Object.fromEntries(s.fillingDefect || new Map()),
+    // SP-perio P1 Task 1: omitted ENTIRELY when no site is charted (mirrors
+    // the customStates/note pattern below) — a no-perio tooth/payload stays
+    // byte-identical to its pre-perio serialization.
+    ...((s.perio?.pd?.size ?? 0) > 0 ? { perio: {
+      pd: Object.fromEntries(s.perio.pd),
+      gm: Object.fromEntries(s.perio.gm),
+      bop: Array.from(s.perio.bop),
+      sup: Array.from(s.perio.sup),
+    } } : {}),
     ...(Object.keys(s.customStates || {}).length > 0 ? { customStates: s.customStates } : {}),
     ...(s.note ? { note: s.note } : {}),
   };
@@ -4356,6 +4548,30 @@ function filterSet(arr: Any, allowed: Set<string>): Set<string>{
 
 function validateEnum(value: Any, allowed: Set<string>, fallback: string): string{
   return typeof value === "string" && allowed.has(value) ? value : fallback;
+}
+
+// SP-perio P1 Task 1: clinical ranges for the two perio scalar fields.
+type PerioField = "pd" | "gm";
+const PERIO_RANGES: Record<PerioField, [number, number]> = { pd: [1, 15], gm: [-10, 20] };
+
+/**
+ * Validate + clamp a perio `pd`/`gm` value. Returns the clamped integer
+ * within the field's clinical range, or `null` for a value the field can't
+ * represent at all: a non-integer/non-finite `v` (reject signal — the caller
+ * must leave state untouched), or — for `pd` specifically — a value below the
+ * minimum (0, negative), which doubles as the "un-chart this site" signal
+ * `setPerioSite`/`hydrateState` rely on (a probing depth of 0 isn't a
+ * clinical reading, it's "not probed"). `gm` has no such floor signal: it
+ * clamps to its minimum like its maximum, since a coronal/pseudopocket
+ * reading past -10mm is still a valid (if extreme) reading, not an absence.
+ * Shared verbatim by setPerioSite (live edits) and hydrateState (payload
+ * import), so both paths enforce identical bounds.
+ */
+function clampPerio(field: PerioField, v: unknown): number | null {
+  if(typeof v !== "number" || !Number.isFinite(v) || !Number.isInteger(v)) return null;
+  const [min, max] = PERIO_RANGES[field];
+  if(field === "pd" && v < min) return null;
+  return Math.min(max, Math.max(min, v));
 }
 
 /**
@@ -4765,6 +4981,42 @@ function hydrateState(raw: Any, inferLegacySecondaryCaries = true){
     s.prosthesis = "none";
   }
   s.crownLeakage = !!raw.crownLeakage;
+  // SP-perio P1 Task 1: restore the per-site perio sub-record. Absent/legacy
+  // (<=2.11) payloads have no `perio` key at all -> stays the empty default
+  // (no throw). Every raw value is independently validated: `pd` is charted
+  // only through clampPerio's own rules (out-of-range/non-integer/unknown
+  // site dropped, never orphaning a bad entry); `gm`/`bop`/`sup` are ONLY
+  // ever kept for a site that resolved a valid `pd` above — a crafted/foreign
+  // payload can never sneak in an orphaned gm/bop/sup on an un-charted site.
+  const rawPerio = raw.perio;
+  if(rawPerio && typeof rawPerio === "object"){
+    if(rawPerio.pd && typeof rawPerio.pd === "object"){
+      for(const [site, val] of Object.entries(rawPerio.pd)){
+        if(!(PERIO_SITES as readonly string[]).includes(site)) continue;
+        const num = typeof val === "number" ? val : (typeof val === "string" ? Number(val) : NaN);
+        const clamped = clampPerio("pd", num);
+        if(clamped !== null) s.perio.pd.set(site, clamped);
+      }
+    }
+    if(rawPerio.gm && typeof rawPerio.gm === "object"){
+      for(const [site, val] of Object.entries(rawPerio.gm)){
+        if(!s.perio.pd.has(site)) continue; // no orphan gm without a charted pd
+        const num = typeof val === "number" ? val : (typeof val === "string" ? Number(val) : NaN);
+        const clamped = clampPerio("gm", num);
+        if(clamped !== null) s.perio.gm.set(site, clamped);
+      }
+    }
+    if(Array.isArray(rawPerio.bop)){
+      for(const site of rawPerio.bop){
+        if(typeof site === "string" && s.perio.pd.has(site)) s.perio.bop.add(site);
+      }
+    }
+    if(Array.isArray(rawPerio.sup)){
+      for(const site of rawPerio.sup){
+        if(typeof site === "string" && s.perio.pd.has(site)) s.perio.sup.add(site);
+      }
+    }
+  }
   // Restore note
   if(typeof raw.note === "string") s.note = raw.note;
   // Restore plugin custom states (only for registered plugin IDs)
@@ -4820,7 +5072,7 @@ function collectExportPayload(){
   const planTeeth = planInitialized ? collectTeeth(charts.plan) : null;
   const planDiffers = planTeeth !== null && JSON.stringify(planTeeth) !== JSON.stringify(statusTeeth);
   return {
-    version: "2.11",
+    version: "2.12",
     globals: collectGlobals(),
     teeth: statusTeeth,
     ...(planDiffers ? { plan: planTeeth } : {}),
@@ -4849,7 +5101,7 @@ export function getStatusChart(): Any {
  */
 export function getPlanChart(): Any {
   return {
-    version: "2.11",
+    version: "2.12",
     globals: collectGlobals(),
     teeth: collectTeeth(charts.plan),
   };
@@ -4901,6 +5153,26 @@ export type PlanChange = { toothNo: number; axis: string; from: string; to: stri
 const TOOTH_SELECT_LABEL_KEY: Record<string, string> = Object.fromEntries(
   optionsFor("toothSelection").map((o) => [o.value, o.labelKey])
 );
+
+/** SP-perio P1 Task 1: SUMMARY-level (never per-site) perio label for a
+ *  SINGLE tooth's state, used only by DIFF_AXES' `perio` entry below — so a
+ *  status->plan perio edit narrates as ONE diff entry per tooth ("3 sites,
+ *  BOP 33.3%, worst CAL 8") instead of exploding into up to 6 per-site
+ *  entries. "Nothing charted" renders the same `planChange.none` sentinel
+ *  every other axis uses. */
+function perioSummaryLabel(s: Any): string {
+  const perio = s.perio;
+  if(!perio || !perio.pd || perio.pd.size === 0) return t("planChange.none");
+  let bleeding = 0;
+  let worstCal: number | null = null;
+  for(const [site, pd] of perio.pd as Map<string, number>){
+    if((perio.bop as Set<string>).has(site)) bleeding++;
+    const cal = pd + ((perio.gm as Map<string, number>).get(site) ?? 0);
+    if(worstCal === null || cal > worstCal) worstCal = cal;
+  }
+  const bopPct = Math.round((bleeding / perio.pd.size) * 1000) / 10;
+  return t("planChange.perioSummary", { sites: perio.pd.size, bop: bopPct, cal: worstCal ?? 0 });
+}
 
 /** Curated, treatment-relevant diff axes for {@link getPlanChanges}. Each
  *  `label(state)` returns a short human string for that axis's value in the
@@ -4967,6 +5239,12 @@ const DIFF_AXES: { key: string; labelKey: string; label: (s: Any) => string }[] 
     key: "apical", labelKey: "planChange.axis.apical",
     label: (s) => apicalDiagnosisLabel(s) ?? t("planChange.none"),
   },
+  {
+    // SP-perio P1 Task 1: ONE summary-level entry per tooth (see
+    // perioSummaryLabel above) — never 6 per-site entries.
+    key: "perio", labelKey: "planChange.axis.perio",
+    label: (s) => perioSummaryLabel(s),
+  },
 ];
 
 /**
@@ -4996,6 +5274,166 @@ export function getPlanChanges(): PlanChange[] {
       const to = axis.label(pl);
       if(from !== to) out.push({ toothNo, axis: axis.key, from, to });
     }
+  }
+  return out;
+}
+
+// ---- SP-perio P1 Task 1: periodontal data-core public API ----
+// All five functions below operate on the ACTIVE-chart `toothState` alias
+// (not `charts.status` directly), exactly like every pre-existing per-tooth
+// getter/setter in this file — so they transparently participate in the
+// Status/Plan dual-state model (R2-A): called while `chartMode === "plan"`
+// they read/write the plan chart, and vice versa. Pure data — no SVG/DOM
+// touched, no render triggered (parity-safe: perio has no chart layer yet).
+
+type PerioSitePatch = { pd?: number | null; gm?: number; bop?: boolean; sup?: boolean };
+type PlainPerio = { pd: Record<string, number>; gm: Record<string, number>; bop: string[]; sup: string[] };
+
+/**
+ * Set/clear one perio site's reading(s) on the active chart's tooth.
+ *
+ * - `pd` is the CHARTING key. `null`/`undefined`/any value `< 1` UN-CHARTS
+ *   the site — it is removed from `pd`, `gm`, `bop`, AND `sup` in one atomic
+ *   step (never leaves an orphaned gm/bop/sup behind). A non-integer `pd`
+ *   (e.g. 6.5) is instead REJECTED outright: the whole call is a no-op and
+ *   state stays unchanged (no partial write). A valid integer `pd` is
+ *   clamped to 1–15.
+ * - `gm`/`bop`/`sup` only ever apply to an ALREADY-charted site (this call's
+ *   own `pd`, or a previously-charted one) — supplying them for a site with
+ *   no charted `pd` is a silent no-op, preserving the "absence = not
+ *   charted" invariant. `gm` is clamped to −10…+20; a non-integer `gm` is
+ *   rejected (that one field is left unset/unchanged, the rest of the patch
+ *   still applies).
+ * - An unrecognized `site` (not one of {@link PERIO_SITES}) is a silent no-op.
+ *
+ * Fires {@link onStateChange} listeners (via `notifyStateChange()`) whenever
+ * it actually mutates state; never on a rejected/no-op call.
+ */
+export function setPerioSite(toothNo: number, site: string, patch: PerioSitePatch): void {
+  if(!(PERIO_SITES as readonly string[]).includes(site)) return;
+  let s = toothState.get(toothNo);
+  if(!s){ s = defaultState(); toothState.set(toothNo, s); }
+  const perio = s.perio;
+  let changed = false;
+
+  if("pd" in patch){
+    const pd = patch.pd;
+    if(pd === null || pd === undefined || (typeof pd === "number" && pd < 1)){
+      if(perio.pd.has(site) || perio.gm.has(site) || perio.bop.has(site) || perio.sup.has(site)){
+        perio.pd.delete(site);
+        perio.gm.delete(site);
+        perio.bop.delete(site);
+        perio.sup.delete(site);
+        changed = true;
+      }
+      if(changed) notifyStateChange();
+      return;
+    }
+    const clampedPd = clampPerio("pd", pd);
+    if(clampedPd === null) return; // non-integer pd -> reject the WHOLE call
+    if(perio.pd.get(site) !== clampedPd){ perio.pd.set(site, clampedPd); changed = true; }
+  }
+
+  if(!perio.pd.has(site)){
+    if(changed) notifyStateChange();
+    return; // never orphan gm/bop/sup onto an un-charted site
+  }
+
+  if(patch.gm !== undefined){
+    const clampedGm = clampPerio("gm", patch.gm);
+    if(clampedGm !== null && perio.gm.get(site) !== clampedGm){ perio.gm.set(site, clampedGm); changed = true; }
+  }
+  if(patch.bop !== undefined){
+    if(patch.bop){ if(!perio.bop.has(site)){ perio.bop.add(site); changed = true; } }
+    else if(perio.bop.has(site)){ perio.bop.delete(site); changed = true; }
+  }
+  if(patch.sup !== undefined){
+    if(patch.sup){ if(!perio.sup.has(site)){ perio.sup.add(site); changed = true; } }
+    else if(perio.sup.has(site)){ perio.sup.delete(site); changed = true; }
+  }
+  if(changed) notifyStateChange();
+}
+
+/** Read a tooth's perio sub-record from the active chart as a PLAIN object
+ *  (Maps/Sets converted to a fresh Record/Array each call — safe to mutate,
+ *  never aliases live state). A tooth with no charted sites (or never
+ *  touched at all) returns the empty-but-defined shape, never `undefined`. */
+export function getToothPerio(toothNo: number): PlainPerio {
+  const s = toothState.get(toothNo);
+  const perio = s?.perio;
+  if(!perio || perio.pd.size === 0) return { pd: {}, gm: {}, bop: [], sup: [] };
+  return {
+    pd: Object.fromEntries(perio.pd),
+    gm: Object.fromEntries(perio.gm),
+    bop: Array.from(perio.bop),
+    sup: Array.from(perio.sup),
+  };
+}
+
+/** Derive Clinical Attachment Level (CAL = pd + gm, gm signed and defaulting
+ *  to 0) for every CHARTED site of a tooth on the active chart. CAL is never
+ *  stored — this is the single source of truth for it. A site absent from
+ *  `pd` (not charted) has NO entry in the returned Map (not a 0). */
+export function getToothCal(toothNo: number): Map<string, number> {
+  const cal = new Map<string, number>();
+  const s = toothState.get(toothNo);
+  if(!s || !s.perio) return cal;
+  for(const [site, pd] of s.perio.pd as Map<string, number>){
+    cal.set(site, pd + ((s.perio.gm as Map<string, number>).get(site) ?? 0));
+  }
+  return cal;
+}
+
+/**
+ * Whole-mouth periodontal summary over the active chart: total charted
+ * sites, how many bled on probing, the derived %BOP, and the single worst
+ * (deepest) CAL reading with the tooth it's on, plus the deepest raw pocket
+ * depth recorded anywhere. `%BOP = bleedingSites / chartedSites` — a site
+ * flagged `bop` without ever being charted can't exist (see setPerioSite()),
+ * so this ratio can never exceed 100%. Returns zeros/nulls (never `NaN`)
+ * when nothing has been charted anywhere.
+ */
+export function getPerioSummary(): {
+  chartedSites: number; bleedingSites: number; bopPercent: number;
+  worstCal: number | null; worstCalTooth: number | null; maxPd: number | null;
+} {
+  let chartedSites = 0, bleedingSites = 0;
+  let worstCal: number | null = null, worstCalTooth: number | null = null, maxPd: number | null = null;
+  for(const toothNo of ALL_TEETH){
+    const s = toothState.get(toothNo);
+    if(!s || !s.perio) continue;
+    const pdMap = s.perio.pd as Map<string, number>;
+    const gmMap = s.perio.gm as Map<string, number>;
+    const bopSet = s.perio.bop as Set<string>;
+    for(const [site, pd] of pdMap){
+      chartedSites++;
+      if(bopSet.has(site)) bleedingSites++;
+      const cal = pd + (gmMap.get(site) ?? 0);
+      if(worstCal === null || cal > worstCal){ worstCal = cal; worstCalTooth = toothNo; }
+      if(maxPd === null || pd > maxPd) maxPd = pd;
+    }
+  }
+  const bopPercent = chartedSites > 0 ? Math.round((bleedingSites / chartedSites) * 1000) / 10 : 0;
+  return { chartedSites, bleedingSites, bopPercent, worstCal, worstCalTooth, maxPd };
+}
+
+/** Per-tooth perio for every tooth on the active chart that has at least one
+ *  charted site (an uncharted tooth is OMITTED, not present with empty
+ *  maps — mirrors the same "absence = not charted" convention the payload's
+ *  `perio` key follows). Keyed by tooth number (FDI), stringified (plain
+ *  object keys are always strings), each value shaped like
+ *  {@link getToothPerio}'s return. */
+export function getPerioChart(): Record<string, PlainPerio> {
+  const out: Record<string, PlainPerio> = {};
+  for(const toothNo of ALL_TEETH){
+    const s = toothState.get(toothNo);
+    if(!s || !s.perio || s.perio.pd.size === 0) continue;
+    out[String(toothNo)] = {
+      pd: Object.fromEntries(s.perio.pd),
+      gm: Object.fromEntries(s.perio.gm),
+      bop: Array.from(s.perio.bop),
+      sup: Array.from(s.perio.sup),
+    };
   }
   return out;
 }
@@ -5888,6 +6326,11 @@ function wireControls(){
       s.mobility = value;
     });
   });
+
+  // SP-perio P1 Task 2: the 6-site PD/GM/BOP/SUP grid — built once here
+  // (site identities are static), values synced per-tooth by syncPerioRow()
+  // inside syncControlsFromState(). See buildPerioGrid's own doc comment.
+  buildPerioGrid($("#perioGrid"));
 
   // Inflammations
   buildChecks($("#modsChecks"), MOD_OPTIONS, (id, on)=>{
