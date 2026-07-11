@@ -49,7 +49,7 @@ describe("collectExportPayload — version 2.12, status-primary, conditional pla
     expect(getChartMode()).toBe("status");
 
     const payload = __collectExportPayloadForTest();
-    expect(payload.version).toBe("2.12");
+    expect(payload.version).toBe("2.13");
     expect(payload.teeth[16].restorationType).toBe("crown");
     expect(payload).not.toHaveProperty("plan");
   });
@@ -60,7 +60,7 @@ describe("collectExportPayload — version 2.12, status-primary, conditional pla
     setChartMode("status");
 
     const payload = __collectExportPayloadForTest();
-    expect(payload.version).toBe("2.12");
+    expect(payload.version).toBe("2.13");
     expect(payload).not.toHaveProperty("plan");
   });
 
@@ -71,7 +71,7 @@ describe("collectExportPayload — version 2.12, status-primary, conditional pla
     setChartMode("status");
 
     const payload = __collectExportPayloadForTest();
-    expect(payload.version).toBe("2.12");
+    expect(payload.version).toBe("2.13");
     expect(payload.teeth[16].restorationType).toBe("crown");
     expect(payload.plan).toBeDefined();
     expect(payload.plan[16].restorationType).toBe("inlay");
@@ -101,8 +101,8 @@ describe("getStatusChart / getPlanChart / setPlanChart — per-state API", () =>
 
     const statusPayload = getStatusChart();
     const planPayload = getPlanChart();
-    expect(statusPayload.version).toBe("2.12");
-    expect(planPayload.version).toBe("2.12");
+    expect(statusPayload.version).toBe("2.13");
+    expect(planPayload.version).toBe("2.13");
     expect(statusPayload.teeth[11].discoloration).toBe("tetracycline");
     expect(planPayload.teeth[11].discoloration).toBe("fluorosis");
     // getStatusChart() is exactly the status-primary export (same shape/rules).

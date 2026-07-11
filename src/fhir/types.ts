@@ -86,6 +86,31 @@ export interface ToothRecord {
     bop: string[];
     sup: string[];
   };
+  // SP-perio P2b Task 2: per-entrance Glickman furcation involvement grade
+  // (I-IV, stored as integer 1-4; payload >=2.13). Present only when at
+  // least one entrance is graded — omitted entirely otherwise. Entrance keys
+  // are "mesial"/"distal"/"buccal"/"lingual"; the SET of entrances a given
+  // tooth actually offers is position-dependent (`furcationEntrances()` in
+  // odontogram.ts — upper molars have 3, lower molars 2, upper 1st
+  // premolars 2, everything else 0). Emitted by FHIR EXPORT as additional
+  // components (LOINC 34015-8) on the SAME periodontal-panel Observation
+  // `perio` above uses (LOINC 74029-0) — see toFhirPerio.ts. FHIR IMPORT
+  // does not read it back yet, same as `perio`.
+  furcation?: Record<string, number>;
+  // SP-perio P2b Task 3: O'Leary plaque-index per-surface presence (payload
+  // >=2.13, additive — no version bump for this task). Present only when at
+  // least one of the 4 fixed surfaces ("mesial"/"distal"/"buccal"/"lingual"
+  // — the SAME set for every tooth, unlike `furcation`'s position-gated
+  // entrance set) has plaque — omitted entirely otherwise. Membership in
+  // this array means "plaque present on that surface"; a surface's absence
+  // means "clean/not recorded" (never a stored false). Emitted by FHIR
+  // EXPORT as additional boolean components on the SAME periodontal-panel
+  // Observation `perio`/`furcation` above use — see toFhirPerio.ts. There is
+  // no verified per-surface O'Leary LOINC code, so each component carries no
+  // LOINC coding (engine-local code only), same treatment per-site BOP
+  // already gets. FHIR IMPORT does not read it back yet, same as
+  // `perio`/`furcation`.
+  plaque?: string[];
   customStates?: Record<string, unknown>;
   note?: string;
 }

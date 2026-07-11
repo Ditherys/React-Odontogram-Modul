@@ -171,7 +171,7 @@ describe("%BOP derivation", () => {
     expect(summary).toEqual({
       chartedSites: 0, bleedingSites: 0, bopPercent: 0,
       worstCal: null, worstCalTooth: null, maxPd: null,
-      avgPd: null, avgCal: null,
+      avgPd: null, avgCal: null, maxFurcation: null, plaquePercent: 0,
     });
   });
 
@@ -222,7 +222,7 @@ describe("payload round-trip (version 2.12)", () => {
     setPerioSite(16, "B", { pd: 6 });
 
     const payload = __collectExportPayloadForTest();
-    expect(payload.version).toBe("2.12");
+    expect(payload.version).toBe("2.13");
     expect(payload.teeth["16"].perio).toEqual({
       pd: { MB: 5, B: 6 }, gm: { MB: 1 }, bop: ["MB"], sup: [],
     });

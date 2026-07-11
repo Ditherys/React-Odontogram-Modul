@@ -103,6 +103,13 @@ vi.mock("../odontogram", async () => {
     setPerioSite: actual.setPerioSite,
     getToothMobility: actual.getToothMobility,
     setToothMobility: actual.setToothMobility,
+    // SP-perio P2b Task 4: furcation + plaque rows <PerioChart/>'s grid now
+    // needs at mount/render (buildFurcationCell/buildPlaqueCell).
+    furcationEntrances: actual.furcationEntrances,
+    getToothFurcation: actual.getToothFurcation,
+    setFurcation: actual.setFurcation,
+    getToothPlaque: actual.getToothPlaque,
+    setPlaque: actual.setPlaque,
     isPerioRowHidden: actual.isPerioRowHidden,
   };
 });

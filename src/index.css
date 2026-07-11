@@ -356,6 +356,25 @@ select:focus{
   opacity: 0.5;
   user-select: none;
 }
+/* Deferred fix (perio P2 follow-up, Task 1): setReadOnly() now also toggles
+   `.read-only` on whichever perio container is mounted (`#perioOverlay`
+   popup chrome or `#perioInlinePanel` inline housing) — see setReadOnly()
+   in odontogram.ts. Mirrors .panel.read-only above so the lock is visually
+   and functionally consistent with the rest of the read-only UI. The
+   overlay backdrop itself is only made non-interactive (no dim), so its own
+   Esc-to-close keyboard handling still works while read-only; only the
+   inner panel content is dimmed. */
+.perio-overlay.read-only{
+  pointer-events: none;
+}
+.perio-overlay.read-only .perio-overlay-panel{
+  opacity: 0.5;
+}
+.perio-inline-panel.read-only{
+  pointer-events: none;
+  opacity: 0.5;
+  user-select: none;
+}
 
 @media (prefers-reduced-motion: reduce){
   .tooth-tile.active::after{
@@ -1508,4 +1527,50 @@ select:focus{
   padding: 1px 2px;
   border: 1px solid var(--line); border-radius: 3px;
   background: var(--card); color: var(--text);
+}
+
+/* SP-perio P2b Task 4: furcation cycle control — a compact square button per
+   entrance whose face is the current Glickman grade (I-IV, "–" when none).
+   A set grade (data-grade > 0) is emphasised with the accent colour. */
+.perio-fullgrid-furc{
+  width: 15px; height: 15px; padding: 0;
+  font-size: 9px; font-weight: 700; line-height: 1;
+  text-align: center; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 3px;
+  background: var(--card); color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.perio-fullgrid-furc[data-grade]:not([data-grade="0"]){
+  border-color: var(--accent, #c0392b);
+  background: var(--accent, #c0392b); color: #fff;
+}
+.perio-fullgrid-furc:disabled{ opacity: .45; cursor: not-allowed; }
+
+/* SP-perio P2b Task 4: plaque control — a 2x2 quadrant of toggle buttons
+   (mesial/distal/buccal/lingual). An active surface (data-present="1") fills
+   with the plaque colour; an inactive one is a hollow outline. */
+.perio-fullgrid-plaque-quad{
+  display: grid;
+  grid-template-columns: repeat(2, 8px);
+  grid-template-rows: repeat(2, 8px);
+  gap: 1px;
+}
+.perio-fullgrid-plaque{
+  width: 8px; height: 8px; padding: 0;
+  cursor: pointer; font-size: 0;
+  border: 1px solid var(--line); border-radius: 2px;
+  background: var(--card);
+}
+.perio-fullgrid-plaque[data-present="1"]{
+  background: var(--accent, #2d6cdf);
+  border-color: var(--accent, #2d6cdf);
+}
+.perio-fullgrid-plaque:disabled{ opacity: .45; cursor: not-allowed; }
+.dark .perio-fullgrid-furc,
+.dark .perio-fullgrid-plaque{ background: rgba(255,255,255,.04); }
+.dark .perio-fullgrid-furc[data-grade]:not([data-grade="0"]){
+  background: var(--accent, #e05252); border-color: var(--accent, #e05252);
+}
+.dark .perio-fullgrid-plaque[data-present="1"]{
+  background: var(--accent, #4d8bff); border-color: var(--accent, #4d8bff);
 }

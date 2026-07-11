@@ -27,13 +27,44 @@ type Any = any;
  *  every other finding in this engine uses the engine-local LOCAL_SYSTEM only. */
 const LOINC_SYSTEM = "http://loinc.org";
 
-/** Verified LOINC codes (task-3-brief.md) — used exactly as specified. */
+/** Verified LOINC codes (task-3-brief.md, task-2-brief.md) — used exactly as
+ *  specified. */
 const LOINC = {
   panel: { code: "74029-0", display: "Periodontal panel" },
   pd: { code: "32910-2", display: "Probing depth" },
   recession: { code: "32911-0", display: "Gingival recession" },
   cal: { code: "32912-8", display: "Clinical attachment level (calculated)" },
+  // SP-perio P2b Task 2.
+  furcation: { code: "34015-8", display: "Furcation involvement" },
 } as const;
+
+// SP-perio P2b Task 2: furcation entrance labels — the union across every
+// tooth position furcationEntrances() (odontogram.ts) can return. Mirrored
+// here rather than imported, same policy PERIO_SITES/SITE_DISPLAY below
+// follow (fhir/ stays independent of the large odontogram.ts module).
+const FURCATION_ENTRANCES = ["mesial", "distal", "buccal", "lingual"] as const;
+type FurcationEntrance = typeof FURCATION_ENTRANCES[number];
+
+const FURCATION_ENTRANCE_DISPLAY: Record<FurcationEntrance, string> = {
+  mesial: "Mesial",
+  distal: "Distal",
+  buccal: "Buccal",
+  lingual: "Lingual",
+};
+
+// SP-perio P2b Task 3: the 4 fixed O'Leary plaque-index surfaces — the SAME
+// value set/labels as FURCATION_ENTRANCES above, but kept as an independent
+// constant (own bodySite local-code prefix, own gating) since plaque and
+// furcation are unrelated axes that only happen to share a surface vocabulary.
+const PLAQUE_SURFACES = ["mesial", "distal", "buccal", "lingual"] as const;
+type PlaqueSurface = typeof PLAQUE_SURFACES[number];
+
+const PLAQUE_SURFACE_DISPLAY: Record<PlaqueSurface, string> = {
+  mesial: "Mesial",
+  distal: "Distal",
+  buccal: "Buccal",
+  lingual: "Lingual",
+};
 
 // Mirrors PERIO_SITES in odontogram.ts (buccal MB/B/DB, then lingual/palatal
 // ML/L/DL). Duplicated here — rather than importing from the (very large)
@@ -71,34 +102,55 @@ const COMPONENT_BODYSITE_EXTENSION_URL =
   "http://hl7.org/fhir/5.0/StructureDefinition/extension-Observation.component.bodySite";
 
 /**
- * Site qualifier for one probing component: tooth (FDI) + probe site. NOTE:
- * FHIR R4's Observation.component has no standard `bodySite` element (it was
- * added in R5) — task-3-brief.md deliberately asks for one anyway, since
- * this engine's FHIR export already isn't a strict-conformance profile (see
- * the LOCAL_SYSTEM-based finding codes throughout). Rather than assigning
- * this CodeableConcept directly to `component.bodySite` (R4-illegal, see
- * `attachSiteBodySite` below), it is carried via HL7's R4 backport extension
- * so the emitted Observation stays schema-valid R4. No standard site-level
- * SNOMED/LOINC code is used for the probe-site half; it rides on
- * LOCAL_SYSTEM like every other engine-local code.
+ * Generic tooth+qualifier bodySite CodeableConcept, carried via the R4
+ * backport extension (see COMPONENT_BODYSITE_EXTENSION_URL above) rather
+ * than the R5-only `component.bodySite` field. `localCode`/`display` supply
+ * the engine-local qualifier half (e.g. `perio-site:MB` or
+ * `furcation-entrance:mesial`) — no standard SNOMED/LOINC code exists for
+ * either qualifier, so both ride on LOCAL_SYSTEM like every other
+ * engine-local code.
  */
-function siteBodySiteCC(tooth: string, site: PerioSite): CodeableConcept {
+function bodySiteCC(tooth: string, localCode: string, display: string): CodeableConcept {
   return {
     coding: [
       { system: FDI_SYSTEM, code: tooth },
-      { system: LOCAL_SYSTEM, code: `perio-site:${site}`, display: SITE_DISPLAY[site] },
+      { system: LOCAL_SYSTEM, code: localCode, display },
     ],
-    text: `Tooth ${tooth} – ${SITE_DISPLAY[site]}`,
+    text: `Tooth ${tooth} – ${display}`,
   };
 }
 
-/** Attach the tooth+probe-site CodeableConcept to a component via the R4
- *  backport extension (see COMPONENT_BODYSITE_EXTENSION_URL above), rather
- *  than the R5-only `component.bodySite` field. */
-function attachSiteBodySite(component: Any, tooth: string, site: PerioSite): void {
+/** Attach a generic tooth+qualifier bodySite to a component (see
+ *  {@link bodySiteCC}). */
+function attachBodySite(component: Any, tooth: string, localCode: string, display: string): void {
   component.extension = [
-    { url: COMPONENT_BODYSITE_EXTENSION_URL, valueCodeableConcept: siteBodySiteCC(tooth, site) },
+    { url: COMPONENT_BODYSITE_EXTENSION_URL, valueCodeableConcept: bodySiteCC(tooth, localCode, display) },
   ];
+}
+
+/** Site qualifier for one probing component: tooth (FDI) + probe site.
+ *  Thin wrapper over {@link attachBodySite} preserving the exact
+ *  `perio-site:${site}` local-code format every existing perio FHIR test
+ *  asserts against. NOTE: FHIR R4's Observation.component has no standard
+ *  `bodySite` element (it was added in R5) — task-3-brief.md deliberately
+ *  asks for one anyway, since this engine's FHIR export already isn't a
+ *  strict-conformance profile (see the LOCAL_SYSTEM-based finding codes
+ *  throughout). */
+function attachSiteBodySite(component: Any, tooth: string, site: PerioSite): void {
+  attachBodySite(component, tooth, `perio-site:${site}`, SITE_DISPLAY[site]);
+}
+
+/** Furcation-entrance qualifier for one furcation component: tooth (FDI) +
+ *  entrance, via the same R4 backport extension mechanism (see
+ *  {@link attachBodySite}). */
+function attachFurcationBodySite(component: Any, tooth: string, entrance: FurcationEntrance): void {
+  attachBodySite(component, tooth, `furcation-entrance:${entrance}`, FURCATION_ENTRANCE_DISPLAY[entrance]);
+}
+
+/** Plaque-surface qualifier for one plaque component: tooth (FDI) + surface,
+ *  via the same R4 backport extension mechanism (see {@link attachBodySite}). */
+function attachPlaqueBodySite(component: Any, tooth: string, surface: PlaqueSurface): void {
+  attachBodySite(component, tooth, `plaque-surface:${surface}`, PLAQUE_SURFACE_DISPLAY[surface]);
 }
 
 function isFiniteNumber(v: unknown): v is number {
@@ -107,24 +159,51 @@ function isFiniteNumber(v: unknown): v is number {
 
 /**
  * Build the periodontal-panel Observation for one tooth, or `undefined`
- * when the tooth has no charted perio sites. Pure; tolerant of malformed
- * `rec.perio` (never throws) — unrecognized site keys and non-numeric
+ * when the tooth has no charted perio sites AND no graded furcation
+ * entrance. Pure; tolerant of malformed `rec.perio`/`rec.furcation` (never
+ * throws) — unrecognized site/entrance keys and non-numeric/out-of-range
  * values are silently skipped rather than propagated.
  *
  * `sup` (suppuration on probing) is intentionally NOT emitted here — out of
  * scope per task-3-brief.md (only PD/recession/CAL/BOP are specified). A
  * future task may add it, likely facing the same no-dedicated-LOINC
  * situation as per-site BOP below.
+ *
+ * SP-perio P2b Task 2: furcation involvement rides on the SAME panel
+ * Observation, as additional components — a tooth with furcation data but
+ * NO charted perio site still gets the panel (built with only furcation
+ * components), and a tooth with charted perio sites but no furcation data
+ * gets exactly the same output as before this task (byte-identical golden).
+ *
+ * SP-perio P2b Task 3: O'Leary plaque-index presence rides on the SAME panel
+ * too, as additional boolean components — a tooth with ONLY plaque data
+ * (no charted perio site, no graded furcation) still gets the panel; a tooth
+ * with neither perio, furcation, NOR plaque data gets no panel at all
+ * (byte-identical golden, as before). There is no verified per-surface
+ * O'Leary LOINC code (LOINC only defines whole-mouth plaque indices), so
+ * each plaque component carries no LOINC coding at all — engine-local code
+ * only, the same no-dedicated-LOINC treatment per-site BOP gets above.
  */
 function buildToothPerioObservation(subjectRef: string, tooth: string, rec: ToothRecord): Observation | undefined {
   const perio = rec.perio;
   const pd = perio && typeof perio.pd === "object" ? (perio.pd as Record<string, unknown>) : undefined;
-  if (!pd) return undefined;
   const gm = perio && typeof perio.gm === "object" ? (perio.gm as Record<string, unknown>) : {};
   const bop = Array.isArray(perio?.bop) ? (perio!.bop as unknown[]).filter((v): v is string => typeof v === "string") : [];
+  const chartedSites = pd ? PERIO_SITES.filter((s) => Object.prototype.hasOwnProperty.call(pd, s) && isFiniteNumber(pd[s])) : [];
 
-  const chartedSites = PERIO_SITES.filter((s) => Object.prototype.hasOwnProperty.call(pd, s) && isFiniteNumber(pd[s]));
-  if (chartedSites.length === 0) return undefined;
+  const furcationRaw =
+    rec.furcation && typeof rec.furcation === "object" ? (rec.furcation as Record<string, unknown>) : undefined;
+  const gradedEntrances = furcationRaw
+    ? FURCATION_ENTRANCES.filter((e) => {
+        const v = furcationRaw[e];
+        return isFiniteNumber(v) && Number.isInteger(v) && v >= 1 && v <= 4;
+      })
+    : [];
+
+  const plaqueRaw = Array.isArray(rec.plaque) ? (rec.plaque as unknown[]).filter((v): v is string => typeof v === "string") : [];
+  const plaqueSurfaces = PLAQUE_SURFACES.filter((s) => plaqueRaw.includes(s));
+
+  if (chartedSites.length === 0 && gradedEntrances.length === 0 && plaqueSurfaces.length === 0) return undefined;
 
   const components: Any[] = [];
   for (const site of chartedSites) {
@@ -171,6 +250,32 @@ function buildToothPerioObservation(subjectRef: string, tooth: string, rec: Toot
     };
     attachSiteBodySite(bopComponent, tooth, site);
     components.push(bopComponent);
+  }
+
+  // SP-perio P2b Task 2: one component per graded furcation entrance,
+  // LOINC 34015-8, the Glickman grade (1-4) as a plain integer value.
+  for (const entrance of gradedEntrances) {
+    const grade = furcationRaw![entrance] as number;
+    const furcationComponent: Any = {
+      code: loincConcept(LOINC.furcation),
+      valueInteger: grade,
+    };
+    attachFurcationBodySite(furcationComponent, tooth, entrance);
+    components.push(furcationComponent);
+  }
+
+  // SP-perio P2b Task 3: one boolean component per O'Leary plaque-index
+  // surface WITH plaque present. No LOINC coding (see doc comment above) —
+  // engine-local code only, always `valueBoolean: true` (a clean/not-recorded
+  // surface simply has no component at all, mirroring how `plaque` itself
+  // stores presence-only membership rather than an explicit false).
+  for (const surface of plaqueSurfaces) {
+    const plaqueComponent: Any = {
+      code: { coding: [{ system: LOCAL_SYSTEM, code: "plaque-surface", display: "Dental plaque present" }], text: "Dental plaque present" },
+      valueBoolean: true,
+    };
+    attachPlaqueBodySite(plaqueComponent, tooth, surface);
+    components.push(plaqueComponent);
   }
 
   const obs = baseObservation(subjectRef, tooth, loincConcept(LOINC.panel));

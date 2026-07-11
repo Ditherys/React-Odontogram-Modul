@@ -127,6 +127,132 @@ describe("P2 Task 3: digit keydown commits + auto-advances (PD)", () => {
   });
 });
 
+// Deferred fix (P2 follow-up, Task 1): PD values 10-15 were unreachable via
+// single-digit auto-advance (digits 2-9 commit+advance immediately, but a
+// PD of 10-15 needs a two-digit '1' + '0'-'5' composition). Mirrors the GM
+// `dataset.pendingSign` prime/compose pattern: a leading '1' commits an
+// interim value of 1, primes `dataset.pendingTens`, and withholds
+// auto-advance so a following digit can complete the tens value.
+describe("P2 Task 1 (deferred fix): PD digit '1' primes a tens composition for 10-15", () => {
+  it("digit '1' on PD commits value 1, primes pendingTens, and does NOT advance focus", () => {
+    openGrid();
+    const cell = pd(18, "MB");
+    cell.focus();
+
+    fireEvent.keyDown(cell, { key: "1" });
+
+    expect(getToothPerio(18).pd.MB).toBe(1);
+    expect(cell.dataset.pendingTens).toBe("1");
+    expect(document.activeElement).toBe(cell); // no advance yet
+  });
+
+  it("a primed '1' followed by a digit 0-5 composes 10-15, clears the prime, and advances", () => {
+    openGrid();
+    const cell = pd(18, "MB");
+    cell.focus();
+    fireEvent.keyDown(cell, { key: "1" });
+
+    fireEvent.keyDown(cell, { key: "4" });
+
+    expect(getToothPerio(18).pd.MB).toBe(14);
+    expect(cell.dataset.pendingTens).toBeUndefined();
+    expect(document.activeElement).toBe(pd(18, "B"));
+  });
+
+  it("'1' then '0' composes 10", () => {
+    openGrid();
+    const cell = pd(18, "MB");
+    cell.focus();
+    fireEvent.keyDown(cell, { key: "1" });
+    fireEvent.keyDown(cell, { key: "0" });
+    expect(getToothPerio(18).pd.MB).toBe(10);
+  });
+
+  it("'1' then '5' composes 15 (upper clamp boundary)", () => {
+    openGrid();
+    const cell = pd(18, "MB");
+    cell.focus();
+    fireEvent.keyDown(cell, { key: "1" });
+    fireEvent.keyDown(cell, { key: "5" });
+    expect(getToothPerio(18).pd.MB).toBe(15);
+  });
+
+  it("a primed '1' followed by a digit 6-9 clears the prime and lets the digit act normally (overwrites + advances)", () => {
+    openGrid();
+    const cell = pd(18, "MB");
+    cell.focus();
+    fireEvent.keyDown(cell, { key: "1" });
+
+    fireEvent.keyDown(cell, { key: "7" });
+
+    expect(getToothPerio(18).pd.MB).toBe(7);
+    expect(cell.dataset.pendingTens).toBeUndefined();
+    expect(document.activeElement).toBe(pd(18, "B"));
+  });
+
+  it("a primed '1' followed by ArrowRight clears the prime (value stays 1) and moves focus normally", () => {
+    openGrid();
+    const cell = pd(18, "MB");
+    cell.focus();
+    fireEvent.keyDown(cell, { key: "1" });
+
+    fireEvent.keyDown(cell, { key: "ArrowRight" });
+
+    expect(getToothPerio(18).pd.MB).toBe(1);
+    expect(cell.dataset.pendingTens).toBeUndefined();
+    expect(document.activeElement).toBe(pd(18, "B"));
+  });
+
+  it("digits 2-9 still commit + advance immediately (no priming) — existing behavior preserved", () => {
+    openGrid();
+    const cell = pd(18, "MB");
+    cell.focus();
+
+    fireEvent.keyDown(cell, { key: "6" });
+
+    expect(getToothPerio(18).pd.MB).toBe(6);
+    expect(cell.dataset.pendingTens).toBeUndefined();
+    expect(document.activeElement).toBe(pd(18, "B"));
+  });
+
+  // Regression test mirroring the GM pendingSign stale-prime fix: a primed
+  // '1' must NOT survive a non-keyboard focus change (blur/focusout), or a
+  // later return-and-type would silently compose a wrong tens value.
+  it("a primed '1' does NOT survive blur (focusout clears pendingTens) — no stale-prime regression", () => {
+    openGrid();
+    const cell = pd(18, "MB");
+    const other = pd(18, "B");
+    cell.focus();
+
+    fireEvent.keyDown(cell, { key: "1" });
+    expect(cell.dataset.pendingTens).toBe("1");
+
+    // Leave the cell via a plain focus change — NO further keydown fires on `cell`.
+    other.focus();
+    fireEvent.focusOut(cell, { relatedTarget: other });
+
+    expect(cell.dataset.pendingTens).toBeUndefined();
+
+    // Return to the SAME cell and type a plain digit — must commit that
+    // digit alone, NOT compose with the stale '1'.
+    cell.focus();
+    fireEvent.keyDown(cell, { key: "3" });
+
+    expect(getToothPerio(18).pd.MB).toBe(3);
+  });
+
+  it("read-only mode is a no-op for the tens-priming flow", () => {
+    openGrid();
+    setReadOnly(true);
+    const cell = pd(18, "MB");
+
+    fireEvent.keyDown(cell, { key: "1" });
+
+    expect(getToothPerio(18).pd.MB).toBeUndefined();
+    expect(cell.dataset.pendingTens).toBeUndefined();
+  });
+});
+
 describe("P2 Task 3: GM digit entry (leading '-' for recession-negative)", () => {
   it("a bare digit on GM commits a positive reading and advances", () => {
     openGrid();
@@ -300,6 +426,49 @@ describe("P2 Task 3: read-only mode disables keyboard entry", () => {
     setReadOnly(true);
     openGrid();
     expect(pd(18, "MB").disabled).toBe(true);
+    setReadOnly(false);
+  });
+});
+
+// Deferred fix (P2 follow-up, Task 1): toggling readOnly while the perio
+// chart is already open used to be a no-op (the grid's disabled state is
+// baked in at open/resync, and setReadOnly() in odontogram.ts only ever
+// toggled `.read-only` on `.panel`/`.tooth-grid` — never the perio
+// container). This extends `setReadOnly()` to ALSO toggle `.read-only` on
+// the perio container(s) — `#perioOverlay` (popup) and `#perioInlinePanel`
+// (inline "Dental Chart" housing) — so the CSS pointer-events lock applies
+// live, exactly like `.panel`.
+describe("P2 Task 1 (deferred fix): setReadOnly() locks the perio chart live", () => {
+  it("popup mode: setReadOnly(true) adds .read-only to #perioOverlay live; setReadOnly(false) removes it", () => {
+    openGrid(); // renders <PerioChart open onClose={...} /> -> #perioOverlay
+    const overlay = document.getElementById("perioOverlay")!;
+    expect(overlay).toBeTruthy();
+    expect(overlay.classList.contains("read-only")).toBe(false);
+
+    setReadOnly(true);
+    expect(overlay.classList.contains("read-only")).toBe(true);
+
+    setReadOnly(false);
+    expect(overlay.classList.contains("read-only")).toBe(false);
+  });
+
+  it("inline mode: setReadOnly(true) adds .read-only to #perioInlinePanel live; setReadOnly(false) removes it", () => {
+    render(createElement(PerioChart, { inline: true }));
+    const panel = document.getElementById("perioInlinePanel")!;
+    expect(panel).toBeTruthy();
+    expect(panel.classList.contains("read-only")).toBe(false);
+
+    setReadOnly(true);
+    expect(panel.classList.contains("read-only")).toBe(true);
+
+    setReadOnly(false);
+    expect(panel.classList.contains("read-only")).toBe(false);
+  });
+
+  it("setReadOnly() is a safe no-op when no perio container is mounted (neither overlay nor inline panel present)", () => {
+    expect(document.getElementById("perioOverlay")).toBeNull();
+    expect(document.getElementById("perioInlinePanel")).toBeNull();
+    expect(() => setReadOnly(true)).not.toThrow();
     setReadOnly(false);
   });
 });

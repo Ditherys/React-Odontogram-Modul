@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.37.0] - 2026-07-11
+### Added
+- **Furcation** charting (Glickman I–IV, per entrance) on the teeth that have furcations — maxillary molars (3 entrances), mandibular molars (2), maxillary first premolars (2) — and **plaque** charting (O'Leary, per-surface presence → whole-mouth **plaque index PI%**), both as rows in the periodontal grid and the graphical Dental Chart, with a summary showing max furcation + PI%. Furcation is exported to FHIR (LOINC `34015-8`, per entrance). Public API: `setFurcation`/`getToothFurcation`/`furcationEntrances`, `setPlaque`/`getToothPlaque`. Payload version **2.13** (additive).
+### Fixed
+- Probing depths **10–15 mm** are now enterable via the keyboard (type `1` then a second digit; single digits `2`–`9` still auto-advance), so deep pockets no longer require the spinner.
+- Toggling **read-only** while the periodontal chart is open now locks it live (previously the lock only applied to the main panel).
+
 ## [1.36.0] - 2026-07-11
 ### Added
 - **Graphical periodontal chart ("Dental Chart" view).** The periodontal chart is now drawn like a real perio chart — the teeth rendered in a continuous arch (reusing the existing tooth artwork), with a red **CEJ reference line** and a **gingival-margin / pocket-depth curve** (a filled band) plotted over the teeth from the per-site data, the number rows (probing depth, gingival margin, CAL, bleeding, mobility) aligned in columns above/below the teeth, and a summary (avg PD, avg CAL, %BOP). Deep pockets visibly dip toward the root; recession shows the margin below the CEJ.

@@ -113,6 +113,30 @@ export function isUpperTooth(toothNo: number): boolean {
   return q === 1 || q === 2 || q === 5 || q === 6;
 }
 
+// SP-perio P2b Task 2: furcation entrance set for a given tooth, by FDI
+// POSITION (`toothNo % 10`) + quadrant. Deliberately position-based only —
+// it does NOT gate on whether the tooth is actually present/natural (that
+// present-natural-tooth gate belongs to the render layer, added in a later
+// task). Upper molars (position 6/7/8, quadrants 1-2: 16/17/18, 26/27/28)
+// have 3 entrances (mesial/distal/buccal); lower molars (quadrants 3-4:
+// 36/37/38, 46/47/48) have 2 (buccal/lingual); upper FIRST premolars only
+// (14, 24 — position 4, quadrants 1-2) have 2 (mesial/distal), since the
+// mesial root trunk on an upper first premolar can carry a furcation, unlike
+// upper second premolars (15/25) or any lower premolar. Every other tooth
+// (anteriors, lower premolars, upper 2nd premolars) has none. Returns a
+// fresh array each call (safe to mutate); order matches the brief exactly.
+export function furcationEntrances(toothNo: number): string[] {
+  const position = toothNo % 10;
+  const quadrant = Math.floor(toothNo / 10);
+  const isUpperQuadrant = quadrant === 1 || quadrant === 2;
+  const isLowerQuadrant = quadrant === 3 || quadrant === 4;
+  const isMolarPosition = position === 6 || position === 7 || position === 8;
+  if (isMolarPosition && isUpperQuadrant) return ["mesial", "distal", "buccal"];
+  if (isMolarPosition && isLowerQuadrant) return ["buccal", "lingual"];
+  if (position === 4 && isUpperQuadrant) return ["mesial", "distal"]; // 14/24 only
+  return [];
+}
+
 const MOD_OPTIONS = optionsFor("mods");
 
 function getPeriapicalTypeOptions(){
@@ -250,6 +274,24 @@ function defaultState(){
     // (bleeding/suppuration on probing) are membership-only Sets, and are
     // only ever meaningful for a charted site (see setPerioSite()).
     perio: { pd: new Map(), gm: new Map(), bop: new Set(), sup: new Set() },
+    // SP-perio P2b Task 2: per-entrance Glickman furcation involvement grade
+    // (I-IV, stored as integer 1-4). Keyed by entrance ("mesial"/"distal"/
+    // "buccal"/"lingual" — see furcationEntrances()); an entrance absent
+    // from this map is "not recorded", never grade 0. Separate sub-record
+    // from `perio` (different geometry: furcation entrances, not the 6
+    // fixed probing sites) but follows the exact same omit-when-empty /
+    // dual-state conventions.
+    furcation: new Map(), // entrance -> grade 1-4
+    // SP-perio P2b Task 3: per-surface O'Leary plaque-index presence — a
+    // plain 4-surface membership Set (surface in the set = plaque present on
+    // it; absence = clean/not recorded — NOT "known absent", same
+    // "absence means not charted" convention `perio`/`furcation` use). The
+    // 4 surfaces (VALID_PLAQUE_SURFACE below) are the SAME fixed set for
+    // EVERY tooth — deliberately distinct from both the 6-site perio-probing
+    // geometry and the 5-surface caries/filling geometry, and unlike
+    // furcation's position-gated entrance set, no per-tooth gating function
+    // is needed here.
+    plaque: new Set(), // Set<"mesial"|"distal"|"buccal"|"lingual">
     customStates: {} as Record<string, unknown>,
     note: "",
   };
@@ -4497,6 +4539,14 @@ function serializeState(s: Any){
       bop: Array.from(s.perio.bop),
       sup: Array.from(s.perio.sup),
     } } : {}),
+    // SP-perio P2b Task 2: omitted ENTIRELY when no entrance is graded, same
+    // convention as `perio` above — a no-furcation tooth/payload stays
+    // byte-identical to its pre-furcation serialization.
+    ...((s.furcation?.size ?? 0) > 0 ? { furcation: Object.fromEntries(s.furcation) } : {}),
+    // SP-perio P2b Task 3: omitted ENTIRELY when no surface has plaque, same
+    // convention as `perio`/`furcation` above — payload stays 2.13 (additive,
+    // no bump) and a no-plaque tooth/payload stays byte-identical.
+    ...((s.plaque?.size ?? 0) > 0 ? { plaque: Array.from(s.plaque) } : {}),
     ...(Object.keys(s.customStates || {}).length > 0 ? { customStates: s.customStates } : {}),
     ...(s.note ? { note: s.note } : {}),
   };
@@ -4544,6 +4594,20 @@ export const VALID_CARIES_SEVERITY = new Set([0, 1, 2, 3, 4, 5, 6]);
 export const VALID_RADIOGRAPHIC_DEPTH = new Set(["none", "E1", "E2", "D1", "D2", "D3"]);
 export const VALID_FILLING_DEFECT = new Set(["none", "marginal", "fracture", "wear"]);
 export const VALID_FILLING_DEFECT_SET = new Set(["marginal", "fracture", "wear"]); // non-none, valid stored values
+// SP-perio P2b Task 2: the union of every entrance value furcationEntrances()
+// can ever return, across all tooth positions — used by hydrateState to
+// validate a raw payload's `furcation` keys generically (hydrateState has no
+// tooth-position context to call furcationEntrances(toothNo) itself, exactly
+// like VALID_FILLING_SURFACES/VALID_RADIOGRAPHIC_DEPTH above are validated
+// against a tooth-independent set, not a per-tooth one). setFurcation(), by
+// contrast, DOES know the tooth and validates against the exact per-tooth set.
+export const VALID_FURCATION_ENTRANCE = new Set(["mesial", "distal", "buccal", "lingual"]);
+export const VALID_FURCATION_GRADE = new Set([1, 2, 3, 4]); // Glickman I-IV
+// SP-perio P2b Task 3: the 4 fixed O'Leary plaque-index surfaces — the SAME
+// set for every tooth (unlike VALID_FURCATION_ENTRANCE, which is filtered
+// per-tooth-position by furcationEntrances()), so both setPlaque() and
+// hydrateState() validate directly against this one constant.
+export const VALID_PLAQUE_SURFACE = new Set(["mesial", "distal", "buccal", "lingual"]);
 
 function filterSet(arr: Any, allowed: Set<string>): Set<string>{
   if(!Array.isArray(arr)) return new Set();
@@ -5021,6 +5085,32 @@ function hydrateState(raw: Any, inferLegacySecondaryCaries = true){
       }
     }
   }
+  // SP-perio P2b Task 2: restore the per-entrance furcation grade map.
+  // Absent/legacy (<=2.12) payloads have no `furcation` key -> stays the
+  // empty default (no throw). Validated against the tooth-independent
+  // VALID_FURCATION_ENTRANCE/VALID_FURCATION_GRADE sets (see their doc
+  // comment above) — hydrateState has no toothNo to call
+  // furcationEntrances(toothNo) itself; a crafted/foreign entrance for a
+  // tooth position that doesn't actually offer it is harmless dead data,
+  // exactly like an out-of-position radiographicDepth/fillingDefect surface.
+  const rawFurcation = raw.furcation;
+  if(rawFurcation && typeof rawFurcation === "object"){
+    for(const [entrance, val] of Object.entries(rawFurcation)){
+      if(!VALID_FURCATION_ENTRANCE.has(entrance)) continue;
+      const num = typeof val === "number" ? val : (typeof val === "string" ? Number(val) : NaN);
+      if(Number.isInteger(num) && VALID_FURCATION_GRADE.has(num)) s.furcation.set(entrance, num);
+    }
+  }
+  // SP-perio P2b Task 3: restore the O'Leary plaque-surface presence set.
+  // Absent/legacy payloads have no `plaque` key -> stays the empty default
+  // (no throw). Validated against VALID_PLAQUE_SURFACE — an unrecognized
+  // entry (foreign/crafted string) is silently dropped, never throws.
+  const rawPlaque = raw.plaque;
+  if(Array.isArray(rawPlaque)){
+    for(const surface of rawPlaque){
+      if(typeof surface === "string" && VALID_PLAQUE_SURFACE.has(surface)) s.plaque.add(surface);
+    }
+  }
   // Restore note
   if(typeof raw.note === "string") s.note = raw.note;
   // Restore plugin custom states (only for registered plugin IDs)
@@ -5076,7 +5166,7 @@ function collectExportPayload(){
   const planTeeth = planInitialized ? collectTeeth(charts.plan) : null;
   const planDiffers = planTeeth !== null && JSON.stringify(planTeeth) !== JSON.stringify(statusTeeth);
   return {
-    version: "2.12",
+    version: "2.13",
     globals: collectGlobals(),
     teeth: statusTeeth,
     ...(planDiffers ? { plan: planTeeth } : {}),
@@ -5105,7 +5195,7 @@ export function getStatusChart(): Any {
  */
 export function getPlanChart(): Any {
   return {
-    version: "2.12",
+    version: "2.13",
     globals: collectGlobals(),
     teeth: collectTeeth(charts.plan),
   };
@@ -5374,6 +5464,93 @@ export function getToothPerio(toothNo: number): PlainPerio {
   };
 }
 
+// ---- SP-perio P2b Task 2: furcation involvement (Glickman I-IV, per
+// entrance) public API. Operates on the ACTIVE-chart `toothState` alias,
+// exactly like the perio-site API above — transparently Status/Plan
+// dual-state aware. Pure data — no SVG/DOM touched, no render triggered
+// (parity-safe: furcation has no chart layer yet, that's Task 4).
+
+/**
+ * Set/clear one furcation entrance's Glickman grade on the active chart's
+ * tooth.
+ *
+ * - `entrance` must be one of {@link furcationEntrances}(toothNo) for THIS
+ *   tooth (position-gated — e.g. "lingual" is rejected on an upper molar,
+ *   which only ever offers mesial/distal/buccal). Any other entrance,
+ *   including one valid for a different tooth position, is a silent no-op.
+ * - `grade` must be an integer 1-4 (Glickman I-IV) to set/overwrite the
+ *   entrance; `null`/`undefined` clears it; anything else (non-integer,
+ *   out-of-range) is a silent no-op — state stays unchanged.
+ *
+ * Fires {@link notifyStateChange} whenever it actually mutates state; never
+ * on a rejected/no-op call.
+ */
+export function setFurcation(toothNo: number, entrance: string, grade: number | null | undefined): void {
+  if(!furcationEntrances(toothNo).includes(entrance)) return;
+  let s = toothState.get(toothNo);
+  if(!s){ s = defaultState(); toothState.set(toothNo, s); }
+  const furcation = s.furcation as Map<string, number>;
+
+  if(grade === null || grade === undefined){
+    if(furcation.has(entrance)){ furcation.delete(entrance); notifyStateChange(); }
+    return;
+  }
+  if(!Number.isInteger(grade) || !VALID_FURCATION_GRADE.has(grade)) return;
+  if(furcation.get(entrance) !== grade){ furcation.set(entrance, grade); notifyStateChange(); }
+}
+
+/** Read a tooth's furcation sub-record from the active chart as a PLAIN
+ *  object (entrance -> grade), safe to mutate, never aliases live state. A
+ *  tooth with no graded entrance (or never touched at all) returns `{}`. */
+export function getToothFurcation(toothNo: number): Record<string, number> {
+  const s = toothState.get(toothNo);
+  const furcation = s?.furcation as Map<string, number> | undefined;
+  if(!furcation || furcation.size === 0) return {};
+  return Object.fromEntries(furcation);
+}
+
+// ---- SP-perio P2b Task 3: O'Leary plaque-index (per-surface presence)
+// public API. Operates on the ACTIVE-chart `toothState` alias, exactly like
+// the perio-site/furcation APIs above — transparently Status/Plan dual-state
+// aware. Pure data — no SVG/DOM touched, no render triggered (parity-safe:
+// plaque has no chart layer yet, that's Task 4).
+
+/**
+ * Set/clear one O'Leary plaque-index surface's presence on the active
+ * chart's tooth.
+ *
+ * - `surface` must be one of {@link VALID_PLAQUE_SURFACE} (mesial/distal/
+ *   buccal/lingual — the SAME fixed set for every tooth, no per-tooth-
+ *   position gating like furcation's entrances). Any other value is a
+ *   silent no-op.
+ * - `present` truthy adds the surface to the set (plaque present); falsy
+ *   removes it (clean/not recorded).
+ *
+ * Fires {@link notifyStateChange} whenever it actually mutates state; never
+ * on a rejected/no-op call.
+ */
+export function setPlaque(toothNo: number, surface: string, present: boolean): void {
+  if(!VALID_PLAQUE_SURFACE.has(surface)) return;
+  let s = toothState.get(toothNo);
+  if(!s){ s = defaultState(); toothState.set(toothNo, s); }
+  const plaque = s.plaque as Set<string>;
+  if(present){
+    if(!plaque.has(surface)){ plaque.add(surface); notifyStateChange(); }
+  }else{
+    if(plaque.has(surface)){ plaque.delete(surface); notifyStateChange(); }
+  }
+}
+
+/** Read a tooth's plaque sub-record from the active chart as a PLAIN array
+ *  of present surfaces, safe to mutate, never aliases live state. A tooth
+ *  with no plaque surface (or never touched at all) returns `[]`. */
+export function getToothPlaque(toothNo: number): string[] {
+  const s = toothState.get(toothNo);
+  const plaque = s?.plaque as Set<string> | undefined;
+  if(!plaque || plaque.size === 0) return [];
+  return Array.from(plaque);
+}
+
 /** Derive Clinical Attachment Level (CAL = pd + gm, gm signed and defaulting
  *  to 0) for every CHARTED site of a tooth on the active chart. CAL is never
  *  stored — this is the single source of truth for it. A site absent from
@@ -5396,11 +5573,38 @@ export function getToothCal(toothNo: number): Map<string, number> {
  * flagged `bop` without ever being charted can't exist (see setPerioSite()),
  * so this ratio can never exceed 100%. Returns zeros/nulls (never `NaN`)
  * when nothing has been charted anywhere.
+ *
+ * `maxFurcation` (SP-perio P2b Task 2): the single highest Glickman grade
+ * (1-4) recorded on ANY furcation entrance anywhere in the mouth, `null`
+ * when nothing has been graded. Deliberately its own pass over `ALL_TEETH`
+ * (not folded into the pd-site loop above) since a tooth can carry furcation
+ * data independently of whether it has any charted perio site.
+ *
+ * `plaquePercent` (SP-perio P2b Task 3): whole-mouth O'Leary Plaque Index —
+ * `(total plaque surfaces charted across present teeth) / (present-teeth *
+ * 4) * 100`, one decimal (same rounding as `bopPercent` above), `0` when
+ * there are no present teeth (NOT `null` — matches `bopPercent`'s
+ * zero-not-null convention, unlike `avgPd`/`avgCal`). "Present" here means a
+ * REAL tooth in the mouth — `toothSelection` is neither `"none"` (missing)
+ * nor `"implant"` — deliberately the SAME predicate `isToothPresent()` uses
+ * (O'Leary is a tooth-focused index: a missing tooth has no surfaces to
+ * chart, an implant has no natural tooth surface). This is intentionally
+ * looser than `perioRowHidden()` (which additionally excludes under-gum/
+ * extraction-socket teeth, since THOSE have no probeable periodontal
+ * pocket) — an under-gum or extraction-socket "tooth" still occupies a slot
+ * in the arch and can carry visible/recorded plaque on the socket/gum
+ * surface, so it still counts toward the denominator here. Deliberately its
+ * own pass over `ALL_TEETH` (not folded into the pd-site loop above) since a
+ * tooth can carry plaque data independently of whether it has any charted
+ * perio site, mirroring `maxFurcation` above. A tooth never touched at all
+ * (no entry in the active chart map) is skipped entirely, same convention
+ * `maxFurcation`'s loop and `getOdontogramSummary()` use.
  */
 export function getPerioSummary(): {
   chartedSites: number; bleedingSites: number; bopPercent: number;
   worstCal: number | null; worstCalTooth: number | null; maxPd: number | null;
-  avgPd: number | null; avgCal: number | null;
+  avgPd: number | null; avgCal: number | null; maxFurcation: number | null;
+  plaquePercent: number;
 } {
   let chartedSites = 0, bleedingSites = 0;
   let worstCal: number | null = null, worstCalTooth: number | null = null, maxPd: number | null = null;
@@ -5426,7 +5630,29 @@ export function getPerioSummary(): {
   // nothing is charted, mirroring worstCal/maxPd's "absence = not charted".
   const avgPd = chartedSites > 0 ? Math.round((sumPd / chartedSites) * 10) / 10 : null;
   const avgCal = chartedSites > 0 ? Math.round((sumCal / chartedSites) * 10) / 10 : null;
-  return { chartedSites, bleedingSites, bopPercent, worstCal, worstCalTooth, maxPd, avgPd, avgCal };
+
+  let maxFurcation: number | null = null;
+  for(const toothNo of ALL_TEETH){
+    const s = toothState.get(toothNo);
+    if(!s || !s.furcation) continue;
+    for(const grade of (s.furcation as Map<string, number>).values()){
+      if(maxFurcation === null || grade > maxFurcation) maxFurcation = grade;
+    }
+  }
+
+  // SP-perio P2b Task 3: O'Leary whole-mouth Plaque Index (see doc comment
+  // above for the present-tooth definition/rationale).
+  let presentTeeth = 0, plaqueSurfaces = 0;
+  for(const toothNo of ALL_TEETH){
+    const s = toothState.get(toothNo);
+    if(!s) continue;
+    if(!isToothPresent(s.toothSelection)) continue;
+    presentTeeth++;
+    plaqueSurfaces += (s.plaque as Set<string> | undefined)?.size ?? 0;
+  }
+  const plaquePercent = presentTeeth > 0 ? Math.round((plaqueSurfaces / (presentTeeth * 4)) * 1000) / 10 : 0;
+
+  return { chartedSites, bleedingSites, bopPercent, worstCal, worstCalTooth, maxPd, avgPd, avgCal, maxFurcation, plaquePercent };
 }
 
 /** Per-tooth perio for every tooth on the active chart that has at least one
@@ -7459,6 +7685,18 @@ export function setReadOnly(value: boolean){
   if(grid) grid.classList.toggle("read-only", readOnly);
   const panel = $(".panel") as HTMLElement | null;
   if(panel) panel.classList.toggle("read-only", readOnly);
+  // Deferred fix (perio P2 follow-up, Task 1): toggling readOnly while the
+  // perio chart is open used to be a no-op — the grid's own disabled state
+  // is baked in at open/resync, and this function never touched the perio
+  // container. Extend the same live `.read-only` lock to whichever perio
+  // container is currently mounted: `#perioOverlay` (popup chrome) or
+  // `#perioInlinePanel` (inline "Dental Chart" housing). Both are queried
+  // defensively (only one is ever mounted at a time, and neither may be
+  // mounted at all) — mirrors the `panel`/`grid` null-safety above.
+  const perioOverlay = $("#perioOverlay") as HTMLElement | null;
+  if(perioOverlay) perioOverlay.classList.toggle("read-only", readOnly);
+  const perioInline = $("#perioInlinePanel") as HTMLElement | null;
+  if(perioInline) perioInline.classList.toggle("read-only", readOnly);
   // Update tabindex on all navigable tiles
   $$(".tooth-tile[role='option']").forEach(tile => {
     tile.setAttribute("tabindex", readOnly ? "-1" : "0");

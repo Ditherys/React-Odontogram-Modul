@@ -13,6 +13,11 @@ import {
   setPerioSite,
   getToothMobility,
   setToothMobility,
+  furcationEntrances,
+  setFurcation,
+  getToothFurcation,
+  setPlaque,
+  getToothPlaque,
   isPerioRowHidden,
   getReadOnly,
   onStateChange,
@@ -66,6 +71,16 @@ const LOWER_ARCH: readonly number[] = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 3
 const BUCCAL_SITES: readonly PerioSite[] = ["MB", "B", "DB"];
 const LINGUAL_SITES: readonly PerioSite[] = ["ML", "L", "DL"];
 
+// SP-perio P2b Task 4: the 4 fixed O'Leary plaque-index surfaces (mirrors
+// VALID_PLAQUE_SURFACE in odontogram.ts — literal here for the same
+// module-eval-safety reason as BUCCAL_SITES above). Order = the clockwise
+// M/D + B/L quadrant order the 4-quadrant plaque mark reads in.
+const PLAQUE_SURFACES: readonly string[] = ["mesial", "distal", "buccal", "lingual"];
+
+// Glickman furcation grade -> Roman-numeral face on the cycle control.
+// Index 0 (no involvement) shows the em-dash placeholder, 1-4 show I-IV.
+const FURCATION_ROMAN = ["–", "I", "II", "III", "IV"];
+
 type PerioSiteData = ReturnType<typeof getToothPerio>;
 type PerioSummaryData = ReturnType<typeof getPerioSummary>;
 
@@ -79,6 +94,8 @@ const EMPTY_SUMMARY: PerioSummaryData = {
   maxPd: null,
   avgPd: null,
   avgCal: null,
+  maxFurcation: null,
+  plaquePercent: 0,
 };
 
 type ToothCellRefs = {
@@ -87,6 +104,11 @@ type ToothCellRefs = {
   bop: Partial<Record<PerioSite, HTMLInputElement>>;
   cal: Partial<Record<PerioSite, HTMLSpanElement>>;
   mobility: HTMLSelectElement | null;
+  // SP-perio P2b Task 4: per-entrance furcation cycle buttons (keyed by
+  // entrance string — only the furcated-position entrances exist) and the
+  // 4 O'Leary plaque-surface toggle buttons.
+  furcation: Partial<Record<string, HTMLButtonElement>>;
+  plaque: Partial<Record<string, HTMLButtonElement>>;
 };
 
 type GridHandlers = {
@@ -94,6 +116,8 @@ type GridHandlers = {
   onGm: (toothNo: number, site: PerioSite, raw: string) => void;
   onBop: (toothNo: number, site: PerioSite, checked: boolean) => void;
   onMobility: (toothNo: number, value: string) => void;
+  onFurcation: (toothNo: number, entrance: string) => void;
+  onPlaque: (toothNo: number, surface: string) => void;
 };
 
 // T3 curve overlay: gather the ordered per-site {pd,gm} readings for one row
@@ -204,6 +228,32 @@ function syncToothCells(
     cells.mobility.value = getToothMobility(toothNo);
     cells.mobility.disabled = readOnly || hidden;
   }
+  // SP-perio P2b Task 4: furcation cycle buttons — face + grade + pressed
+  // state from the active chart's per-entrance grade (getToothFurcation).
+  // Buttons only exist for furcated-position + present teeth (built once,
+  // see buildFurcationCell), so `hidden` here is belt-and-braces.
+  const furc = getToothFurcation(toothNo);
+  for (const entrance of Object.keys(cells.furcation)) {
+    const btn = cells.furcation[entrance];
+    if (!btn) continue;
+    const grade = furc[entrance] ?? 0;
+    btn.textContent = FURCATION_ROMAN[grade];
+    btn.dataset.grade = String(grade);
+    btn.setAttribute("aria-pressed", grade > 0 ? "true" : "false");
+    btn.disabled = readOnly || hidden;
+  }
+  // SP-perio P2b Task 4: plaque toggles — present/absent mark + pressed state
+  // from the active chart's plaque surface set (getToothPlaque). Disabled on
+  // a non-present tooth (mirrors the PD/GM disable gate).
+  const plaque = getToothPlaque(toothNo);
+  for (const surface of Object.keys(cells.plaque)) {
+    const btn = cells.plaque[surface];
+    if (!btn) continue;
+    const present = plaque.includes(surface);
+    btn.dataset.present = present ? "1" : "0";
+    btn.setAttribute("aria-pressed", present ? "true" : "false");
+    btn.disabled = readOnly || hidden;
+  }
 }
 
 /** One arch band's built grid plus the placeholder cell the tooth-row graphic
@@ -275,6 +325,67 @@ function buildFieldCell(
   return cell;
 }
 
+/** SP-perio P2b Task 4: build ONE tooth's FURCATION cell — a compact
+ *  cycle-button per {@link furcationEntrances} entrance (Glickman none->I->
+ *  II->III->IV->none on click, via `setFurcation`). A tooth with NO furcated
+ *  entrance for its position, OR one whose perio rows are hidden (missing /
+ *  implant / under-gum / extraction — `isPerioRowHidden`), gets an EMPTY cell
+ *  (no controls at all — furcation involvement only exists on a present,
+ *  furcated tooth). The cell still occupies the tooth's grid column so the row
+ *  stays column-aligned with the teeth. */
+function buildFurcationCell(
+  toothNo: number,
+  cells: ToothCellRefs,
+  handlers: GridHandlers,
+): HTMLDivElement {
+  const cell = mkEl("div", "perio-fullgrid-cell perio-fullgrid-cell-furcation");
+  cell.dataset.perioField = "furcation";
+  const entrances = furcationEntrances(toothNo);
+  if (entrances.length === 0 || isPerioRowHidden(toothNo)) return cell; // empty placeholder
+  const group = mkEl("div", "perio-fullgrid-sitegroup");
+  for (const entrance of entrances) {
+    const btn = mkEl("button", "perio-fullgrid-furc");
+    btn.type = "button";
+    btn.id = `perio-fg-furc-${toothNo}-${entrance}`;
+    btn.dataset.furcEntrance = entrance;
+    btn.title = t(`furcation.entrance.${entrance}`);
+    btn.setAttribute("aria-label", t(`furcation.entrance.${entrance}`));
+    btn.addEventListener("click", () => handlers.onFurcation(toothNo, entrance));
+    group.appendChild(btn);
+    cells.furcation[entrance] = btn;
+  }
+  cell.appendChild(group);
+  return cell;
+}
+
+/** SP-perio P2b Task 4: build ONE tooth's PLAQUE cell — a 4-quadrant mark of
+ *  toggle buttons (mesial/distal/buccal/lingual), each flipping O'Leary plaque
+ *  presence for that surface via `setPlaque` on click. Built for EVERY tooth
+ *  (the 4 surfaces are the same fixed set regardless of position) and disabled
+ *  on a non-present tooth via `syncToothCells`, mirroring the PD/GM rows. */
+function buildPlaqueCell(
+  toothNo: number,
+  cells: ToothCellRefs,
+  handlers: GridHandlers,
+): HTMLDivElement {
+  const cell = mkEl("div", "perio-fullgrid-cell perio-fullgrid-cell-plaque");
+  cell.dataset.perioField = "plaque";
+  const group = mkEl("div", "perio-fullgrid-plaque-quad");
+  for (const surface of PLAQUE_SURFACES) {
+    const btn = mkEl("button", `perio-fullgrid-plaque perio-fullgrid-plaque-${surface}`);
+    btn.type = "button";
+    btn.id = `perio-fg-plaque-${toothNo}-${surface}`;
+    btn.dataset.plaqueSurface = surface;
+    btn.title = t(`surface.${surface}`);
+    btn.setAttribute("aria-label", t(`surface.${surface}`));
+    btn.addEventListener("click", () => handlers.onPlaque(toothNo, surface));
+    group.appendChild(btn);
+    cells.plaque[surface] = btn;
+  }
+  cell.appendChild(group);
+  return cell;
+}
+
 /**
  * Build ONE arch band, re-laid into the reference (periodontalchart-online.com)
  * structure: the buccal-aspect number rows sit ABOVE the tooth graphic and the
@@ -295,7 +406,7 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   // Initialise every tooth's cell registry up front — the buccal rows built
   // below reference these before the header row (which used to create them).
   for (const toothNo of teeth) {
-    registry.set(toothNo, { pd: {}, gm: {}, bop: {}, cal: {}, mobility: null });
+    registry.set(toothNo, { pd: {}, gm: {}, bop: {}, cal: {}, mobility: null, furcation: {}, plaque: {} });
   }
 
   const buccalLabel = t("perio.buccal");
@@ -314,11 +425,23 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
     }
   };
 
+  // --- Plaque row (whole-tooth O'Leary index), at the very top ---
+  arch.appendChild(mkRowLabelCell(t("plaque.label")));
+  for (const toothNo of teeth) {
+    arch.appendChild(buildPlaqueCell(toothNo, registry.get(toothNo)!, handlers));
+  }
+
   // --- Buccal-aspect rows, ABOVE the graphic (PD innermost / nearest teeth) ---
   appendFieldRow("bop", BUCCAL_SITES, "buccal", `${buccalLabel} ${t("perio.bop")}`);
   appendFieldRow("cal", BUCCAL_SITES, "buccal", `${buccalLabel} ${t("perio.cal")}`);
   appendFieldRow("gm", BUCCAL_SITES, "buccal", `${buccalLabel} ${t("perio.gm")}`);
   appendFieldRow("pd", BUCCAL_SITES, "buccal", `${buccalLabel} ${t("perio.pd")}`);
+
+  // --- Furcation row, nearest the teeth (just above the graphic) ---
+  arch.appendChild(mkRowLabelCell(t("furcation.label")));
+  for (const toothNo of teeth) {
+    arch.appendChild(buildFurcationCell(toothNo, registry.get(toothNo)!, handlers));
+  }
 
   // --- Tooth-number header row, just above the tooth graphic ---
   arch.appendChild(mkRowLabelCell(""));
@@ -500,10 +623,20 @@ export default function PerioChart({
   // WHERE to move focus next; `syncOneTooth` re-syncs the edited cell from
   // state exactly like the existing `change`-event handlers do.
   //
-  // PD digit: a single 0-9 keystroke commits `pd` immediately (0 un-charts —
+  // PD digit: a single 2-9 keystroke commits `pd` immediately (0 un-charts —
   // `setPerioSite`'s own P1 semantics, no special-casing needed here) and
-  // advances to `nextPerioCell`. GM digit: same, except a leading `-`
-  // keystroke first primes the field — tracked ONLY via a `dataset.pendingSign`
+  // advances to `nextPerioCell`. A `1` keystroke commits an interim `pd` of
+  // 1, primes `dataset.pendingTens` (mirrors `dataset.pendingSign` below —
+  // NOT `.value`, for the same jsdom/browser value-sanitization reason), and
+  // withholds the advance so a FOLLOWING `0`-`5` digit can compose 10-15
+  // (deferred P2 fix — PD 10-15 were previously unreachable via single-digit
+  // auto-advance). Any other key while primed (not `0`-`5`) clears the prime
+  // — the already-committed value of 1 stands — and is NOT swallowed: it
+  // falls through to be handled normally below (arrow keys navigate, a
+  // digit 6-9 overwrites+advances as a fresh single-digit entry, anything
+  // else is a no-op at the current cell). GM digit: same auto-advance,
+  // except a leading `-` keystroke first primes the field — tracked ONLY
+  // via a `dataset.pendingSign`
   // marker on the input, NOT its `.value` (a bare `-` is not a valid
   // `<input type="number">` value, so the browser's, and jsdom's, own
   // value-sanitization algorithm silently resets it back to `""` the
@@ -555,6 +688,24 @@ export default function PerioChart({
         delete input.dataset.pendingSign;
       }
 
+      // PD tens-composition (see doc comment above): a primed '1' composes
+      // with a following 0-5 digit into 10-15. Any other key just clears
+      // the prime and falls through unswallowed to the rest of this
+      // handler (arrow keys / a fresh digit / anything else).
+      if (row === "pd" && input.dataset.pendingTens === "1") {
+        if (/^[0-5]$/.test(e.key)) {
+          e.preventDefault();
+          delete input.dataset.pendingTens;
+          suppressResyncRef.current = true;
+          setPerioSite(toothNo, site, { pd: Number(`1${e.key}`) });
+          suppressResyncRef.current = false;
+          syncOneTooth(toothNo);
+          focusPerioCell(nextPerioCell(cur));
+          return;
+        }
+        delete input.dataset.pendingTens;
+      }
+
       if (e.key === "ArrowRight") {
         e.preventDefault();
         focusPerioCell(nextPerioCell(cur));
@@ -584,6 +735,14 @@ export default function PerioChart({
 
       if (isDigit) {
         e.preventDefault();
+        if (row === "pd" && e.key === "1") {
+          suppressResyncRef.current = true;
+          setPerioSite(toothNo, site, { pd: 1 });
+          suppressResyncRef.current = false;
+          syncOneTooth(toothNo);
+          input.dataset.pendingTens = "1";
+          return; // withhold advance — a following 0-5 digit may compose 10-15
+        }
         suppressResyncRef.current = true;
         if (row === "pd") {
           setPerioSite(toothNo, site, { pd: Number(e.key) });
@@ -613,9 +772,15 @@ export default function PerioChart({
   // unlike `blur`) on the grid container, mirroring the delegated `keydown`
   // handler. Only ever clears the marker — never touches the cell's value or
   // calls `setPerioSite`.
+  //
+  // Deferred fix (P2 follow-up, Task 1): the SAME stale-prime bug applies to
+  // a primed PD `dataset.pendingTens` — clear it here too, or leaving a
+  // primed PD cell via a non-keyboard focus change and later returning to
+  // type a plain digit would silently compose it as a tens-completion.
   const handleGridFocusOut = useCallback((e: FocusEvent) => {
     const target = e.target as HTMLElement | null;
     if (target?.dataset?.pendingSign) delete target.dataset.pendingSign;
+    if (target?.dataset?.pendingTens) delete target.dataset.pendingTens;
   }, []);
 
   // Capture the opener + move focus into the dialog when it opens; restore
@@ -668,6 +833,27 @@ export default function PerioChart({
       onMobility: (toothNo, value) => {
         suppressResyncRef.current = true;
         setToothMobility(toothNo, value);
+        suppressResyncRef.current = false;
+        syncOneTooth(toothNo);
+      },
+      // SP-perio P2b Task 4: cycle the Glickman grade none->I->II->III->IV->
+      // none for one entrance. The current grade is read from the ACTIVE
+      // chart (getToothFurcation) so a dual-state switch cycles the right
+      // chart; the write always goes through setFurcation (no new mutation
+      // path). grade 4 wraps to `null` (clears the entrance).
+      onFurcation: (toothNo, entrance) => {
+        const cur = getToothFurcation(toothNo)[entrance];
+        const next = cur === undefined ? 1 : cur >= 4 ? null : cur + 1;
+        suppressResyncRef.current = true;
+        setFurcation(toothNo, entrance, next);
+        suppressResyncRef.current = false;
+        syncOneTooth(toothNo);
+      },
+      // SP-perio P2b Task 4: toggle one O'Leary plaque surface via setPlaque.
+      onPlaque: (toothNo, surface) => {
+        const present = getToothPlaque(toothNo).includes(surface);
+        suppressResyncRef.current = true;
+        setPlaque(toothNo, surface, !present);
         suppressResyncRef.current = false;
         syncOneTooth(toothNo);
       },
@@ -845,6 +1031,18 @@ export default function PerioChart({
           <span className="perio-fullgrid-summary-label">{t("perio.summary.maxPd")}</span>
           <span className="perio-fullgrid-summary-value" id="perio-fg-summary-maxpd">
             {summary.maxPd === null ? "–" : summary.maxPd}
+          </span>
+        </span>
+        <span className="perio-fullgrid-summary-item">
+          <span className="perio-fullgrid-summary-label">{t("perio.summary.maxFurcation")}</span>
+          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-maxfurc">
+            {summary.maxFurcation === null ? "–" : FURCATION_ROMAN[summary.maxFurcation]}
+          </span>
+        </span>
+        <span className="perio-fullgrid-summary-item">
+          <span className="perio-fullgrid-summary-label">{t("plaque.percent")}</span>
+          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-plaque">
+            {summary.plaquePercent}%
           </span>
         </span>
       </div>
