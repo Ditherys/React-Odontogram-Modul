@@ -125,6 +125,19 @@ vi.mock("../odontogram", async () => {
     setCejVisibility: actual.setCejVisibility,
     getRootConcavity: actual.getRootConcavity,
     setRootConcavity: actual.setRootConcavity,
+    // SP-perio PG-D Task 4: PI/GI/KG/GT/Miller rows <PerioChart/>'s grid now
+    // needs at mount/render (buildGradeCell/buildKgCell/
+    // buildGingivalThicknessCell/buildMillerClassCell).
+    getPlaqueIndex: actual.getPlaqueIndex,
+    setPlaqueIndex: actual.setPlaqueIndex,
+    getGingivalIndex: actual.getGingivalIndex,
+    setGingivalIndex: actual.setGingivalIndex,
+    getKeratinizedWidth: actual.getKeratinizedWidth,
+    setKeratinizedWidth: actual.setKeratinizedWidth,
+    getGingivalThickness: actual.getGingivalThickness,
+    setGingivalThickness: actual.setGingivalThickness,
+    getMillerClass: actual.getMillerClass,
+    setMillerClass: actual.setMillerClass,
   };
 });
 

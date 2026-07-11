@@ -118,6 +118,32 @@ export interface ToothRecord {
   // already gets. FHIR IMPORT does not read it back yet, same as
   // `perio`/`furcation`.
   plaque?: string[];
+  // SP-perio PG-D Task 1: Silness-Löe Plaque Index (`pi`) and Löe-Silness
+  // Gingival Index (`gi`) — per-surface GRADED indices (1-3; payload >=2.15,
+  // additive). Present only when at least one of the 4 fixed surfaces
+  // ("mesial"/"distal"/"buccal"/"lingual" — the SAME set `plaque` uses) is
+  // graded — omitted entirely otherwise. A surface absent from the record
+  // means grade 0 (healthy), never a stored 0. Deliberately SEPARATE from
+  // the O'Leary `plaque` boolean above (different clinical instrument; a
+  // tooth can carry both independently). Emitted by FHIR EXPORT as
+  // additional integer components on the SAME periodontal-panel Observation
+  // `perio`/`furcation`/`plaque` above use — see toFhirPerio.ts. There is no
+  // dedicated LOINC for either index, so each component carries no LOINC
+  // coding (engine-local code only), same treatment per-site BOP and
+  // per-surface plaque already get. FHIR IMPORT does not read it back yet,
+  // same as `perio`/`furcation`/`plaque`.
+  pi?: Record<string, number>;
+  gi?: Record<string, number>;
+  // SP-perio PG-D Task 2: keratinized gingiva width — a single per-tooth
+  // BUCCAL mm scalar (integer 0-15; payload >=2.15, additive — no version
+  // bump, Task 1 already bumped to 2.15). Present only when charted —
+  // omitted entirely otherwise (never a stored 0 vs "uncharted" ambiguity).
+  // Deliberately NOT per-site/per-surface unlike pi/gi/perio above. Emitted
+  // by FHIR EXPORT as one additional valueQuantity (mm) component on the
+  // SAME periodontal-panel Observation — see toFhirPerio.ts. No dedicated
+  // LOINC, engine-local finding code only. FHIR IMPORT does not read it back
+  // yet, same as perio/furcation/plaque/pi/gi.
+  kg?: number;
   customStates?: Record<string, unknown>;
   note?: string;
 }

@@ -224,6 +224,22 @@ export const LOCAL_VALUE_MAPS: Record<string, Record<string, CodeEntry>> = {
     "mild": { code: "mild", display: "Mild root concavity" },
     "deep": { code: "deep", display: "Deep root concavity" },
   },
+  // SP-perio PG-D Task 3: two per-tooth categorical DATA axes (registry/FHIR/
+  // payload only; the Dental Chart rows/UI land in later PG-D tasks). NO
+  // svgLayer — neither renders. Local codes only (no verified SNOMED/LOINC).
+  gingivalThickness: {
+    "unknown": { code: "unknown", display: "Gingival thickness not assessed" },
+    "thin": { code: "thin", display: "Thin gingival phenotype" },
+    "medium": { code: "medium", display: "Medium gingival phenotype" },
+    "thick": { code: "thick", display: "Thick gingival phenotype" },
+  },
+  millerClass: {
+    "none": { code: "none", display: "No recession class assigned" },
+    "i": { code: "i", display: "Miller Class I" },
+    "ii": { code: "ii", display: "Miller Class II" },
+    "iii": { code: "iii", display: "Miller Class III" },
+    "iv": { code: "iv", display: "Miller Class IV" },
+  },
   periImplant: {
     "none": { code: "none", display: "Peri-implant health" },
     "mucositis": { code: "mucositis", display: "Peri-implant mucositis" },

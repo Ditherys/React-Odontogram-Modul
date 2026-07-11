@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.42.0] - 2026-07-31
+### Added
+- **Silness-Löe Plaque Index (PI)** and **Löe-Silness Gingival Index (GI)** — per-surface graded findings (0-3, mesial/distal/buccal/lingual), each surfaced as a heat-bucketed Dental Chart row, in the tooth tooltip, and in the whole-mouth summary. Exported to FHIR as additional per-surface graded components.
+- **Keratinized gingiva width (KG)** — a per-tooth buccal measurement in mm (0-15), charted like the other mm-based perio findings, shown as a Dental Chart row, in the tooltip, and in the summary. Exported to FHIR.
+- **Gingival thickness phenotype (GT)** — a per-tooth categorical finding (unknown / thin / medium / thick) and **Miller recession class** — a per-tooth categorical finding (none / i / ii / iii / iv), each as a Dental Chart row with an info popup, surfaced in the tooltip/summary, and exported to FHIR.
+- All five axes are pure per-tooth data (no `svgLayer` → the odontogram render is unchanged, SVG-fingerprint parity byte-identical). Payload version **2.15** (additive).
+
 ## [1.41.0] - 2026-07-11
 ### Added
 - **Cairo recession type** (RT1–RT3) — computed from the attachment levels already recorded (interproximal vs buccal CAL on a tooth with buccal recession) and shown as a Dental Chart overlay layer + in the tooth tooltip / whole-mouth summary. Derived, no new data.

@@ -1065,6 +1065,106 @@ export function perioCairoMarks(
   return out;
 }
 
+// ---------------------------------------------------------------------------
+// SP-perio PG-D Task 4: the PI/GI graded-index overlays + the KG
+// keratinized-gingiva-width overlay. PI/GI (Silness-Löe Plaque Index /
+// Löe-Silness Gingival Index, 0-3 per O'Leary surface) mirror
+// `perioPlaqueMarks`' whole-tooth-surface shape (mesial/buccal/distal on the
+// buccal aspect, lingual on the palatal aspect) but heat-bucket the grade
+// instead of marking bare presence — reusing the SAME shallow/moderate/deep
+// heat vocabulary the mm ramps use, so `buildPerioOverlayLayer` needs no new
+// mark kinds. KG (a single per-tooth BUCCAL mm scalar) mirrors
+// `perioCairoMarks`' one-mark-per-tooth, buccal-only shape.
+// ---------------------------------------------------------------------------
+
+/** One tooth's graded-index input (PI/GI) for {@link perioGradeMarks}: its
+ *  row-local x + viewBox width and each of the 4 O'Leary surfaces' grade
+ *  (0-3; 0/absent = healthy/uncharted — matches getPlaqueIndex/
+ *  getGingivalIndex's own "absence" semantics, never marked). */
+export interface PerioGradeTooth {
+  x: number;
+  width: number;
+  grades: Partial<Record<"mesial" | "distal" | "buccal" | "lingual", 0 | 1 | 2 | 3>>;
+}
+
+/** Severity bucket for a CHARTED graded per-surface index reading (PI/GI,
+ *  1-3) — reuses the same shallow/moderate/deep heat vocabulary as the
+ *  continuous mm ramps ({@link pdCalHeatBucket}/{@link recessionHeatBucket}).
+ *  Callers only ever bucket a grade >0 (0/uncharted is filtered out before
+ *  reaching here, mirroring `perioPlaqueMarks`' presence-only marking). */
+export function gradeHeatBucket(grade: 1 | 2 | 3): MmHeatBucket {
+  if (grade >= 3) return "deep";
+  if (grade >= 2) return "moderate";
+  return "shallow";
+}
+
+/**
+ * Pure geometry for the PI/GI graded-index overlays: one heat-bucketed mark
+ * per CHARTED (grade>0) O'Leary surface, at the SAME cervical/CEJ points
+ * {@link perioPlaqueMarks} uses — the marks split across the two rows exactly
+ * like the plaque overlay (buccal aspect: mesial/buccal/distal; palatal/
+ * lingual aspect: lingual), so every charted surface is drawn exactly once.
+ */
+export function perioGradeMarks(
+  teeth: readonly PerioGradeTooth[],
+  aspect: "buccal" | "palatal",
+  opts: { cejY: number },
+): OverlayMark[] {
+  const out: OverlayMark[] = [];
+  for (const tooth of teeth) {
+    const mark = (x: number, g: 0 | 1 | 2 | 3 | undefined) => {
+      if (!g) return; // 0/undefined -> healthy/uncharted, no mark
+      out.push({ x, y: opts.cejY, kind: `heat-${gradeHeatBucket(g)}` });
+    };
+    if (aspect === "buccal") {
+      mark(tooth.x + tooth.width * 0.2, tooth.grades.mesial);
+      mark(tooth.x + tooth.width * 0.5, tooth.grades.buccal);
+      mark(tooth.x + tooth.width * 0.8, tooth.grades.distal);
+    } else {
+      mark(tooth.x + tooth.width * 0.5, tooth.grades.lingual);
+    }
+  }
+  return out;
+}
+
+/** One tooth's keratinized-gingiva-width input for {@link perioKgMarks}: its
+ *  row-local x + viewBox width and its KG mm reading (`null` = not charted,
+ *  never marked). */
+export interface PerioKgTooth {
+  x: number;
+  width: number;
+  kg: number | null;
+}
+
+/**
+ * Pure ramp for keratinized (attached) gingiva width in mm. Unlike a probing
+ * depth/CAL ramp, a NARROW band is the mucogingival risk here — the severity
+ * direction is inverted: <2mm inadequate ("deep"), <4mm borderline
+ * ("moderate"), >=4mm adequate ("shallow" — reusing the shallow/moderate/deep
+ * heat vocabulary purely as a severity ramp, not a literal depth reading).
+ */
+export function kgHeatBucket(mm: number): MmHeatBucket {
+  if (mm < 2) return "deep";
+  if (mm < 4) return "moderate";
+  return "shallow";
+}
+
+/**
+ * Pure geometry for the KG overlay: one heat-bucketed mark per tooth with a
+ * charted (non-null) KG reading, centered on the tooth's BUCCAL cervical/CEJ
+ * point (KG is specifically a buccal measure — mirrors {@link perioCairoMarks}'
+ * buccal-only placement). A tooth with `kg === null` (never charted) yields
+ * no mark.
+ */
+export function perioKgMarks(teeth: readonly PerioKgTooth[], opts: { cejY: number }): OverlayMark[] {
+  const out: OverlayMark[] = [];
+  for (const tooth of teeth) {
+    if (tooth.kg === null) continue;
+    out.push({ x: tooth.x + tooth.width * 0.5, y: opts.cejY, kind: `heat-${kgHeatBucket(tooth.kg)}` });
+  }
+  return out;
+}
+
 /** Per-kind marker radius (row-local units). BOP dots read small + crisp; the
  *  pocket-threshold heat spots are larger fills; plaque sits between. The
  *  Cairo RT badges scale with severity, mirroring the heat-bucket ramp. */

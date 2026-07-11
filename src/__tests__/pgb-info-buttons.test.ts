@@ -39,11 +39,11 @@ afterEach(() => {
 
 // One arch's labelled rows: plaque(1) + bop(buccal+palatal) + cal(buccal+
 // palatal) + gm(buccal+palatal) + pd(buccal+palatal) + furcation(1) +
-// mobility(1) + cejVisibility(1) + rootConcavity(1) [SP-perio PG-C Task 3] =
-// 13. Two arches (upper+lower) => 26 total. The tooth-number header row and
-// the tooth-graphic placeholder row have NO label/infoKey and so get no
-// button.
-const BUTTONS_PER_ARCH = 13;
+// mobility(1) + cejVisibility(1) + rootConcavity(1) [SP-perio PG-C Task 3] +
+// pi(1) + gi(1) + kg(1) + gt(1) + miller(1) [SP-perio PG-D Task 4] = 18. Two
+// arches (upper+lower) => 36 total. The tooth-number header row and the
+// tooth-graphic placeholder row have NO label/infoKey and so get no button.
+const BUTTONS_PER_ARCH = 18;
 
 describe("PG-B Task 1: .perio-info-btn on every labelled row", () => {
   it("every labelled row-label cell has exactly one .perio-info-btn", () => {
@@ -155,6 +155,31 @@ describe("PG-B Task 1: clicking an info button opens the right popover text", ()
     fireEvent.click(bopBtn);
     expect(document.querySelector(".perio-info-popover")!.textContent).toBe(t("perio.info.bop"));
   });
+});
+
+describe("SP-perio PG-D Task 4: the five new info buttons resolve their keys", () => {
+  const cases: Array<{ rowKey: string; infoKey: string }> = [
+    { rowKey: "perio.pi.row", infoKey: "perio.info.pi" },
+    { rowKey: "perio.gi.row", infoKey: "perio.info.gi" },
+    { rowKey: "perio.kg.row", infoKey: "perio.info.kg" },
+    { rowKey: "perio.gt.row", infoKey: "perio.info.gt" },
+    { rowKey: "perio.miller.row", infoKey: "perio.info.miller" },
+  ];
+
+  for (const { rowKey, infoKey } of cases) {
+    it(`${rowKey}'s info button opens a popover with t("${infoKey}")`, () => {
+      openInline();
+      const rowLabels = Array.from(document.querySelectorAll(".perio-fullgrid-row-label"));
+      const target = rowLabels.find((el) => el.textContent?.includes(t(rowKey)));
+      const btn = target!.querySelector(".perio-info-btn") as HTMLButtonElement;
+      expect(btn).toBeTruthy();
+      fireEvent.click(btn);
+      const popover = document.querySelector(".perio-info-popover");
+      expect(popover).toBeTruthy();
+      expect(popover!.textContent).toBe(t(infoKey));
+      expect(t(infoKey).trim().length).toBeGreaterThan(0);
+    });
+  }
 });
 
 describe("PG-B Task 1: dismissal + one-open-at-a-time", () => {

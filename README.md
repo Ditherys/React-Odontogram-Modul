@@ -1,7 +1,7 @@
 # 🦷 React Odontogram Modul
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-1.41.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-1.42.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
 
@@ -89,7 +89,7 @@ This project is an interactive, browser-based odontogram editor that supports fa
 - 📝 "What changes" box: whenever the plan differs from the current status, a box under the Tooth-information panel lists every difference per tooth and per treatment axis (presence, substrate, restoration, prosthesis, planned crown, orthodontics, pulp/endo, apical) as a `tooth: axis  from → to` line; also available programmatically via `getPlanChanges()`
 - 🩺 Periodontal charting: per-site **probing depth**, **gingival margin**, **bleeding on probing** (+ suppuration) at the six standard sites per tooth, with derived **clinical attachment level (CAL = PD + gingival margin)**, recession, and whole-mouth **%BOP**. A **graphical full-mouth perio chart** — the teeth drawn in a continuous **occlusal-to-occlusal** arch (reusing the tooth artwork; an **implant graphic** for implant teeth) with a red **CEJ line**, a **numbered millimeter guide grid**, and a **gingival-margin / pocket-depth curve** over the teeth, the number rows (PD/GM/CAL/BOP + mobility + furcation + plaque) aligned in columns and a summary (avg PD/CAL, %BOP, PI%), with **keyboard auto-advance** entry; the diagram scales with the window. Presented as an `Odontogram | Dental Chart` **view toggle** (a Settings option switches it back to a **popup**), and still a **separately-invocable component** (`PerioChart` export) so a host app can call up the perio chart independently of the base odontogram. Per-site **FHIR** export via the LOINC periodontal panel (`74029-0`; PD `32910-2`, recession `32911-0`, CAL `32912-8`)
 - 🅿️ Proposed styling: in Plan mode, findings the plan **adds** vs the current status (planned crown, extraction, orthodontic movement, prosthesis, …) render with a distinct **dashed, tinted "proposed" outline** so the plan reads as intent, not fact — with a "dashed = proposed" legend in the chart card. Status-mode rendering is byte-identical; the treatment is plan-only and fully reset on switching back
-- 🧪 1320 automated tests passing (1 additional test skipped) (Vitest) across 129 test files covering numbering, translations, presets, i18n, App component, theme, touch, plugins, accessibility, and clinical-axis/diagnosis parity
+- 🧪 1398 automated tests passing (1 additional test skipped) (Vitest) across 135 test files covering numbering, translations, presets, i18n, App component, theme, touch, plugins, accessibility, and clinical-axis/diagnosis parity
 - 📖 TypeDoc API documentation with JSDoc comments on all public exports (`npm run docs`)
 
 ### 📦 Modules
@@ -357,7 +357,7 @@ setPluginState(11, "implant-brand", "Straumann");
 
 ### 🧪 Testing
 ```bash
-npm run test           # Run all 1320 tests (1 additional test skipped)
+npm run test           # Run all 1398 tests (1 additional test skipped)
 npm run test:watch     # Watch mode
 npm run test:coverage  # Coverage report
 ```
@@ -426,6 +426,11 @@ npm run docs           # Generate TypeDoc docs in docs/
 | `getToothRecessionType(toothNo)` | Get the derived **Cairo recession type** — `"none"` / `"rt1"` / `"rt2"` / `"rt3"` (computed from the tooth's interproximal vs buccal CAL) |
 | `setCejVisibility(toothNo, v)` / `getCejVisibility(toothNo)` | Per-tooth CEJ visibility — `"none"` / `"detectable"` / `"not-detectable"` |
 | `setRootConcavity(toothNo, v)` / `getRootConcavity(toothNo)` | Per-tooth root-surface concavity — `"none"` / `"mild"` / `"deep"` |
+| `setPlaqueIndex(toothNo, surface, grade)` / `getPlaqueIndex(toothNo, surface)` | Per-surface Silness-Löe Plaque Index grade — `0`-`3` |
+| `setGingivalIndex(toothNo, surface, grade)` / `getGingivalIndex(toothNo, surface)` | Per-surface Löe-Silness Gingival Index grade — `0`-`3` |
+| `setKeratinizedWidth(toothNo, mm)` / `getKeratinizedWidth(toothNo)` | Per-tooth buccal keratinized gingiva width in mm — `0`-`15`, or `null` if not charted |
+| `setGingivalThickness(toothNo, v)` / `getGingivalThickness(toothNo)` | Per-tooth gingival thickness phenotype — `"unknown"` / `"thin"` / `"medium"` / `"thick"` |
+| `setMillerClass(toothNo, v)` / `getMillerClass(toothNo)` | Per-tooth Miller recession class — `"none"` / `"i"` / `"ii"` / `"iii"` / `"iv"` |
 | `furcationEntrances(toothNo)` | The furcation entrances for a tooth — `["mesial","distal","buccal"]` (upper molars), `["buccal","lingual"]` (lower molars), `["mesial","distal"]` (upper first premolars), else `[]` |
 | `setFurcation(toothNo, entrance, grade)` / `getToothFurcation(toothNo)` | Set/get per-entrance furcation involvement (Glickman `1`–`4`; `null` clears) |
 | `setPlaque(toothNo, surface, present)` / `getToothPlaque(toothNo)` | Set/get O'Leary plaque presence per surface (mesial/distal/buccal/lingual); feeds the whole-mouth PI% in `getPerioSummary()` |
@@ -509,7 +514,7 @@ The export creates a JSON file (version `2.11`; imports also accept legacy `1.4`
 - `src/fhir/` - HL7 FHIR R4 export/import: `toFhir.ts`/`fromFhir.ts`, code systems, field mappings, primitives
 - `src/bridgeOverlay.ts` - multi-tooth bridge-span connector overlay (arch-aware saddle geometry)
 - `src/SettingsModal.tsx` - tabbed Settings dialog (General/Panels/Tooth details/Caries/Pulpa/Notes)
-- `src/__tests__/` + `src/registry/__tests__/` - Vitest test suite (1320 tests passing, 1 skipped, across 129 files)
+- `src/__tests__/` + `src/registry/__tests__/` - Vitest test suite (1398 tests passing, 1 skipped, across 135 files)
 - `src/assets/teeth-svgs/` - SVG tooth templates (6 files: incisors, canines, premolars, molars + occlusal views)
 - `src/assets/icon-svgs/` - toolbar icon SVGs (5 files)
 

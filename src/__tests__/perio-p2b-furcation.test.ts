@@ -149,15 +149,15 @@ describe("setFurcation / getToothFurcation", () => {
   });
 });
 
-describe("payload round-trip (version 2.14)", () => {
-  it("set furcation -> serialize -> version 2.14, furcation present only where graded", () => {
+describe("payload round-trip (version 2.15)", () => {
+  it("set furcation -> serialize -> version 2.15, furcation present only where graded", () => {
     __setToothStateForTest(16, {});
     __setToothStateForTest(11, {}); // no furcation -> must stay omitted
     setFurcation(16, "mesial", 2);
     setFurcation(16, "buccal", 4);
 
     const payload = __collectExportPayloadForTest();
-    expect(payload.version).toBe("2.14");
+    expect(payload.version).toBe("2.15");
     expect(payload.teeth["16"].furcation).toEqual({ mesial: 2, buccal: 4 });
     expect(payload.teeth["11"].furcation).toBeUndefined();
     expect(Object.prototype.hasOwnProperty.call(payload.teeth["11"], "furcation")).toBe(false);

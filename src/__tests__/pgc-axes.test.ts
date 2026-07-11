@@ -100,11 +100,11 @@ describe("setRootConcavity / getRootConcavity", () => {
   });
 });
 
-describe("serialize omit-when-none + round-trip (payload 2.14)", () => {
-  it("omits both fields entirely when none; version is 2.14", () => {
+describe("serialize omit-when-none + round-trip (payload 2.15)", () => {
+  it("omits both fields entirely when none; version is 2.15", () => {
     __setToothStateForTest(11, {}); // untouched -> both none -> omitted
     const payload = __collectExportPayloadForTest();
-    expect(payload.version).toBe("2.14");
+    expect(payload.version).toBe("2.15");
     expect(Object.prototype.hasOwnProperty.call(payload.teeth["11"], "cejVisibility")).toBe(false);
     expect(Object.prototype.hasOwnProperty.call(payload.teeth["11"], "rootConcavity")).toBe(false);
   });
@@ -146,7 +146,7 @@ describe("serialize omit-when-none + round-trip (payload 2.14)", () => {
 
   it("a malformed/foreign value on import self-heals to none", () => {
     const crafted = {
-      version: "2.14",
+      version: "2.15",
       globals: {},
       teeth: { 16: { toothSelection: "tooth-base", cejVisibility: "nope", rootConcavity: 7 } },
     };
@@ -189,7 +189,7 @@ describe("FHIR export — declarative enum path", () => {
 
   it("emits a coding for a set tooth and none for a default tooth", () => {
     const payload: OdontogramExportPayload = {
-      version: "2.14",
+      version: "2.15",
       teeth: {
         "16": { toothSelection: "tooth-base", cejVisibility: "detectable", rootConcavity: "deep" },
         "11": { toothSelection: "tooth-base" }, // both none -> nothing emitted
@@ -211,7 +211,7 @@ describe("FHIR export — declarative enum path", () => {
 
   it("emits nothing for an explicit none value (skipValue)", () => {
     const payload: OdontogramExportPayload = {
-      version: "2.14",
+      version: "2.15",
       teeth: { "16": { toothSelection: "tooth-base", cejVisibility: "none", rootConcavity: "none" } },
     };
     const b = buildFhirBundle(payload);

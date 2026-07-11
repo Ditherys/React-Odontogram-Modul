@@ -91,6 +91,17 @@ function loincConcept(entry: { code: string; display: string }): CodeableConcept
 }
 
 /**
+ * Engine-local finding CodeableConcept (no LOINC/SNOMED coding at all) — the
+ * same no-dedicated-standard-code treatment `perio-bop`/`plaque-surface`
+ * above already get. SP-perio PG-D Task 1: PI/GI have no dedicated LOINC
+ * (LOINC only defines whole-mouth plaque/gingival indices, not per-surface
+ * graded ones), so both ride on LOCAL_SYSTEM only, mirroring {@link loincConcept}.
+ */
+function localConcept(code: string, display: string): CodeableConcept {
+  return { coding: [{ system: LOCAL_SYSTEM, code, display }], text: display };
+}
+
+/**
  * HL7-published R4 backport extension URL for `Observation.component.bodySite`
  * (an R5-only field — see below). Using this extension keeps the export
  * strictly R4-legal: R4 BackboneElements are `additionalProperties: false`,
@@ -183,6 +194,23 @@ function isFiniteNumber(v: unknown): v is number {
  * O'Leary LOINC code (LOINC only defines whole-mouth plaque indices), so
  * each plaque component carries no LOINC coding at all — engine-local code
  * only, the same no-dedicated-LOINC treatment per-site BOP gets above.
+ *
+ * SP-perio PG-D Task 1: the Silness-Löe Plaque Index (`pi`) and Löe-Silness
+ * Gingival Index (`gi`) — per-surface GRADED (1-3) axes, deliberately
+ * SEPARATE from the O'Leary `plaque` boolean above — ride on the SAME panel
+ * too, as additional integer components; a tooth with ONLY pi/gi data still
+ * gets the panel, and a tooth with none of perio/furcation/plaque/pi/gi gets
+ * no panel at all (byte-identical golden, as before). Neither has a
+ * dedicated LOINC, so both use the same engine-local-code-only treatment as
+ * per-site BOP and per-surface plaque.
+ *
+ * SP-perio PG-D Task 2: keratinized gingiva width (`kg`) — a single
+ * per-tooth BUCCAL mm scalar, unlike PI/GI's per-surface maps — rides on the
+ * SAME panel too, as one additional valueQuantity component; a tooth with
+ * ONLY kg data still gets the panel, and a tooth with none of
+ * perio/furcation/plaque/pi/gi/kg gets no panel at all (byte-identical
+ * golden, as before). No dedicated LOINC, engine-local finding code only,
+ * fixed buccal bodySite.
  */
 function buildToothPerioObservation(subjectRef: string, tooth: string, rec: ToothRecord): Observation | undefined {
   const perio = rec.perio;
@@ -203,7 +231,35 @@ function buildToothPerioObservation(subjectRef: string, tooth: string, rec: Toot
   const plaqueRaw = Array.isArray(rec.plaque) ? (rec.plaque as unknown[]).filter((v): v is string => typeof v === "string") : [];
   const plaqueSurfaces = PLAQUE_SURFACES.filter((s) => plaqueRaw.includes(s));
 
-  if (chartedSites.length === 0 && gradedEntrances.length === 0 && plaqueSurfaces.length === 0) return undefined;
+  // SP-perio PG-D Task 1: PI/GI graded surfaces — same tolerant parsing as
+  // furcation above (unrecognized surface or out-of-range/non-integer grade
+  // silently dropped, never throws).
+  const piRaw = rec.pi && typeof rec.pi === "object" ? (rec.pi as Record<string, unknown>) : undefined;
+  const piEntries: [PlaqueSurface, number][] = piRaw
+    ? (PLAQUE_SURFACES.filter((s) => {
+        const v = piRaw[s];
+        return isFiniteNumber(v) && Number.isInteger(v) && v >= 1 && v <= 3;
+      }).map((s) => [s, piRaw[s] as number]))
+    : [];
+  const giRaw = rec.gi && typeof rec.gi === "object" ? (rec.gi as Record<string, unknown>) : undefined;
+  const giEntries: [PlaqueSurface, number][] = giRaw
+    ? (PLAQUE_SURFACES.filter((s) => {
+        const v = giRaw[s];
+        return isFiniteNumber(v) && Number.isInteger(v) && v >= 1 && v <= 3;
+      }).map((s) => [s, giRaw[s] as number]))
+    : [];
+
+  // SP-perio PG-D Task 2: keratinized gingiva width — a single per-tooth
+  // BUCCAL mm scalar (integer 0-15). Tolerant of malformed/foreign input
+  // (non-numeric, out-of-range, null): treated as "not charted", same as
+  // every other axis above.
+  const kgRaw = rec.kg;
+  const kgValue = isFiniteNumber(kgRaw) && Number.isInteger(kgRaw) && kgRaw >= 0 && kgRaw <= 15 ? kgRaw : undefined;
+
+  if (
+    chartedSites.length === 0 && gradedEntrances.length === 0 && plaqueSurfaces.length === 0 &&
+    piEntries.length === 0 && giEntries.length === 0 && kgValue === undefined
+  ) return undefined;
 
   const components: Any[] = [];
   for (const site of chartedSites) {
@@ -276,6 +332,41 @@ function buildToothPerioObservation(subjectRef: string, tooth: string, rec: Toot
     };
     attachPlaqueBodySite(plaqueComponent, tooth, surface);
     components.push(plaqueComponent);
+  }
+
+  // SP-perio PG-D Task 1: one integer component per graded PI surface —
+  // Silness-Löe Plaque Index, no dedicated LOINC, engine-local finding code.
+  for (const [surface, grade] of piEntries) {
+    const piComponent: Any = {
+      code: localConcept("plaque-index-silness-loe", "Plaque index (Silness-Löe)"),
+      valueInteger: grade,
+    };
+    attachPlaqueBodySite(piComponent, tooth, surface);
+    components.push(piComponent);
+  }
+
+  // SP-perio PG-D Task 1: one integer component per graded GI surface —
+  // Löe-Silness Gingival Index, same no-dedicated-LOINC treatment as PI above.
+  for (const [surface, grade] of giEntries) {
+    const giComponent: Any = {
+      code: localConcept("gingival-index-loe-silness", "Gingival index (Löe-Silness)"),
+      valueInteger: grade,
+    };
+    attachPlaqueBodySite(giComponent, tooth, surface);
+    components.push(giComponent);
+  }
+
+  // SP-perio PG-D Task 2: one valueQuantity (mm) component for keratinized
+  // gingiva width, when charted — no dedicated LOINC, engine-local finding
+  // code, fixed buccal bodySite (this axis is a single scalar, not per-site/
+  // per-surface, so there is nothing to loop over).
+  if (kgValue !== undefined) {
+    const kgComponent: Any = {
+      code: localConcept("keratinized-gingiva-width", "Keratinized gingiva width"),
+      valueQuantity: { value: kgValue, unit: "mm", system: "http://unitsofmeasure.org", code: "mm" },
+    };
+    attachBodySite(kgComponent, tooth, "site:buccal", "Buccal");
+    components.push(kgComponent);
   }
 
   const obs = baseObservation(subjectRef, tooth, loincConcept(LOINC.panel));

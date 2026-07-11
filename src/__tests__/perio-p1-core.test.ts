@@ -172,6 +172,10 @@ describe("%BOP derivation", () => {
       chartedSites: 0, bleedingSites: 0, bopPercent: 0,
       worstCal: null, worstCalTooth: null, maxPd: null,
       avgPd: null, avgCal: null, maxFurcation: null, plaquePercent: 0,
+      // SP-perio PG-D Task 5 additions:
+      piScore: null, giScore: null, kgDeficientTeeth: 0,
+      gtDistribution: { thin: 0, medium: 0, thick: 0 },
+      millerDistribution: { i: 0, ii: 0, iii: 0, iv: 0 },
     });
   });
 
@@ -222,7 +226,7 @@ describe("payload round-trip (version 2.12)", () => {
     setPerioSite(16, "B", { pd: 6 });
 
     const payload = __collectExportPayloadForTest();
-    expect(payload.version).toBe("2.14");
+    expect(payload.version).toBe("2.15");
     expect(payload.teeth["16"].perio).toEqual({
       pd: { MB: 5, B: 6 }, gm: { MB: 1 }, bop: ["MB"], sup: [],
     });

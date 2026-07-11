@@ -88,4 +88,10 @@ export const FIELD_MAPPINGS: FieldMapping[] = [
   // tooth emits none.
   { field: "cejVisibility", kind: "enum", valueGroup: "cejVisibility", skipValue: "none", findingCode: "cej-visibility", findingDisplay: "CEJ visibility" },
   { field: "rootConcavity", kind: "enum", valueGroup: "rootConcavity", skipValue: "none", findingCode: "root-concavity", findingDisplay: "Root concavity" },
+
+  // SP-perio PG-D Task 3: gingivalThickness + millerClass data axes (additive;
+  // see axes.ts). Declarative enum path — a set tooth emits the axis coding,
+  // a skip-value tooth emits none.
+  { field: "gingivalThickness", kind: "enum", valueGroup: "gingivalThickness", skipValue: "unknown", findingCode: "gingival-thickness", findingDisplay: "Gingival thickness" },
+  { field: "millerClass", kind: "enum", valueGroup: "millerClass", skipValue: "none", findingCode: "miller-recession-class", findingDisplay: "Miller recession class" },
 ];

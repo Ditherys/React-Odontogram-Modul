@@ -256,6 +256,18 @@ export const AXES: ClinicalAxis[] = [
     skipValue: "none", finding: { local: "root-concavity", display: "Root concavity" },
     values: valuesFrom("rootConcavity") },
 
+  // SP-perio PG-D Task 3: gingival thickness (GT) + Miller recession class —
+  // two per-tooth categorical DATA axes (data + registry + FHIR + payload
+  // only; the Dental Chart rows/UI land in later PG-D tasks). No svgLayer:
+  // neither renders on the odontogram, so SVG-fingerprint parity is
+  // byte-identical (mirrors the cejVisibility/rootConcavity axes above).
+  { id: "gingivalThickness", field: "gingivalThickness", kind: "enum", valueGroup: "gingivalThickness",
+    skipValue: "unknown", finding: { local: "gingival-thickness", display: "Gingival thickness" },
+    values: valuesFrom("gingivalThickness") },
+  { id: "millerClass", field: "millerClass", kind: "enum", valueGroup: "millerClass",
+    skipValue: "none", finding: { local: "miller-recession-class", display: "Miller recession class" },
+    values: valuesFrom("millerClass") },
+
   { id: "periImplant", field: "periImplant", kind: "enum", valueGroup: "periImplant",
     skipValue: "none", finding: { local: "peri-implant-status", display: "Peri-implant status" },
     // No svgLayer: activation is explicit in applyStateToSvgSingle (mucositis reuses

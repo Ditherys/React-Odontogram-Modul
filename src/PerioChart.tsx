@@ -31,6 +31,16 @@ import {
   prevPerioCell,
   getPerioOverlayLayer,
   setPerioOverlayLayer,
+  getPlaqueIndex,
+  setPlaqueIndex,
+  getGingivalIndex,
+  setGingivalIndex,
+  getKeratinizedWidth,
+  setKeratinizedWidth,
+  getGingivalThickness,
+  setGingivalThickness,
+  getMillerClass,
+  setMillerClass,
   type PerioCellCoord,
   type PerioOverlayLayer,
 } from "./odontogram";
@@ -44,6 +54,8 @@ import {
   perioPlaqueMarks,
   perioMmHeatMarks,
   perioCairoMarks,
+  perioGradeMarks,
+  perioKgMarks,
   buildPerioOverlayLayer,
   PERIO_MM_PX,
   TOOTH_GAP,
@@ -53,6 +65,8 @@ import {
   type PerioCurveSite,
   type PerioOverlaySite,
   type PerioCairoTooth,
+  type PerioGradeTooth,
+  type PerioKgTooth,
   type SiteOverlayLayer,
   type MmHeatOverlayLayer,
 } from "./perioGraphic";
@@ -110,6 +124,23 @@ const CEJ_VISIBILITY_FACE: Record<string, string> = { none: "–", detectable: "
 const ROOT_CONCAVITY_CYCLE: readonly string[] = ["none", "mild", "deep"];
 const ROOT_CONCAVITY_FACE: Record<string, string> = { none: "–", mild: "Mi", deep: "Dp" };
 
+// SP-perio PG-D Task 4: gingivalThickness (GT) / millerClass cycle-button
+// value order + compact face glyphs — mirrors CEJ_VISIBILITY_CYCLE/
+// ROOT_CONCAVITY_CYCLE above exactly. Literal (not imported from
+// "./odontogram") for the same module-eval-safety reason as those two —
+// order matches VALID_GINGIVAL_THICKNESS / VALID_MILLER_CLASS (odontogram.ts)
+// / LOCAL_VALUE_MAPS (fhir/codesystems.ts).
+const GINGIVAL_THICKNESS_CYCLE: readonly string[] = ["unknown", "thin", "medium", "thick"];
+const GINGIVAL_THICKNESS_FACE: Record<string, string> = { unknown: "–", thin: "Tn", medium: "Md", thick: "Tk" };
+const MILLER_CLASS_CYCLE: readonly string[] = ["none", "i", "ii", "iii", "iv"];
+const MILLER_CLASS_FACE: Record<string, string> = { none: "–", i: "I", ii: "II", iii: "III", iv: "IV" };
+
+// PI/GI (Silness-Löe Plaque Index / Löe-Silness Gingival Index) per-surface
+// graded (0-3) cycle face — 0 (healthy/uncharted, matches
+// getPlaqueIndex/getGingivalIndex's own "absence" semantics) shows the
+// em-dash placeholder, mirroring FURCATION_ROMAN's role for a graded axis.
+const GRADE_FACE: readonly string[] = ["–", "1", "2", "3"];
+
 type PerioSiteData = ReturnType<typeof getToothPerio>;
 type PerioSummaryData = ReturnType<typeof getPerioSummary>;
 
@@ -125,6 +156,11 @@ const EMPTY_SUMMARY: PerioSummaryData = {
   avgCal: null,
   maxFurcation: null,
   plaquePercent: 0,
+  piScore: null,
+  giScore: null,
+  kgDeficientTeeth: 0,
+  gtDistribution: { thin: 0, medium: 0, thick: 0 },
+  millerDistribution: { i: 0, ii: 0, iii: 0, iv: 0 },
 };
 
 type ToothCellRefs = {
@@ -142,6 +178,16 @@ type ToothCellRefs = {
   // subdivision — mirrors `mobility` above, which is also one-per-tooth).
   cejVisibility: HTMLButtonElement | null;
   rootConcavity: HTMLButtonElement | null;
+  // SP-perio PG-D Task 4: PI/GI per-surface (0-3) cycle buttons (keyed by the
+  // 4 O'Leary surfaces, mirrors `plaque` above); KG is a single per-tooth mm
+  // number input (mirrors `mobility`'s one-per-tooth shape); gingivalThickness/
+  // millerClass are single per-tooth cycle buttons (mirror cejVisibility/
+  // rootConcavity above).
+  pi: Partial<Record<string, HTMLButtonElement>>;
+  gi: Partial<Record<string, HTMLButtonElement>>;
+  kg: HTMLInputElement | null;
+  gingivalThickness: HTMLButtonElement | null;
+  millerClass: HTMLButtonElement | null;
 };
 
 type GridHandlers = {
@@ -153,6 +199,11 @@ type GridHandlers = {
   onPlaque: (toothNo: number, surface: string) => void;
   onCejVisibility: (toothNo: number) => void;
   onRootConcavity: (toothNo: number) => void;
+  onPiSurface: (toothNo: number, surface: string) => void;
+  onGiSurface: (toothNo: number, surface: string) => void;
+  onKg: (toothNo: number, raw: string) => void;
+  onGingivalThickness: (toothNo: number) => void;
+  onMillerClass: (toothNo: number) => void;
 };
 
 // T3 curve overlay: gather the ordered per-site {pd,gm} readings for one row
@@ -225,8 +276,14 @@ function drawArchCurves(cache: TemplateDocCache, container: HTMLElement | null, 
 // display order. T2 shipped the discrete highlights (bop/plaque/pd5/pd6); T3
 // adds the continuous mm heat layers (pd/cal/gr). PG-C Task 1 adds "cairo",
 // the derived per-tooth Cairo recession-TYPE overlay, grouped next to "gr"
-// (both are recession-related indices).
-const SWITCHER_LAYERS: readonly PerioOverlayLayer[] = ["none", "pd", "cal", "gr", "cairo", "bop", "plaque", "pd5", "pd6"];
+// (both are recession-related indices). PG-D Task 4 adds "kg" (keratinized
+// gingiva width, grouped next to "cairo"/"gr" — all mucogingival/recession
+// axes) and "pi"/"gi" (Silness-Löe/Löe-Silness graded indices, grouped next
+// to "plaque" — all plaque/gingival-inflammation axes). GT/Miller are
+// categorical, rows-only axes with NO overlay (see the Dental Chart rows).
+const SWITCHER_LAYERS: readonly PerioOverlayLayer[] = [
+  "none", "pd", "cal", "gr", "cairo", "kg", "bop", "plaque", "pi", "gi", "pd5", "pd6",
+];
 
 // PG-B Task 2 overlay: gather one row's ordered per-site {x, pd, gm, bop}
 // readings — the SAME per-tooth x/width `archToothLayout` gives the arch teeth
@@ -337,6 +394,46 @@ export function drawArchOverlay(
     }));
     buccalParent.appendChild(
       buildPerioOverlayLayer(perioCairoMarks(cairoTeeth, opts), { width: layout.totalWidth, className }),
+    );
+    return;
+  }
+
+  // PG-D Task 4: the KG (keratinized gingiva width) overlay — a per-TOOTH
+  // buccal mm scalar (getKeratinizedWidth), collected once per tooth
+  // (mirrors the Cairo block above) and drawn ONLY into the buccal row (KG is
+  // specifically a buccal measure, like Cairo RT).
+  if (layer === "kg") {
+    const kgTeeth: PerioKgTooth[] = layout.teeth.map((tooth) => ({
+      x: tooth.x,
+      width: tooth.width,
+      kg: getKeratinizedWidth(tooth.toothNo),
+    }));
+    buccalParent.appendChild(
+      buildPerioOverlayLayer(perioKgMarks(kgTeeth, opts), { width: layout.totalWidth, className }),
+    );
+    return;
+  }
+
+  // PG-D Task 4: the PI/GI graded-index overlays — per-surface 0-3 grades
+  // (getPlaqueIndex/getGingivalIndex) over the SAME 4 O'Leary surfaces the
+  // "plaque" overlay reads, split across both rows exactly like it.
+  if (layer === "pi" || layer === "gi") {
+    const getGrade = layer === "pi" ? getPlaqueIndex : getGingivalIndex;
+    const gradeTeeth: PerioGradeTooth[] = layout.teeth.map((tooth) => ({
+      x: tooth.x,
+      width: tooth.width,
+      grades: {
+        mesial: getGrade(tooth.toothNo, "mesial"),
+        distal: getGrade(tooth.toothNo, "distal"),
+        buccal: getGrade(tooth.toothNo, "buccal"),
+        lingual: getGrade(tooth.toothNo, "lingual"),
+      },
+    }));
+    buccalParent.appendChild(
+      buildPerioOverlayLayer(perioGradeMarks(gradeTeeth, "buccal", opts), { width: layout.totalWidth, className }),
+    );
+    palatalParent.appendChild(
+      buildPerioOverlayLayer(perioGradeMarks(gradeTeeth, "palatal", opts), { width: layout.totalWidth, className }),
     );
     return;
   }
@@ -568,6 +665,52 @@ function syncToothCells(
     btn.setAttribute("aria-pressed", value !== "none" ? "true" : "false");
     btn.disabled = readOnly || hidden;
   }
+  // SP-perio PG-D Task 4: PI/GI per-surface grade buttons — face + grade +
+  // pressed state from the active chart (getPlaqueIndex/getGingivalIndex).
+  // Same hidden-row disable gate as the plaque toggles above.
+  for (const surface of Object.keys(cells.pi)) {
+    const btn = cells.pi[surface];
+    if (!btn) continue;
+    const grade = getPlaqueIndex(toothNo, surface);
+    btn.textContent = GRADE_FACE[grade] ?? "–";
+    btn.dataset.grade = String(grade);
+    btn.setAttribute("aria-pressed", grade > 0 ? "true" : "false");
+    btn.disabled = readOnly || hidden;
+  }
+  for (const surface of Object.keys(cells.gi)) {
+    const btn = cells.gi[surface];
+    if (!btn) continue;
+    const grade = getGingivalIndex(toothNo, surface);
+    btn.textContent = GRADE_FACE[grade] ?? "–";
+    btn.dataset.grade = String(grade);
+    btn.setAttribute("aria-pressed", grade > 0 ? "true" : "false");
+    btn.disabled = readOnly || hidden;
+  }
+  // SP-perio PG-D Task 4: KG — a single per-tooth mm number input (mirrors
+  // the pd/gm inputs' omit-when-empty value sync).
+  if (cells.kg) {
+    const mm = getKeratinizedWidth(toothNo);
+    cells.kg.value = mm === null ? "" : String(mm);
+    cells.kg.disabled = readOnly || hidden;
+  }
+  // SP-perio PG-D Task 4: gingivalThickness / millerClass cycle buttons —
+  // mirror cejVisibility/rootConcavity above exactly.
+  if (cells.gingivalThickness) {
+    const value = getGingivalThickness(toothNo);
+    const btn = cells.gingivalThickness;
+    btn.textContent = GINGIVAL_THICKNESS_FACE[value] ?? "–";
+    btn.dataset.value = value;
+    btn.setAttribute("aria-pressed", value !== "unknown" ? "true" : "false");
+    btn.disabled = readOnly || hidden;
+  }
+  if (cells.millerClass) {
+    const value = getMillerClass(toothNo);
+    const btn = cells.millerClass;
+    btn.textContent = MILLER_CLASS_FACE[value] ?? "–";
+    btn.dataset.value = value;
+    btn.setAttribute("aria-pressed", value !== "none" ? "true" : "false");
+    btn.disabled = readOnly || hidden;
+  }
 }
 
 /** One arch band's built grid plus the placeholder cell the tooth-row graphic
@@ -746,6 +889,107 @@ function buildRootConcavityCell(
   return cell;
 }
 
+/** SP-perio PG-D Task 4: build ONE tooth's PI or GI cell — a 4-quadrant mark
+ *  of cycle buttons (mesial/distal/buccal/lingual, mirrors
+ *  {@link buildPlaqueCell}'s shape exactly), each cycling its own 0->1->2->3->0
+ *  grade via `setPlaqueIndex`/`setGingivalIndex` on click. Built for EVERY
+ *  tooth (the 4 surfaces are the same fixed set regardless of position) and
+ *  disabled on a hidden-row tooth via `syncToothCells`, mirroring the plaque
+ *  toggles. */
+function buildGradeCell(
+  toothNo: number,
+  mapKey: "pi" | "gi",
+  cells: ToothCellRefs,
+  handlers: GridHandlers,
+): HTMLDivElement {
+  const cell = mkEl("div", `perio-fullgrid-cell perio-fullgrid-cell-${mapKey}`);
+  cell.dataset.perioField = mapKey;
+  const group = mkEl("div", "perio-fullgrid-plaque-quad");
+  const onSurface = mapKey === "pi" ? handlers.onPiSurface : handlers.onGiSurface;
+  const registry = mapKey === "pi" ? cells.pi : cells.gi;
+  for (const surface of PLAQUE_SURFACES) {
+    const btn = mkEl("button", `perio-fullgrid-${mapKey} perio-fullgrid-${mapKey}-${surface}`);
+    btn.type = "button";
+    btn.id = `perio-fg-${mapKey}-${toothNo}-${surface}`;
+    btn.dataset.gradeSurface = surface;
+    btn.title = t(`surface.${surface}`);
+    btn.setAttribute("aria-label", t(`surface.${surface}`));
+    btn.addEventListener("click", () => onSurface(toothNo, surface));
+    group.appendChild(btn);
+    registry[surface] = btn;
+  }
+  cell.appendChild(group);
+  return cell;
+}
+
+/** SP-perio PG-D Task 4: build ONE tooth's KG (keratinized gingiva width)
+ *  cell — a single per-tooth mm number input (0-15, empty clears), mirroring
+ *  the pd/gm cells' `<input type="number">` shape but with NO site
+ *  subdivision (mirrors the mobility cell's one-per-tooth shape). Writes go
+ *  through `setKeratinizedWidth` on `change`, like the pd/gm inputs. */
+function buildKgCell(
+  toothNo: number,
+  cells: ToothCellRefs,
+  handlers: GridHandlers,
+): HTMLDivElement {
+  const cell = mkEl("div", "perio-fullgrid-cell perio-fullgrid-cell-kg");
+  cell.dataset.perioField = "kg";
+  const input = mkEl("input", "perio-fullgrid-input perio-fullgrid-kg") as HTMLInputElement;
+  input.type = "number";
+  input.min = "0";
+  input.max = "15";
+  input.step = "1";
+  input.id = `perio-fg-kg-${toothNo}`;
+  input.title = t("perio.kg.row");
+  input.addEventListener("change", () => handlers.onKg(toothNo, input.value));
+  cell.appendChild(input);
+  cells.kg = input;
+  return cell;
+}
+
+/** SP-perio PG-D Task 4: build ONE tooth's gingival-thickness (GT) cell — a
+ *  single compact cycle button (unknown -> thin -> medium -> thick -> unknown
+ *  on click, via `setGingivalThickness`). Mirrors
+ *  {@link buildCejVisibilityCell} exactly. */
+function buildGingivalThicknessCell(
+  toothNo: number,
+  cells: ToothCellRefs,
+  handlers: GridHandlers,
+): HTMLDivElement {
+  const cell = mkEl("div", "perio-fullgrid-cell perio-fullgrid-cell-gt");
+  cell.dataset.perioField = "gingivalThickness";
+  const btn = mkEl("button", "perio-fullgrid-gt") as HTMLButtonElement;
+  btn.type = "button";
+  btn.id = `perio-fg-gt-${toothNo}`;
+  btn.title = t("perio.gt.row");
+  btn.setAttribute("aria-label", t("perio.gt.row"));
+  btn.addEventListener("click", () => handlers.onGingivalThickness(toothNo));
+  cell.appendChild(btn);
+  cells.gingivalThickness = btn;
+  return cell;
+}
+
+/** SP-perio PG-D Task 4: build ONE tooth's Miller-class cell — mirrors
+ *  {@link buildGingivalThicknessCell} exactly (none -> i -> ii -> iii -> iv ->
+ *  none via `setMillerClass`). */
+function buildMillerClassCell(
+  toothNo: number,
+  cells: ToothCellRefs,
+  handlers: GridHandlers,
+): HTMLDivElement {
+  const cell = mkEl("div", "perio-fullgrid-cell perio-fullgrid-cell-miller");
+  cell.dataset.perioField = "millerClass";
+  const btn = mkEl("button", "perio-fullgrid-miller") as HTMLButtonElement;
+  btn.type = "button";
+  btn.id = `perio-fg-miller-${toothNo}`;
+  btn.title = t("perio.miller.row");
+  btn.setAttribute("aria-label", t("perio.miller.row"));
+  btn.addEventListener("click", () => handlers.onMillerClass(toothNo));
+  cell.appendChild(btn);
+  cells.millerClass = btn;
+  return cell;
+}
+
 /**
  * Build ONE arch band, re-laid into the reference (periodontalchart-online.com)
  * structure: the buccal-aspect number rows sit ABOVE the tooth graphic and the
@@ -769,6 +1013,7 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
     registry.set(toothNo, {
       pd: {}, gm: {}, bop: {}, cal: {}, mobility: null, furcation: {}, plaque: {},
       cejVisibility: null, rootConcavity: null,
+      pi: {}, gi: {}, kg: null, gingivalThickness: null, millerClass: null,
     });
   }
 
@@ -864,6 +1109,37 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   arch.appendChild(mkRowLabelCell(t("perio.rootConcavity.label"), "perio.info.rootConcavity"));
   for (const toothNo of teeth) {
     arch.appendChild(buildRootConcavityCell(toothNo, registry.get(toothNo)!, handlers));
+  }
+
+  // --- PI row (Silness-Löe Plaque Index, per-surface graded 0-3) — mirrors
+  //     the O'Leary plaque row's 4-quadrant shape (SP-perio PG-D Task 4). ---
+  arch.appendChild(mkRowLabelCell(t("perio.pi.row"), "perio.info.pi"));
+  for (const toothNo of teeth) {
+    arch.appendChild(buildGradeCell(toothNo, "pi", registry.get(toothNo)!, handlers));
+  }
+
+  // --- GI row (Löe-Silness Gingival Index, per-surface graded 0-3). ---
+  arch.appendChild(mkRowLabelCell(t("perio.gi.row"), "perio.info.gi"));
+  for (const toothNo of teeth) {
+    arch.appendChild(buildGradeCell(toothNo, "gi", registry.get(toothNo)!, handlers));
+  }
+
+  // --- KG row (keratinized gingiva width, single per-tooth mm cell). ---
+  arch.appendChild(mkRowLabelCell(t("perio.kg.row"), "perio.info.kg"));
+  for (const toothNo of teeth) {
+    arch.appendChild(buildKgCell(toothNo, registry.get(toothNo)!, handlers));
+  }
+
+  // --- GT row (gingival thickness, single per-tooth cycle button). ---
+  arch.appendChild(mkRowLabelCell(t("perio.gt.row"), "perio.info.gt"));
+  for (const toothNo of teeth) {
+    arch.appendChild(buildGingivalThicknessCell(toothNo, registry.get(toothNo)!, handlers));
+  }
+
+  // --- Miller-class row (single per-tooth cycle button). ---
+  arch.appendChild(mkRowLabelCell(t("perio.miller.row"), "perio.info.miller"));
+  for (const toothNo of teeth) {
+    arch.appendChild(buildMillerClassCell(toothNo, registry.get(toothNo)!, handlers));
   }
 
   return { grid: arch, archCell };
@@ -1271,6 +1547,57 @@ export default function PerioChart({
         const next = ROOT_CONCAVITY_CYCLE[(idx + 1) % ROOT_CONCAVITY_CYCLE.length];
         suppressResyncRef.current = true;
         setRootConcavity(toothNo, next);
+        suppressResyncRef.current = false;
+        syncOneTooth(toothNo);
+      },
+      // SP-perio PG-D Task 4: cycle one surface's PI/GI grade 0->1->2->3->0
+      // (0 clears — setPlaqueIndex/setGingivalIndex's own no-op-free "grade 0
+      // clears" semantics). The current grade is read from the ACTIVE chart
+      // (getPlaqueIndex/getGingivalIndex) so a dual-state switch cycles the
+      // right chart.
+      onPiSurface: (toothNo, surface) => {
+        const next = ((getPlaqueIndex(toothNo, surface) + 1) % 4) as 0 | 1 | 2 | 3;
+        suppressResyncRef.current = true;
+        setPlaqueIndex(toothNo, surface, next);
+        suppressResyncRef.current = false;
+        syncOneTooth(toothNo);
+      },
+      onGiSurface: (toothNo, surface) => {
+        const next = ((getGingivalIndex(toothNo, surface) + 1) % 4) as 0 | 1 | 2 | 3;
+        suppressResyncRef.current = true;
+        setGingivalIndex(toothNo, surface, next);
+        suppressResyncRef.current = false;
+        syncOneTooth(toothNo);
+      },
+      // SP-perio PG-D Task 4: KG mm — trimmed-empty clears (mirrors onPd's
+      // empty-un-charts semantics), otherwise the raw string is parsed and
+      // clamped by setKeratinizedWidth itself.
+      onKg: (toothNo, raw) => {
+        const trimmed = raw.trim();
+        suppressResyncRef.current = true;
+        setKeratinizedWidth(toothNo, trimmed === "" ? null : Number(trimmed));
+        suppressResyncRef.current = false;
+        syncOneTooth(toothNo);
+      },
+      // SP-perio PG-D Task 4: cycle unknown->thin->medium->thick->unknown for
+      // one tooth's gingival thickness. Mirrors onCejVisibility above.
+      onGingivalThickness: (toothNo) => {
+        const cur = getGingivalThickness(toothNo);
+        const idx = GINGIVAL_THICKNESS_CYCLE.indexOf(cur);
+        const next = GINGIVAL_THICKNESS_CYCLE[(idx + 1) % GINGIVAL_THICKNESS_CYCLE.length];
+        suppressResyncRef.current = true;
+        setGingivalThickness(toothNo, next);
+        suppressResyncRef.current = false;
+        syncOneTooth(toothNo);
+      },
+      // SP-perio PG-D Task 4: cycle none->i->ii->iii->iv->none for one tooth's
+      // Miller class. Mirrors onRootConcavity above.
+      onMillerClass: (toothNo) => {
+        const cur = getMillerClass(toothNo);
+        const idx = MILLER_CLASS_CYCLE.indexOf(cur);
+        const next = MILLER_CLASS_CYCLE[(idx + 1) % MILLER_CLASS_CYCLE.length];
+        suppressResyncRef.current = true;
+        setMillerClass(toothNo, next);
         suppressResyncRef.current = false;
         syncOneTooth(toothNo);
       },

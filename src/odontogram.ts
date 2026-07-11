@@ -267,6 +267,11 @@ function defaultState(){
     // "none" and are omit-when-none on serialize; NO svgLayer, so neither renders.
     cejVisibility: "none", // none | detectable | not-detectable
     rootConcavity: "none", // none | mild | deep
+    // SP-perio PG-D Task 3: two per-tooth categorical DATA axes (registry/FHIR/
+    // payload only; the Dental Chart rows/UI land in later PG-D tasks). Both
+    // are omit-when-skip on serialize; NO svgLayer, so neither renders.
+    gingivalThickness: "unknown", // unknown | thin | medium | thick
+    millerClass: "none", // none | i | ii | iii | iv
     // SP-perio P1 Task 1: per-tooth, per-site periodontal probing data —
     // deliberately a SEPARATE sub-record from the 5-surface caries maps
     // above (perio sites are a different geometry: 6 fixed probing points,
@@ -297,6 +302,20 @@ function defaultState(){
     // furcation's position-gated entrance set, no per-tooth gating function
     // is needed here.
     plaque: new Set(), // Set<"mesial"|"distal"|"buccal"|"lingual">
+    // SP-perio PG-D Task 1: Silness-Löe Plaque Index (`pi`) and Löe-Silness
+    // Gingival Index (`gi`) — per-surface GRADED indices (1-3), over the
+    // SAME 4 fixed surfaces as the O'Leary `plaque` boolean above but
+    // DELIBERATELY SEPARATE from it (different clinical instrument; a tooth
+    // can carry both). Grade 0 (healthy/absent) is never stored — a surface
+    // absent from the map means grade 0, same "absence means not charted"
+    // convention `perio`/`furcation`/`plaque` all use.
+    pi: new Map(), // surface -> Silness-Löe plaque grade 1-3 (absent = 0)
+    gi: new Map(), // surface -> Löe-Silness gingival grade 1-3 (absent = 0)
+    // SP-perio PG-D Task 2: keratinized gingiva width — a single per-tooth
+    // BUCCAL mm scalar (integer, clamped 0-15), deliberately NOT per-site/
+    // per-surface unlike pi/gi/perio above. `null` = not charted (never a
+    // stored 0 vs "uncharted" ambiguity — see clampKg()/setKeratinizedWidth()).
+    kg: null as number | null,
     customStates: {} as Record<string, unknown>,
     note: "",
   };
@@ -1365,6 +1384,54 @@ function cejVisibilitySummaryLabel(state: Any): string | null {
 function rootConcavitySummaryLabel(state: Any): string | null {
   if(!state.rootConcavity || state.rootConcavity === "none") return null;
   return t("perio.rootConcavity." + kebabToCamel(state.rootConcavity));
+}
+// SP-perio PG-D Task 5: PI/GI (per-surface graded 1-3) + KG (mm) + GT
+// (biotype) + Miller (recession class) per-tooth summary lines — same
+// periodontal DATA-axis grouping as cejVisibilitySummaryLabel/
+// rootConcavitySummaryLabel above (surfaced in BOTH getStateSummary's
+// tooltip and getOdontogramSummary's "inflamed" bucket, never through
+// diagnosisSummaryLabels). Take `toothNo` (not `state`) since all five read
+// through their own public getter (mirrors getToothRecessionType's
+// toothNo-based call style, already used alongside the state-based helpers
+// at the very same call sites).
+/** PI/GI: summarize only the CHARTED (non-zero graded) surfaces of the fixed
+ *  4-surface set, in the same display order the rest of the file's per-
+ *  surface summaries use. `null` when nothing is charted on this tooth for
+ *  this axis — never a "(PI)" line with an empty surface list. */
+function graduatedSurfaceSummaryLine(toothNo: number, getter: (toothNo: number, surface: string) => 0|1|2|3, rowLabelKey: string): string | null {
+  const parts: string[] = [];
+  for(const surface of SUMMARY_SURFACE_ORDER){
+    if(!VALID_PLAQUE_SURFACE.has(surface)) continue;
+    const grade = getter(toothNo, surface);
+    if(grade > 0) parts.push(`${summarySurfaceLetter(surface, toothNo)}: ${grade}`);
+  }
+  if(parts.length === 0) return null;
+  return `${t(rowLabelKey)} (${parts.join(", ")})`;
+}
+function plaqueIndexSummaryLine(toothNo: number): string | null {
+  return graduatedSurfaceSummaryLine(toothNo, getPlaqueIndex, "perio.pi.row");
+}
+function gingivalIndexSummaryLine(toothNo: number): string | null {
+  return graduatedSurfaceSummaryLine(toothNo, getGingivalIndex, "perio.gi.row");
+}
+/** KG: `null` when not charted (mirrors {@link getKeratinizedWidth}'s own
+ *  "absence = not charted" semantics — never distinct from a stored 0mm). */
+function keratinizedWidthSummaryLine(toothNo: number): string | null {
+  const mm = getKeratinizedWidth(toothNo);
+  if(mm === null) return null;
+  return `${t("perio.kg.row")}: ${mm} mm`;
+}
+/** GT: skip value is `"unknown"` (not `"none"`, unlike every other enum axis
+ *  here) — mirrors {@link getGingivalThickness}'s own default. */
+function gingivalThicknessSummaryLabel(toothNo: number): string | null {
+  const gt = getGingivalThickness(toothNo);
+  if(gt === "unknown") return null;
+  return t("perio.gt." + gt);
+}
+function millerClassSummaryLabel(toothNo: number): string | null {
+  const mc = getMillerClass(toothNo);
+  if(mc === "none") return null;
+  return t("perio.miller." + mc);
 }
 /** All non-empty clinical diagnosis labels for a tooth, in a stable order.
  *  FIX 1: peri-implant status is deliberately NOT included here — it belongs to
@@ -2780,6 +2847,14 @@ function getStateSummary(toothNo: number): string[]{
   // presence grouping as peri-implant status / recession type above.
   { const cej = cejVisibilitySummaryLabel(state); if(cej) summary.push(cej); }
   { const rc = rootConcavitySummaryLabel(state); if(rc) summary.push(rc); }
+  // SP-perio PG-D Task 5: PI/GI (per-surface graded) + KG (mm) + GT
+  // (biotype) + Miller (recession class) — same periodontal-presence
+  // grouping as CEJ visibility / root concavity above.
+  { const pi = plaqueIndexSummaryLine(toothNo); if(pi) summary.push(pi); }
+  { const gi = gingivalIndexSummaryLine(toothNo); if(gi) summary.push(gi); }
+  { const kg = keratinizedWidthSummaryLine(toothNo); if(kg) summary.push(kg); }
+  { const gt = gingivalThicknessSummaryLabel(toothNo); if(gt) summary.push(gt); }
+  { const mc = millerClassSummaryLabel(toothNo); if(mc) summary.push(mc); }
   // SP17 Task 1 Fix #2 (gate-parity follow-up): gate on the SAME FULL predicate
   // the #crownLeakageRow control uses (crownLeakageAllowed, ~line 2974) —
   // !restorationRowHidden(state) AND crown/bridge. Checking crown/bridge alone
@@ -4912,12 +4987,29 @@ function serializeState(s: Any){
     // convention as `perio`/`furcation` above (additive) — a no-plaque
     // tooth/payload stays byte-identical apart from the version field.
     ...((s.plaque?.size ?? 0) > 0 ? { plaque: Array.from(s.plaque) } : {}),
+    // SP-perio PG-D Task 1: pi/gi are emitted ONLY when at least one surface
+    // is graded, same omit-when-empty convention as perio/furcation/plaque
+    // above — a tooth never touched by PI/GI stays byte-identical apart from
+    // the version bump (payload 2.15).
+    ...((s.pi?.size ?? 0) > 0 ? { pi: Object.fromEntries(s.pi) } : {}),
+    ...((s.gi?.size ?? 0) > 0 ? { gi: Object.fromEntries(s.gi) } : {}),
+    // SP-perio PG-D Task 2: keratinized gingiva width — omitted ENTIRELY when
+    // not charted (null), same omit-when-empty convention as pi/gi above — a
+    // tooth never touched by KG stays byte-identical (payload stays 2.15,
+    // Task 1 already bumped it).
+    ...(s.kg != null ? { kg: s.kg } : {}),
     // SP-perio PG-C Task 2: cejVisibility/rootConcavity are emitted ONLY when set
     // (!== "none"), like the omit-when-empty perio fields above — a default tooth
     // stays byte-identical (payload bumped to 2.14). Both round-trip via
     // validateEnum in hydrateState (default "none").
     ...(s.cejVisibility && s.cejVisibility !== "none" ? { cejVisibility: s.cejVisibility } : {}),
     ...(s.rootConcavity && s.rootConcavity !== "none" ? { rootConcavity: s.rootConcavity } : {}),
+    // SP-perio PG-D Task 3: gingivalThickness/millerClass are emitted ONLY
+    // when set (!== their skip value), like cejVisibility/rootConcavity above
+    // — a default tooth stays byte-identical (payload stays 2.15). Both
+    // round-trip via validateEnum in hydrateState.
+    ...(s.gingivalThickness && s.gingivalThickness !== "unknown" ? { gingivalThickness: s.gingivalThickness } : {}),
+    ...(s.millerClass && s.millerClass !== "none" ? { millerClass: s.millerClass } : {}),
     ...(Object.keys(s.customStates || {}).length > 0 ? { customStates: s.customStates } : {}),
     ...(s.note ? { note: s.note } : {}),
   };
@@ -4964,6 +5056,10 @@ export const VALID_PERI_IMPLANT = validValues("periImplant");
 // from AXES like every other enum).
 export const VALID_CEJ_VISIBILITY = validValues("cejVisibility");
 export const VALID_ROOT_CONCAVITY = validValues("rootConcavity");
+// SP-perio PG-D Task 3: the two new categorical data axes (registry axes; read
+// from AXES like every other enum).
+export const VALID_GINGIVAL_THICKNESS = validValues("gingivalThickness");
+export const VALID_MILLER_CLASS = validValues("millerClass");
 export const VALID_CARS = new Set([0, 1, 2, 3, 4, 5, 6]);
 export const VALID_CARIES_SEVERITY = new Set([0, 1, 2, 3, 4, 5, 6]);
 export const VALID_RADIOGRAPHIC_DEPTH = new Set(["none", "E1", "E2", "D1", "D2", "D3"]);
@@ -5262,6 +5358,12 @@ function hydrateState(raw: Any, inferLegacySecondaryCaries = true){
   // "none". No migration needed.
   s.cejVisibility = validateEnum(raw.cejVisibility, VALID_CEJ_VISIBILITY, "none");
   s.rootConcavity = validateEnum(raw.rootConcavity, VALID_ROOT_CONCAVITY, "none");
+  // SP-perio PG-D Task 3: gingivalThickness/millerClass (additive enum axes).
+  // Absent/legacy payloads have no key -> stays the default (no throw); an
+  // unrecognized value self-heals to the default, same tolerant-hydrate
+  // policy as every other axis above.
+  s.gingivalThickness = validateEnum(raw.gingivalThickness, VALID_GINGIVAL_THICKNESS, "unknown");
+  s.millerClass = validateEnum(raw.millerClass, VALID_MILLER_CLASS, "none");
   s.radiographicDepth = new Map();
   if(raw.radiographicDepth && typeof raw.radiographicDepth === "object"){
     for(const [surf, val] of Object.entries(raw.radiographicDepth)){
@@ -5491,6 +5593,27 @@ function hydrateState(raw: Any, inferLegacySecondaryCaries = true){
       if(typeof surface === "string" && VALID_PLAQUE_SURFACE.has(surface)) s.plaque.add(surface);
     }
   }
+  // SP-perio PG-D Task 1: restore the graded PI/GI surface maps. Absent/legacy
+  // (<=2.14) payloads have no `pi`/`gi` key -> stays the empty default (no
+  // throw). Validated against VALID_PLAQUE_SURFACE (same fixed 4-surface set
+  // `plaque` uses) + grade in {1,2,3} — an unrecognized surface or an
+  // out-of-range/non-integer grade (including a stored 0, which should never
+  // happen but is tolerated as "drop it") is silently dropped, never throws.
+  if(raw.pi && typeof raw.pi === "object"){
+    for(const [surface, g] of Object.entries(raw.pi)){
+      if(VALID_PLAQUE_SURFACE.has(surface) && (g === 1 || g === 2 || g === 3)) s.pi.set(surface, g);
+    }
+  }
+  if(raw.gi && typeof raw.gi === "object"){
+    for(const [surface, g] of Object.entries(raw.gi)){
+      if(VALID_PLAQUE_SURFACE.has(surface) && (g === 1 || g === 2 || g === 3)) s.gi.set(surface, g);
+    }
+  }
+  // SP-perio PG-D Task 2: restore keratinized gingiva width. Absent/legacy
+  // payloads have no `kg` key -> stays the default null (no throw).
+  // `clampKg` tolerates any input (non-numeric/out-of-range) and returns
+  // null for it, same tolerant-hydrate policy as every other axis above.
+  s.kg = clampKg(raw.kg);
   // Restore note
   if(typeof raw.note === "string") s.note = raw.note;
   // Restore plugin custom states (only for registered plugin IDs)
@@ -5546,7 +5669,7 @@ function collectExportPayload(){
   const planTeeth = planInitialized ? collectTeeth(charts.plan) : null;
   const planDiffers = planTeeth !== null && JSON.stringify(planTeeth) !== JSON.stringify(statusTeeth);
   return {
-    version: "2.14",
+    version: "2.15",
     globals: collectGlobals(),
     teeth: statusTeeth,
     ...(planDiffers ? { plan: planTeeth } : {}),
@@ -5575,7 +5698,7 @@ export function getStatusChart(): Any {
  */
 export function getPlanChart(): Any {
   return {
-    version: "2.14",
+    version: "2.15",
     globals: collectGlobals(),
     teeth: collectTeeth(charts.plan),
   };
@@ -5994,6 +6117,129 @@ export function getToothPlaque(toothNo: number): string[] {
   return Array.from(plaque);
 }
 
+// ---- SP-perio PG-D Task 1: Silness-Löe Plaque Index (PI) + Löe-Silness
+// Gingival Index (GI) public API. Both are per-surface GRADED (1-3) axes over
+// the SAME fixed 4-surface set as O'Leary `plaque` above, but a separate
+// sub-record — this coexists intentionally with `plaque` (different clinical
+// instrument), never merged with it. Operates on the ACTIVE-chart `toothState`
+// alias, exactly like the perio-site/furcation/plaque APIs above —
+// transparently Status/Plan dual-state aware. Pure data — no SVG/DOM touched,
+// no render triggered (parity-safe: neither axis has a chart layer).
+
+/** Read one graded surface off a Map, defaulting an absent/invalid entry to 0. */
+function getSurfaceGrade(map: Map<string, number>, surface: string): 0|1|2|3 {
+  const g = map.get(surface);
+  return (g === 1 || g === 2 || g === 3) ? g : 0;
+}
+
+/**
+ * Set/clear one graded surface (PI or GI, selected by `mapKey`) on the
+ * active chart's tooth, through the DS-1 gate.
+ *
+ * - `surface` must be one of {@link VALID_PLAQUE_SURFACE}; any other value
+ *   is a silent no-op.
+ * - `grade` 0 clears the surface (absence = healthy); 1/2/3 sets it; any
+ *   other value (non-integer, out of range) is a silent no-op.
+ *
+ * Fires {@link notifyStateChange} whenever it actually mutates state; never
+ * on a rejected/no-op call — `gateToothEdit`'s `applyFn` returns `false` for
+ * a no-op so the DS-1 protocol never marks/mirrors a tooth that didn't change.
+ */
+function setSurfaceGrade(toothNo: number, mapKey: "pi"|"gi", surface: string, grade: number): void {
+  if(!VALID_PLAQUE_SURFACE.has(surface)) return;
+  let s = toothState.get(toothNo);
+  if(!s){ s = defaultState(); toothState.set(toothNo, s); }
+  gateToothEdit(toothNo, () => {
+    const map = s[mapKey] as Map<string, number>;
+    if(grade === 0){
+      if(map.has(surface)){ map.delete(surface); notifyStateChange(); return true; }
+      return false;
+    }
+    if(grade === 1 || grade === 2 || grade === 3){
+      if(map.get(surface) !== grade){ map.set(surface, grade); notifyStateChange(); return true; }
+    }
+    return false;
+  });
+}
+
+/** Read a tooth's Silness-Löe Plaque Index grade on one surface from the
+ *  active chart. Grade 0 (default) means healthy/absent — never distinct
+ *  from "never charted". */
+export function getPlaqueIndex(toothNo: number, surface: string): 0|1|2|3 {
+  return getSurfaceGrade((toothState.get(toothNo)?.pi as Map<string, number>) ?? new Map(), surface);
+}
+
+/** Set/clear a tooth's Silness-Löe Plaque Index grade on one surface on the
+ *  active chart. See {@link setSurfaceGrade} for validation/no-op semantics. */
+export function setPlaqueIndex(toothNo: number, surface: string, grade: number): void {
+  setSurfaceGrade(toothNo, "pi", surface, grade);
+}
+
+/** Read a tooth's Löe-Silness Gingival Index grade on one surface from the
+ *  active chart. Grade 0 (default) means healthy/absent — never distinct
+ *  from "never charted". */
+export function getGingivalIndex(toothNo: number, surface: string): 0|1|2|3 {
+  return getSurfaceGrade((toothState.get(toothNo)?.gi as Map<string, number>) ?? new Map(), surface);
+}
+
+/** Set/clear a tooth's Löe-Silness Gingival Index grade on one surface on the
+ *  active chart. See {@link setSurfaceGrade} for validation/no-op semantics. */
+export function setGingivalIndex(toothNo: number, surface: string, grade: number): void {
+  setSurfaceGrade(toothNo, "gi", surface, grade);
+}
+
+// ---- SP-perio PG-D Task 2: keratinized gingiva width (KG) public API.
+// A single per-tooth BUCCAL mm scalar (integer, clamped 0-15) — deliberately
+// NOT per-site/per-surface, unlike pi/gi above or the 6-site perio-probing
+// record. `null` = not charted, never a stored 0 (mirrors every other
+// "absence means not charted" axis in this file). Operates on the ACTIVE-chart
+// `toothState` alias, transparently Status/Plan dual-state aware. Interactive
+// edits route through the DS-1 gate `gateToothEdit`. Pure data — no SVG/DOM
+// touched, no render triggered (no svgLayer for this axis -> parity byte-
+// identical).
+
+/** Clamp an arbitrary input to an integer 0-15, or `null` for anything that
+ *  isn't a finite number (including `null`/`undefined`) — used by both the
+ *  setter (rejecting a non-finite EDIT as a no-op) and hydrate (tolerating a
+ *  malformed/out-of-range STORED value by dropping it to null). */
+function clampKg(mm: unknown): number | null {
+  if(mm === null || mm === undefined) return null;
+  const n = Number(mm);
+  if(!Number.isFinite(n)) return null;
+  return Math.max(0, Math.min(15, Math.round(n)));
+}
+
+/** Read a tooth's keratinized gingiva width (mm) from the active chart.
+ *  `null` means not charted. */
+export function getKeratinizedWidth(toothNo: number): number | null {
+  const v = toothState.get(toothNo)?.kg;
+  return typeof v === "number" ? v : null;
+}
+
+/**
+ * Set/clear a tooth's keratinized gingiva width (mm) on the active chart.
+ *
+ * - `mm === null` explicitly clears it (not charted).
+ * - Any other value is clamped to an integer 0-15 via {@link clampKg}.
+ * - A non-finite number (e.g. `NaN` from a bad keystroke) is a silent no-op
+ *   — it must NOT clear an existing value, unlike an explicit `null`.
+ *
+ * Fires {@link notifyStateChange} whenever it actually mutates state; never
+ * on a rejected/no-op call — `gateToothEdit`'s `applyFn` returns `false` for
+ * a no-op so the DS-1 protocol never marks/mirrors a tooth that didn't change.
+ */
+export function setKeratinizedWidth(toothNo: number, mm: number | null): void {
+  let s = toothState.get(toothNo);
+  if(!s){ s = defaultState(); toothState.set(toothNo, s); }
+  const next = mm === null ? null : clampKg(mm);
+  // non-finite number → no-op (do not clear an existing value on a bad keystroke)
+  if(mm !== null && next === null) return;
+  gateToothEdit(toothNo, () => {
+    if(s.kg === next) return false;
+    s.kg = next; notifyStateChange(); return true;
+  });
+}
+
 // ---- SP-perio PG-C Task 2: cejVisibility + rootConcavity public API.
 // Two per-tooth categorical DATA axes (data + registry + FHIR + payload only;
 // the Dental Chart rows/UI are PG-C Task 3). Both operate on the ACTIVE-chart
@@ -6053,6 +6299,66 @@ export function setRootConcavity(toothNo: number, value: string): void {
 export function getRootConcavity(toothNo: number): string {
   const s = toothState.get(toothNo);
   return (s?.rootConcavity as string) ?? "none";
+}
+
+// ---- SP-perio PG-D Task 3: gingivalThickness + millerClass public API.
+// Two per-tooth categorical DATA axes (data + registry + FHIR + payload only;
+// the Dental Chart rows/UI land in later PG-D tasks). Both operate on the
+// ACTIVE-chart `toothState` alias like the cejVisibility/rootConcavity APIs
+// above — transparently Status/Plan dual-state aware. Interactive per-tooth
+// edits, so they route through the DS-1 gate `gateToothEdit`. Pure data — no
+// SVG/DOM touched, no render triggered (neither axis has a chart layer: NO
+// svgLayer → parity byte-identical).
+
+/**
+ * Set a tooth's gingival-thickness on the active chart. `value` must be one
+ * of {@link VALID_GINGIVAL_THICKNESS} (unknown | thin | medium | thick);
+ * anything else is a silent no-op (state unchanged). Fires
+ * {@link notifyStateChange} only when it actually changes state; never on a
+ * rejected/no-op call.
+ */
+export function setGingivalThickness(toothNo: number, value: string): void {
+  if(!VALID_GINGIVAL_THICKNESS.has(value)) return;
+  let s = toothState.get(toothNo);
+  if(!s){ s = defaultState(); toothState.set(toothNo, s); }
+  gateToothEdit(toothNo, () => {
+    if(s.gingivalThickness === value) return false;
+    s.gingivalThickness = value;
+    notifyStateChange();
+    return true;
+  });
+}
+
+/** Read a tooth's gingival-thickness from the active chart. A tooth never
+ *  touched (or with the default) returns "unknown". */
+export function getGingivalThickness(toothNo: number): string {
+  const s = toothState.get(toothNo);
+  return (s?.gingivalThickness as string) ?? "unknown";
+}
+
+/**
+ * Set a tooth's Miller recession class on the active chart. `value` must be
+ * one of {@link VALID_MILLER_CLASS} (none | i | ii | iii | iv); anything else
+ * is a silent no-op (state unchanged). Fires {@link notifyStateChange} only
+ * when it actually changes state; never on a rejected/no-op call.
+ */
+export function setMillerClass(toothNo: number, value: string): void {
+  if(!VALID_MILLER_CLASS.has(value)) return;
+  let s = toothState.get(toothNo);
+  if(!s){ s = defaultState(); toothState.set(toothNo, s); }
+  gateToothEdit(toothNo, () => {
+    if(s.millerClass === value) return false;
+    s.millerClass = value;
+    notifyStateChange();
+    return true;
+  });
+}
+
+/** Read a tooth's Miller recession class from the active chart. A tooth never
+ *  touched (or with the default) returns "none". */
+export function getMillerClass(toothNo: number): string {
+  const s = toothState.get(toothNo);
+  return (s?.millerClass as string) ?? "none";
 }
 
 /** Derive Clinical Attachment Level (CAL = pd + gm, gm signed and defaulting
@@ -6152,12 +6458,31 @@ export function getToothRecessionType(toothNo: number): RecessionType {
  * perio site, mirroring `maxFurcation` above. A tooth never touched at all
  * (no entry in the active chart map) is skipped entirely, same convention
  * `maxFurcation`'s loop and `getOdontogramSummary()` use.
+ *
+ * SP-perio PG-D Task 5 additions (own pass over `ALL_TEETH`, same "absence =
+ * not charted" convention as `maxFurcation`/`plaquePercent` above):
+ *   - `piScore`/`giScore`: mean of ALL charted PI/GI surface grades across
+ *     the whole mouth (sum of grades / number of CHARTED surfaces, one
+ *     decimal) — `null` when nothing is charted anywhere (mirrors
+ *     `avgPd`/`avgCal`'s null-when-none, NOT `bopPercent`/`plaquePercent`'s
+ *     zero-when-none, since a 0 mean would misleadingly read as "all
+ *     surfaces charted healthy").
+ *   - `kgDeficientTeeth`: count of teeth with a charted `kg` narrower than
+ *     2mm (`kg != null && kg < 2`) — an uncharted tooth (`kg === null`) is
+ *     never counted.
+ *   - `gtDistribution`/`millerDistribution`: per-value counts across the
+ *     whole mouth, excluding the "not charted" skip value (`unknown`/
+ *     `none` respectively) — mirrors how `maxFurcation`'s loop only counts
+ *     graded entrances.
  */
 export function getPerioSummary(): {
   chartedSites: number; bleedingSites: number; bopPercent: number;
   worstCal: number | null; worstCalTooth: number | null; maxPd: number | null;
   avgPd: number | null; avgCal: number | null; maxFurcation: number | null;
   plaquePercent: number;
+  piScore: number | null; giScore: number | null; kgDeficientTeeth: number;
+  gtDistribution: { thin: number; medium: number; thick: number };
+  millerDistribution: { i: number; ii: number; iii: number; iv: number };
 } {
   let chartedSites = 0, bleedingSites = 0;
   let worstCal: number | null = null, worstCalTooth: number | null = null, maxPd: number | null = null;
@@ -6205,7 +6530,36 @@ export function getPerioSummary(): {
   }
   const plaquePercent = presentTeeth > 0 ? Math.round((plaqueSurfaces / (presentTeeth * 4)) * 1000) / 10 : 0;
 
-  return { chartedSites, bleedingSites, bopPercent, worstCal, worstCalTooth, maxPd, avgPd, avgCal, maxFurcation, plaquePercent };
+  // SP-perio PG-D Task 5: PI/GI whole-mouth mean, KG-deficient tooth count,
+  // GT/Miller distributions — deliberately their own pass over `ALL_TEETH`
+  // (not folded into the pd-site loop above), same reasoning as
+  // `maxFurcation`/`plaquePercent`: these axes are charted independently of
+  // whether a tooth has any charted perio site.
+  let piSum = 0, piCount = 0, giSum = 0, giCount = 0;
+  let kgDeficientTeeth = 0;
+  const gtDistribution = { thin: 0, medium: 0, thick: 0 };
+  const millerDistribution = { i: 0, ii: 0, iii: 0, iv: 0 };
+  for(const toothNo of ALL_TEETH){
+    const s = toothState.get(toothNo);
+    if(!s) continue;
+    if(s.pi) for(const grade of (s.pi as Map<string, number>).values()){ piSum += grade; piCount++; }
+    if(s.gi) for(const grade of (s.gi as Map<string, number>).values()){ giSum += grade; giCount++; }
+    if(typeof s.kg === "number" && s.kg < 2) kgDeficientTeeth++;
+    if(s.gingivalThickness === "thin") gtDistribution.thin++;
+    else if(s.gingivalThickness === "medium") gtDistribution.medium++;
+    else if(s.gingivalThickness === "thick") gtDistribution.thick++;
+    if(s.millerClass === "i") millerDistribution.i++;
+    else if(s.millerClass === "ii") millerDistribution.ii++;
+    else if(s.millerClass === "iii") millerDistribution.iii++;
+    else if(s.millerClass === "iv") millerDistribution.iv++;
+  }
+  const piScore = piCount > 0 ? Math.round((piSum / piCount) * 10) / 10 : null;
+  const giScore = giCount > 0 ? Math.round((giSum / giCount) * 10) / 10 : null;
+
+  return {
+    chartedSites, bleedingSites, bopPercent, worstCal, worstCalTooth, maxPd, avgPd, avgCal, maxFurcation, plaquePercent,
+    piScore, giScore, kgDeficientTeeth, gtDistribution, millerDistribution,
+  };
 }
 
 /** Per-tooth perio for every tooth on the active chart that has at least one
@@ -6429,10 +6783,15 @@ export function setPerioViewMode(mode: PerioViewMode): void {
 //   - "cairo"   : per-tooth Cairo (2011) recession TYPE (RT1-3), derived
 //     from CAL (see getToothRecessionType) — a whole-tooth classification,
 //     not a per-site reading (PG-C Task 1).
+//   - "pi"/"gi" : per-surface graded Silness-Löe Plaque Index / Löe-Silness
+//     Gingival Index (0-3, mesial/distal/buccal/lingual — getPlaqueIndex/
+//     getGingivalIndex), heat-bucketed like the mm ramps (PG-D Task 4).
+//   - "kg"      : per-tooth keratinized gingiva width in mm (getKeratinizedWidth),
+//     heat-bucketed on a mucogingival-risk ramp (thin = severe) (PG-D Task 4).
 // Lives alongside `perioViewMode` (same session-state precedent) and reuses
 // the existing `onStateChange` subscription — PerioChart mirrors it into React
 // state (for the active-button/read-out) and redraws the overlay on notify.
-export type PerioOverlayLayer = "none" | "pd" | "cal" | "gr" | "cairo" | "plaque" | "bop" | "pd5" | "pd6";
+export type PerioOverlayLayer = "none" | "pd" | "cal" | "gr" | "cairo" | "kg" | "plaque" | "pi" | "gi" | "bop" | "pd5" | "pd6";
 let perioOverlayLayer: PerioOverlayLayer = "none";
 
 /** Current Dental Chart overlay layer. Defaults to `"none"`. */
@@ -8228,6 +8587,14 @@ export function getOdontogramSummary(): OdontogramSummary {
     // recession-type above.
     { const cej = cejVisibilitySummaryLabel(s); if(cej) inflamed.push(`${lbl(toothNo)} (${cej})`); }
     { const rc = rootConcavitySummaryLabel(s); if(rc) inflamed.push(`${lbl(toothNo)} (${rc})`); }
+    // SP-perio PG-D Task 5: PI/GI/KG/GT/Miller — same periodontal "inflamed"
+    // bucket as calculus/mobility/peri-implant/recession-type/CEJ/root-
+    // concavity above.
+    { const pi = plaqueIndexSummaryLine(toothNo); if(pi) inflamed.push(`${lbl(toothNo)} (${pi})`); }
+    { const gi = gingivalIndexSummaryLine(toothNo); if(gi) inflamed.push(`${lbl(toothNo)} (${gi})`); }
+    { const kg = keratinizedWidthSummaryLine(toothNo); if(kg) inflamed.push(`${lbl(toothNo)} (${kg})`); }
+    { const gt = gingivalThicknessSummaryLabel(toothNo); if(gt) inflamed.push(`${lbl(toothNo)} (${gt})`); }
+    { const mc = millerClassSummaryLabel(toothNo); if(mc) inflamed.push(`${lbl(toothNo)} (${mc})`); }
   }
 
   // Overview sentence — plural-aware phrases keep grammar correct per language

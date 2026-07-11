@@ -85,15 +85,15 @@ describe("setPlaque / getToothPlaque", () => {
   });
 });
 
-describe("payload round-trip (version 2.14, plaque additive)", () => {
-  it("set plaque -> serialize -> version 2.14, plaque present only where present", () => {
+describe("payload round-trip (version 2.15, plaque additive)", () => {
+  it("set plaque -> serialize -> version 2.15, plaque present only where present", () => {
     __setToothStateForTest(16, {});
     __setToothStateForTest(11, {}); // no plaque -> must stay omitted
     setPlaque(16, "mesial", true);
     setPlaque(16, "buccal", true);
 
     const payload = __collectExportPayloadForTest();
-    expect(payload.version).toBe("2.14");
+    expect(payload.version).toBe("2.15");
     expect((payload.teeth["16"].plaque as string[]).sort()).toEqual(["buccal", "mesial"]);
     expect(payload.teeth["11"].plaque).toBeUndefined();
     expect(Object.prototype.hasOwnProperty.call(payload.teeth["11"], "plaque")).toBe(false);
