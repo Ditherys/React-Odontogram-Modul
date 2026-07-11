@@ -490,6 +490,11 @@ export default function App({
               <div className="chart-title">{t("chart.title")}</div>
               <div className="chart-hint">{t("chart.hint")}</div>
             </div>
+            <div id="chartModeToggle" className="chart-mode-toggle" role="tablist">
+              <button id="chartModeStatus" type="button" className="chart-mode-btn is-active" role="tab" aria-selected="true">{t("chartMode.status")}</button>
+              <button id="chartModePlan" type="button" className="chart-mode-btn" role="tab" aria-selected="false">{t("chartMode.plan")}</button>
+              <span id="chartModePlanBadge" className="plan-badge hidden">{t("chartMode.planBadge")}</span>
+            </div>
             <div className="chart-actions">
               <button id="btnOcclView" className="btn btn-toggle btn-icon" aria-pressed="true" title={t("chart.actions.occlusal")} aria-label={t("chart.actions.occlusal")} data-icon-src={iconOcclUrl} data-xline="1"></button>
               <button id="btnWisdomVisible" className="btn btn-toggle btn-icon" aria-pressed="true" title={t("chart.actions.wisdom")} aria-label={t("chart.actions.wisdom")} data-icon-src={icon8Url} data-xline="1"></button>

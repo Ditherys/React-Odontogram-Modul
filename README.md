@@ -1,7 +1,7 @@
 # 🦷 React Odontogram Modul
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-1.30.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-1.31.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
 
@@ -85,7 +85,8 @@ This project is an interactive, browser-based odontogram editor that supports fa
 - 🔒 Read-only mode: disable all interactions for print/report/view use cases
 - ✨ Selection animations: pulsing dashed border and glowing drop-shadow on selected teeth (with prefers-reduced-motion support)
 - 📝 Per-tooth notes: double-click to add/edit notes, note icon next to tooth number, hover tooltip with note text, JSON export/import
-- 🧪 864 automated tests passing (1 additional test skipped) (Vitest) across 94 test files covering numbering, translations, presets, i18n, App component, theme, touch, plugins, accessibility, and clinical-axis/diagnosis parity
+- 🔀 Status ↔ Plan chart split: a `Status | Plan` toggle in the chart header switches between a current-**status** chart and a **plan** (intended post-treatment) chart, each with its own tooth states; the plan chart starts as a copy of status the first time you switch to it, and edits in one chart never affect the other. Export/import (`exportStatus`/`exportFhir`/file import) always target the status chart; the plan chart is read/written separately via its own API (see Public API below) and — when it differs from status — is included as an additive `plan` section in the JSON export
+- 🧪 890 automated tests passing (1 additional test skipped) (Vitest) across 96 test files covering numbering, translations, presets, i18n, App component, theme, touch, plugins, accessibility, and clinical-axis/diagnosis parity
 - 📖 TypeDoc API documentation with JSDoc comments on all public exports (`npm run docs`)
 
 ### 📦 Modules
@@ -353,7 +354,7 @@ setPluginState(11, "implant-brand", "Straumann");
 
 ### 🧪 Testing
 ```bash
-npm run test           # Run all 864 tests (1 additional test skipped)
+npm run test           # Run all 890 tests (1 additional test skipped)
 npm run test:watch     # Watch mode
 npm run test:coverage  # Coverage report
 ```
@@ -404,6 +405,11 @@ npm run docs           # Generate TypeDoc docs in docs/
 | `getNotesEnabled()` | Get current notes-enabled state |
 | `setPulpDetailLevel(level)` | Set the pulp picker's vocabulary — `"simple"`, `"aae"`, or `"latin"` |
 | `getPulpDetailLevel()` | Get the current pulp detail level |
+| `getChartMode()` | Get the currently active chart — `"status"` or `"plan"` |
+| `setChartMode(mode)` | Switch the active chart to `"status"` or `"plan"`; the plan chart is deep-copied from status the first time it's entered |
+| `getStatusChart()` | Get the status chart's payload (`{version, globals, teeth}`), independent of which chart is currently active |
+| `getPlanChart()` | Get the plan chart's payload (`{version, globals, teeth}`), independent of which chart is currently active |
+| `setPlanChart(payload)` | Replace the plan chart's teeth from a payload (status is left untouched); marks the plan chart initialized |
 | `exportFhir(options?)` | Export the chart as an HL7 FHIR R4 collection Bundle (JSON download). Optional `{ subject }` reference; otherwise a placeholder Patient is embedded |
 | `exportImage(format)` | Download the chart as an image — `"png"` or `"jpg"` |
 | `exportSvg()` | Download the chart as a scalable SVG (vector) |
@@ -412,7 +418,7 @@ npm run docs           # Generate TypeDoc docs in docs/
 | `startIntroTour()` | Launch the 12-step interactive intro tour |
 
 ### 💾 Status Export/Import Format
-The export creates a JSON file (version `2.10`; imports also accept legacy `1.4`, `2.0`, `2.1`, `2.2`, `2.3`, `2.4`, `2.5`, `2.6`, `2.7`, `2.8`, and `2.9` and migrate automatically) containing:
+The export creates a JSON file (version `2.11`; imports also accept legacy `1.4`, `2.0`, `2.1`, `2.2`, `2.3`, `2.4`, `2.5`, `2.6`, `2.7`, `2.8`, `2.9`, and `2.10` and migrate automatically) containing:
 
 **Global fields:**
 - `wisdomVisible` - wisdom teeth visible
@@ -469,6 +475,9 @@ The export creates a JSON file (version `2.10`; imports also accept legacy `1.4`
 - `customStates` - plugin custom states (object, keyed by plugin ID)
 - `note` - per-tooth text note (string, optional — only present when non-empty)
 
+**Top-level `plan` field (version 2.11+):**
+- `plan` - optional object, same shape as `teeth` (per-tooth fields above), holding the **plan** (intended post-treatment) chart. Present only when the plan chart has been initialized (the `Status | Plan` toggle has been switched to Plan at least once) AND its content differs from the status chart — a status-only export omits it entirely and stays byte-identical to a pre-2.11 export apart from the version number. On import, an absent `plan` clears/uninitializes the plan chart (it never resurrects a stale plan left over from before the import); a present `plan` restores the plan chart alongside status. The plan chart can also be read/written independently of import/export via `getPlanChart()`/`setPlanChart()` (see Public API above), and `getStatusChart()` always returns the status-primary payload regardless of the active chart mode.
+
 ### 📁 Folder Structure
 - `src/App.tsx` - shell UI, topbar controls, language/numbering/dark mode/theme/plugin switcher
 - `src/odontogram.ts` - SVG layering engine, tooth state management, touch interactions, plugin overlays, UI wiring
@@ -481,7 +490,7 @@ The export creates a JSON file (version `2.10`; imports also accept legacy `1.4`
 - `src/fhir/` - HL7 FHIR R4 export/import: `toFhir.ts`/`fromFhir.ts`, code systems, field mappings, primitives
 - `src/bridgeOverlay.ts` - multi-tooth bridge-span connector overlay (arch-aware saddle geometry)
 - `src/SettingsModal.tsx` - tabbed Settings dialog (General/Panels/Tooth details/Caries/Pulpa/Notes)
-- `src/__tests__/` + `src/registry/__tests__/` - Vitest test suite (864 tests passing, 1 skipped, across 94 files)
+- `src/__tests__/` + `src/registry/__tests__/` - Vitest test suite (890 tests passing, 1 skipped, across 96 files)
 - `src/assets/teeth-svgs/` - SVG tooth templates (6 files: incisors, canines, premolars, molars + occlusal views)
 - `src/assets/icon-svgs/` - toolbar icon SVGs (5 files)
 
@@ -584,7 +593,8 @@ Este proyecto es un editor de odontograma interactivo basado en navegador que pe
 - 🔒 Modo solo lectura: desactivar todas las interacciones para vistas de impresión/informes
 - ✨ Animaciones de selección: borde punteado pulsante y sombra brillante en los dientes seleccionados
 - 📝 Notas por diente: doble clic para añadir/editar notas, icono de nota junto al número de diente, tooltip con texto de nota, exportación/importación JSON
-- 🧪 864 pruebas automatizadas superadas (1 prueba adicional omitida) (Vitest) en 94 archivos de test, para numeración, traducciones, plantillas, i18n, componente App, tema, táctil, plugins, accesibilidad y paridad de ejes clínicos/diagnósticos
+- 🔀 División de odontograma Estado ↔ Plan: un selector `Estado | Plan` en la cabecera del odontograma alterna entre un odontograma de **estado** actual y un odontograma de **plan** (tratamiento propuesto), cada uno con sus propios estados por diente; el odontograma de plan se inicia como copia del de estado la primera vez que se cambia a él, y las ediciones en uno nunca afectan al otro. La exportación/importación (`exportStatus`/`exportFhir`/importación de archivo) siempre operan sobre el odontograma de estado; el odontograma de plan se lee/escribe por separado mediante su propia API (ver API pública más abajo) y — cuando difiere del estado — se incluye como sección adicional `plan` en la exportación JSON
+- 🧪 890 pruebas automatizadas superadas (1 prueba adicional omitida) (Vitest) en 96 archivos de test, para numeración, traducciones, plantillas, i18n, componente App, tema, táctil, plugins, accesibilidad y paridad de ejes clínicos/diagnósticos
 - 📖 Documentación API TypeDoc con comentarios JSDoc en todas las exportaciones públicas (`npm run docs`)
 
 ### 📦 Módulos
@@ -852,7 +862,7 @@ setPluginState(11, "implant-brand", "Straumann");
 
 ### 🧪 Pruebas
 ```bash
-npm run test           # Ejecutar las 864 pruebas (1 prueba adicional omitida)
+npm run test           # Ejecutar las 890 pruebas (1 prueba adicional omitida)
 npm run test:watch     # Modo watch
 npm run test:coverage  # Informe de cobertura
 ```
@@ -903,6 +913,11 @@ npm run docs           # Generar documentación TypeDoc en docs/
 | `getNotesEnabled()` | Obtener estado actual de notas |
 | `setPulpDetailLevel(level)` | Definir el vocabulario del selector de pulpa — `"simple"`, `"aae"` o `"latin"` |
 | `getPulpDetailLevel()` | Obtener el nivel de detalle pulpar actual |
+| `getChartMode()` | Obtener el odontograma actualmente activo — `"status"` o `"plan"` |
+| `setChartMode(mode)` | Cambiar el odontograma activo a `"status"` o `"plan"`; el odontograma de plan se copia del de estado la primera vez que se activa |
+| `getStatusChart()` | Obtener el payload del odontograma de estado (`{version, globals, teeth}`), independientemente de cuál esté activo |
+| `getPlanChart()` | Obtener el payload del odontograma de plan (`{version, globals, teeth}`), independientemente de cuál esté activo |
+| `setPlanChart(payload)` | Reemplazar los dientes del odontograma de plan a partir de un payload (el estado no se modifica); marca el odontograma de plan como inicializado |
 | `exportFhir(options?)` | Exportar el odontograma como Bundle de colección HL7 FHIR R4 (descarga JSON). Referencia `{ subject }` opcional; si no, se incluye un Patient de marcador |
 | `exportImage(format)` | Descargar el odontograma como imagen — `"png"` o `"jpg"` |
 | `exportSvg()` | Descargar el odontograma como SVG escalable (vectorial) |
@@ -911,7 +926,7 @@ npm run docs           # Generar documentación TypeDoc en docs/
 | `startIntroTour()` | Iniciar el tour interactivo de introducción de 12 pasos |
 
 ### 💾 Formato de exportación/importación de estado
-La exportación genera un archivo JSON (versión `2.10`; las importaciones también aceptan las versiones heredadas `1.4`, `2.0`, `2.1`, `2.2`, `2.3`, `2.4`, `2.5`, `2.6`, `2.7`, `2.8` y `2.9`, migrando automáticamente) que contiene:
+La exportación genera un archivo JSON (versión `2.11`; las importaciones también aceptan las versiones heredadas `1.4`, `2.0`, `2.1`, `2.2`, `2.3`, `2.4`, `2.5`, `2.6`, `2.7`, `2.8`, `2.9` y `2.10`, migrando automáticamente) que contiene:
 
 **Campos globales:**
 - `wisdomVisible` - muelas del juicio visibles
@@ -968,6 +983,9 @@ La exportación genera un archivo JSON (versión `2.10`; las importaciones tambi
 - `customStates` - estados personalizados de plugins (objeto, indexado por ID de plugin)
 - `note` - nota de texto por diente (cadena, opcional — presente solo cuando no está vacía)
 
+**Campo de nivel superior `plan` (versión 2.11+):**
+- `plan` - objeto opcional, con la misma forma que `teeth` (campos por diente arriba), que contiene el odontograma de **plan** (tratamiento propuesto). Presente solo cuando el odontograma de plan se ha inicializado (se ha activado el selector `Estado | Plan` a Plan al menos una vez) Y su contenido difiere del odontograma de estado — una exportación solo de estado lo omite por completo y se mantiene idéntica byte a byte a una exportación anterior a 2.11 salvo por el número de versión. Al importar, la ausencia de `plan` limpia/desinicializa el odontograma de plan (nunca resucita un plan obsoleto de una importación anterior); si `plan` está presente, restaura el odontograma de plan junto con el de estado. El odontograma de plan también puede leerse/escribirse de forma independiente a la importación/exportación mediante `getPlanChart()`/`setPlanChart()` (ver API pública arriba), y `getStatusChart()` siempre devuelve el payload de estado, sin importar cuál odontograma esté activo.
+
 ### 📁 Estructura de carpetas
 - `src/App.tsx` - UI principal, controles de barra superior, selector de idioma/numeración/modo oscuro/tema/plugins
 - `src/odontogram.ts` - motor de capas SVG, gestión de estado dental, interacciones táctiles, superposiciones de plugins, cableado UI
@@ -980,7 +998,7 @@ La exportación genera un archivo JSON (versión `2.10`; las importaciones tambi
 - `src/fhir/` - exportación/importación HL7 FHIR R4: `toFhir.ts`/`fromFhir.ts`, sistemas de códigos, mapeos de campos, primitivas
 - `src/bridgeOverlay.ts` - superposición de conector de tramo de puente multidiente (geometría de silla adaptada a la arcada)
 - `src/SettingsModal.tsx` - diálogo de Ajustes por pestañas (General/Paneles/Detalles del diente/Caries/Pulpa/Notas)
-- `src/__tests__/` + `src/registry/__tests__/` - suite de pruebas Vitest (864 pruebas superadas, 1 omitida, en 94 archivos)
+- `src/__tests__/` + `src/registry/__tests__/` - suite de pruebas Vitest (890 pruebas superadas, 1 omitida, en 96 archivos)
 - `src/assets/teeth-svgs/` - plantillas SVG dentales (6 archivos: incisivos, caninos, premolares, molares + vistas oclusales)
 - `src/assets/icon-svgs/` - SVGs de iconos de barra de herramientas (5 archivos)
 

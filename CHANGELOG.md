@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.31.0] - 2026-07-11
+### Added
+- Status ↔ Plan chart split: the chart now holds a separate current-**status** and a **plan** (intended post-treatment) state, switched by a `Status | Plan` toggle in the chart header (`#chartModeToggle`, with a `.plan-mode` visual cue on the chart card). The plan chart is lazily initialized as a deep copy of the status chart the first time plan mode is entered; later switches reuse whatever is already in the plan chart. Render is byte-identical to the single-chart render — the toggle only changes which chart is drawn.
+- Per-state public API: `getChartMode()` / `setChartMode(mode)` to read/switch the active chart, and `getStatusChart()` / `getPlanChart()` / `setPlanChart(payload)` to read or write either chart's payload independently of which one is currently active. The existing single-state export (`exportStatus`/`exportFhir`) and import stay status-primary — they always target `charts.status`, not the active chart.
+- The JSON export gains an additive `plan` section, emitted only when the plan chart has been initialized and differs from the status chart; payload version bumped to **2.11** (imports still accept legacy 1.4 through 2.10 and migrate automatically). A status-only case (the overwhelming majority) stays byte-identical apart from the version bump.
+- Note: a diff / "what changes" summary between status and plan, and plan-specific rendering (e.g. planned orthodontic movement), are not part of this release and follow in later releases.
+
 ## [1.30.0] - 2026-07-11
 ### Fixed
 - Peri-implant status (mucositis / peri-implantitis mild / moderate / severe) is now written to the exported chart. It was authored, rendered, summarized, and read back on import, but was omitted from `serializeState()`, so it was silently lost on JSON and FHIR export → import. It now round-trips like every other clinical axis (no payload-version change — additive and backward-compatible within 2.10).

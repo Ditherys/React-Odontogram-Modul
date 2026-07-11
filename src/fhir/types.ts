@@ -73,11 +73,17 @@ export interface ToothRecord {
   note?: string;
 }
 
-/** The serialized odontogram export payload (matches exportStatus()'s object). */
+/** The serialized odontogram export payload (matches exportStatus()'s object).
+ *  `plan` (R2-A Task 2, payload >=2.11) is additive: present only when the
+ *  PLAN chart has been initialized and differs from `teeth` (the STATUS
+ *  chart, always the primary/required field). FHIR export/import (toFhir.ts/
+ *  fromFhir.ts) reads only `teeth`/`globals` and ignores `plan` — the plan
+ *  layer round-trips through the JSON payload only, not FHIR. */
 export interface OdontogramExportPayload {
   version: string;
   globals?: Record<string, boolean>;
   teeth: Record<string, ToothRecord>;
+  plan?: Record<string, ToothRecord>;
 }
 
 /** Options for buildFhirBundle / exportFhir. */

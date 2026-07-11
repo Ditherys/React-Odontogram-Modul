@@ -166,6 +166,55 @@ select:focus{
   gap:8px;
 }
 
+/* R2-A Task 3: Status | Plan chart-mode toggle, in the chart card's own
+   header — deliberately separate from `.chart-actions` (tooth-type icons),
+   the app topbar, and the right Controls panel. */
+.chart-mode-toggle{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:4px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background: rgba(0,0,0,.03);
+}
+.chart-mode-btn{
+  border:none;
+  background:transparent;
+  color:var(--text);
+  padding:6px 14px;
+  border-radius:999px;
+  font-weight:600;
+  font-size:13px;
+  cursor:pointer;
+}
+.chart-mode-btn:hover{background: rgba(59,123,255,.14)}
+.chart-mode-btn.is-active{
+  background: var(--accent);
+  color:#fff;
+}
+.chart-mode-btn.is-active:hover{background: var(--accent)}
+/* Subtle-but-unmistakable chip; shown only while `.plan-mode` is active on
+   the chart card (see below) — toggled via the `.hidden` class. */
+.plan-badge{
+  display:inline-flex;
+  align-items:center;
+  padding:3px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.4px;
+  background: rgba(59,123,255,.16);
+  color: var(--accent);
+  border:1px solid rgba(59,123,255,.4);
+}
+/* Plan-mode visual cue on the chart card itself, so it's always obvious
+   which chart (status vs. plan) is being edited. */
+.chart.plan-mode{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(59,123,255,.18);
+}
+
 .tooth-grid{
   display:grid;
   grid-template-columns: repeat(16, minmax(36px, 1fr));
@@ -625,6 +674,26 @@ select:focus{
   background-repeat:no-repeat;
 }
 .dark .chart{background: rgba(30,41,59,.9)}
+.dark .chart-mode-toggle{
+  background: rgba(255,255,255,.06);
+  border-color: var(--line);
+}
+.dark .chart-mode-btn{color: var(--text)}
+.dark .chart-mode-btn:hover{background: rgba(96,165,250,.18)}
+.dark .chart-mode-btn.is-active{
+  background: rgba(96,165,250,.45);
+  color:#fff;
+}
+.dark .chart-mode-btn.is-active:hover{background: rgba(96,165,250,.45)}
+.dark .plan-badge{
+  background: rgba(96,165,250,.18);
+  color:#93c5fd;
+  border-color: rgba(96,165,250,.45);
+}
+.dark .chart.plan-mode{
+  border-color: rgba(96,165,250,.6);
+  box-shadow: 0 0 0 2px rgba(96,165,250,.28);
+}
 .dark .tooth-label-cell{color: rgba(241,245,249,.6)}
 .dark .tooth-label-cell:hover{color: rgba(241,245,249,1)}
 .dark .tooth-tile{background: rgba(30,41,59,.7)}

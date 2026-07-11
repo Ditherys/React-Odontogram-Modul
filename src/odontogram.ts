@@ -320,7 +320,103 @@ function svgGetById(root: Any, id: Any){
 }
 
 // ---- App state ----
-const toothState = new Map(); // toothNo -> state
+// R2-A Task 1: dual-state core. The chart now carries two PARALLEL per-case
+// states — "status" (findings as they are) and "plan" (proposed treatment) —
+// stored in `charts`. `toothState` is kept as a module-scoped, REASSIGNABLE
+// ALIAS to whichever chart is currently active, so every existing
+// `toothState.get/set/has/delete/clear/keys/values/entries`/`for...of
+// toothState` site (~78 of them) keeps compiling and operating on the active
+// chart unchanged — only the declaration (`const` -> `let`) and the addition
+// of `setChartMode()` reassigning it are new. Render/edit logic is untouched.
+// Map key is typed `Any` (not `number`) deliberately: the pre-existing
+// `const toothState = new Map()` had NO type parameters, so both key and
+// value inferred as `any` — several long-standing call sites pass an
+// untyped `Set`/array element (e.g. `selectedTeeth`, declared `Set()` with
+// no type param) as the key. Typing the key `number` here would newly
+// reject those ~78-unchanged call sites under `tsc -b --noEmit`, which is
+// exactly the compile-unchanged guarantee this task must preserve.
+const charts: Record<"status" | "plan", Map<Any, Any>> = {
+  status: new Map(),
+  plan: new Map(),
+};
+let toothState = charts.status; // active-chart ALIAS — reassigned by setChartMode()
+export type ChartMode = "status" | "plan";
+let chartMode: ChartMode = "status";
+// Plan chart is lazily deep-cloned from status the FIRST time plan mode is
+// entered; subsequent entries reuse whatever is already in charts.plan (so
+// plan edits are never silently overwritten by re-cloning from status).
+let planInitialized = false;
+
+/** Current active chart mode ("status" | "plan"). */
+export function getChartMode(): ChartMode { return chartMode; }
+
+/** Deep-copy every tooth from `src` into `dst` via the proven
+ *  serializeState/hydrateState round-trip, so the two charts never share
+ *  Sets/Maps/objects (mutating one tooth's state can never leak into the
+ *  other chart's copy). */
+function cloneChart(src: Map<Any, Any>, dst: Map<Any, Any>): void {
+  dst.clear();
+  for(const [n, s] of src) dst.set(n, hydrateState(serializeState(s)));
+}
+
+/** R2-A Task 3: sync the `Status | Plan` toggle in the chart-header with the
+ *  current `chartMode` — `.is-active` on whichever of #chartModeStatus /
+ *  #chartModePlan matches, `.plan-mode` on the chart card (`.chart`, the
+ *  visual border/tint cue), and the "TERV/PLAN" badge's `.hidden` class.
+ *  Every lookup is null-safe: `setChartMode()` (and therefore this function)
+ *  is exercised by module-state tests (e.g. r2a-dual-state.test.ts) with no
+ *  DOM mounted at all, so a missing toggle/card/badge must be a silent no-op,
+ *  not a throw. Not part of the public API. */
+function syncChartModeUi(): void {
+  const isPlan = chartMode === "plan";
+  const statusBtn = $("#chartModeStatus") as HTMLElement | null;
+  const planBtn = $("#chartModePlan") as HTMLElement | null;
+  const chartCard = $(".chart") as HTMLElement | null;
+  const badge = $("#chartModePlanBadge") as HTMLElement | null;
+  if(statusBtn){
+    statusBtn.classList.toggle("is-active", !isPlan);
+    statusBtn.setAttribute("aria-selected", String(!isPlan));
+  }
+  if(planBtn){
+    planBtn.classList.toggle("is-active", isPlan);
+    planBtn.setAttribute("aria-selected", String(isPlan));
+  }
+  if(chartCard) chartCard.classList.toggle("plan-mode", isPlan);
+  if(badge) badge.classList.toggle("hidden", !isPlan);
+}
+
+/**
+ * Switch the active chart between "status" (current findings) and "plan"
+ * (proposed treatment). The first time "plan" is entered, it is deep-cloned
+ * from "status" (see {@link cloneChart}); later switches reuse the existing
+ * plan chart untouched. Re-renders every tooth from the newly active chart
+ * via the SAME full-repaint mechanism `importStatus()` uses, so no new
+ * render path is introduced and SVG output stays byte-identical to the
+ * single-chart render (parity is unaffected — only WHICH chart is active
+ * changes, never how a chart renders).
+ *
+ * @param mode - "status" or "plan"; any other value is ignored.
+ */
+export function setChartMode(mode: ChartMode): void {
+  if(mode !== "status" && mode !== "plan") return;
+  if(mode === chartMode) return;
+  if(mode === "plan" && !planInitialized){
+    cloneChart(charts.status, charts.plan);
+    planInitialized = true;
+  }
+  chartMode = mode;
+  toothState = charts[mode];
+  // Full repaint-all, reused verbatim from importStatus()'s post-populate loop.
+  for(const toothNo of ALL_TEETH){
+    applyStateToSvg(toothNo);
+    updateToothTileNumber(toothNo);
+    updateToothLabelNoteIcon(toothNo);
+  }
+  if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
+  notifyStateChange();
+  syncChartModeUi();
+}
+
 const toothSvgRoot = new Map(); // toothNo -> [svg elements]
 const toothTile = new Map(); // toothNo -> [tile elements]
 // Original DOM position of each SVG's "inflammation" group, so it can be
@@ -2070,11 +2166,11 @@ export function __setToothStateForTest(toothNo: number, raw: Record<string, unkn
   toothState.set(toothNo, hydrateState(raw, isLegacyPayloadVersion(version)));
 }
 
-/** TEST-ONLY: read back a tooth's current state as a plain object (Sets/Maps
- *  converted to arrays/objects for easy assertions). Not part of the public API. */
-export function __getToothStateForTest(toothNo: number): Record<string, unknown> | undefined {
-  const s = toothState.get(toothNo);
-  if(!s) return undefined;
+/** TEST-ONLY: convert a hydrated state object to a plain object (Sets/Maps
+ *  converted to arrays/objects for easy assertions). Shared by
+ *  __getToothStateForTest and the R2-A __getStatusStateForTest/
+ *  __getPlanStateForTest seams below. Not part of the public API. */
+function __plainStateForTest(s: Any): Record<string, unknown> {
   return {
     ...s,
     caries: Array.from(s.caries ?? []),
@@ -2084,6 +2180,46 @@ export function __getToothStateForTest(toothNo: number): Record<string, unknown>
     fillingDefect: Object.fromEntries(s.fillingDefect ?? []),
     mods: Array.from(s.mods ?? []),
   };
+}
+
+/** TEST-ONLY: read back a tooth's current state as a plain object (Sets/Maps
+ *  converted to arrays/objects for easy assertions). Not part of the public API. */
+export function __getToothStateForTest(toothNo: number): Record<string, unknown> | undefined {
+  const s = toothState.get(toothNo);
+  if(!s) return undefined;
+  return __plainStateForTest(s);
+}
+
+/** TEST-ONLY (R2-A Task 1 seam, kept until T2's public getStatusChart()
+ *  supersedes it): read back a tooth's state from the STATUS chart
+ *  regardless of which chart is currently active. Not part of the public API. */
+export function __getStatusStateForTest(toothNo: number): Record<string, unknown> | undefined {
+  const s = charts.status.get(toothNo);
+  if(!s) return undefined;
+  return __plainStateForTest(s);
+}
+
+/** TEST-ONLY (R2-A Task 1 seam, kept until T2's public getPlanChart()
+ *  supersedes it): read back a tooth's state from the PLAN chart regardless
+ *  of which chart is currently active. Not part of the public API. */
+export function __getPlanStateForTest(toothNo: number): Record<string, unknown> | undefined {
+  const s = charts.plan.get(toothNo);
+  if(!s) return undefined;
+  return __plainStateForTest(s);
+}
+
+/** TEST-ONLY (R2-A Task 1 seam): fully reset the dual-chart container —
+ *  clears BOTH charts, drops `planInitialized`, and returns to "status"
+ *  mode — without requiring a live DOM/initToken the way destroyOdontogram()
+ *  does. Lets each test in a suite start from a clean slate instead of
+ *  leaking `planInitialized`/chart contents across tests in the same module
+ *  instance. Not part of the public API. */
+export function __resetChartStateForTest(): void {
+  charts.status.clear();
+  charts.plan.clear();
+  planInitialized = false;
+  chartMode = "status";
+  toothState = charts.status;
 }
 
 /** TEST-ONLY: set the module-level `showHealthyPulp` flag directly, without the
@@ -4566,29 +4702,108 @@ function hydrateState(raw: Any, inferLegacySecondaryCaries = true){
   return s;
 }
 
-function collectExportPayload(){
-  const teeth = {};
+/** R2-A Task 2: per-tooth serialize loop, parameterized over a chart map so
+ *  the same collection logic serves the STATUS export, the PLAN export
+ *  (getPlanChart()), and the plan-vs-status diff check in
+ *  collectExportPayload() below — instead of three copies of the loop. */
+function collectTeeth(chart: Map<Any, Any>){
+  const teeth: Record<string, Any> = {};
   for(const toothNo of ALL_TEETH){
-    const s = toothState.get(toothNo) ?? defaultState();
+    const s = chart.get(toothNo) ?? defaultState();
     teeth[toothNo] = serializeState(s);
   }
+  return teeth;
+}
+
+/** Current global settings, shared verbatim by every payload shape below
+ *  (status export, plan export) — these are session/app-level, not owned by
+ *  either chart. */
+function collectGlobals(){
   return {
-    version: "2.10",
-    globals: {
-      wisdomVisible,
-      showBase,
-      occlusalVisible,
-      showHealthyPulp,
-      edentulous,
-    },
-    teeth,
+    wisdomVisible,
+    showBase,
+    occlusalVisible,
+    showHealthyPulp,
+    edentulous,
   };
 }
 
-/** TEST-ONLY: collect the full export payload ({version, globals, teeth}) exactly
- *  as exportStatus()/exportFhir() would serialize it. Not part of the public API. */
+/**
+ * R2-A Task 2 (D3, RATIFIED): export/import stay STATUS-PRIMARY — `teeth`
+ * is always built from `charts.status` explicitly (NOT the active-chart
+ * alias `toothState`), so exporting while in PLAN mode still yields the
+ * STATUS as the primary payload. The `plan` section is a NEW, additive,
+ * separately-addressable layer: it is only appended when the plan chart has
+ * actually been initialized AND differs from status, so a status-only case
+ * (the overwhelming majority, including every existing caller/golden) stays
+ * byte-identical apart from the version bump.
+ */
+function collectExportPayload(){
+  const statusTeeth = collectTeeth(charts.status);
+  const planTeeth = planInitialized ? collectTeeth(charts.plan) : null;
+  const planDiffers = planTeeth !== null && JSON.stringify(planTeeth) !== JSON.stringify(statusTeeth);
+  return {
+    version: "2.11",
+    globals: collectGlobals(),
+    teeth: statusTeeth,
+    ...(planDiffers ? { plan: planTeeth } : {}),
+  };
+}
+
+/** TEST-ONLY: collect the full export payload ({version, globals, teeth[,
+ *  plan]}) exactly as exportStatus()/exportFhir() would serialize it.
+ *  Not part of the public API. */
 export function __collectExportPayloadForTest(): Any {
   return collectExportPayload();
+}
+
+/**
+ * Export the STATUS chart's payload — identical to exportStatus()'s JSON
+ * (status-primary; unaffected by the current chart mode).
+ */
+export function getStatusChart(): Any {
+  return collectExportPayload();
+}
+
+/**
+ * Export the PLAN chart's payload alone: same shape as the status export
+ * (`{version, globals, teeth}`), but `teeth` is collected from `charts.plan`.
+ * `globals` are shared app-level settings, not owned by either chart.
+ */
+export function getPlanChart(): Any {
+  return {
+    version: "2.11",
+    globals: collectGlobals(),
+    teeth: collectTeeth(charts.plan),
+  };
+}
+
+/**
+ * Hydrate `payload.teeth` into the PLAN chart ONLY (status is left
+ * untouched), mirroring the per-tooth hydrate importStatus() performs for
+ * the status chart. Marks the plan chart initialized. Repaints the DOM only
+ * when PLAN is the currently active chart mode — hydrating a chart that
+ * isn't on screen must not visibly disturb whatever IS on screen (mirrors
+ * setChartMode()'s own full-repaint-on-activation behavior).
+ */
+export function setPlanChart(payload: Any): void {
+  if(!payload || typeof payload !== "object") return;
+  const inferLegacySecondaryCaries = isLegacyPayloadVersion(payload.version);
+  const teeth = payload.teeth || {};
+  for(const toothNo of ALL_TEETH){
+    const raw = teeth[toothNo];
+    charts.plan.set(toothNo, hydrateState(raw, inferLegacySecondaryCaries));
+  }
+  planInitialized = true;
+  if(getChartMode() === "plan"){
+    for(const toothNo of ALL_TEETH){
+      applyStateToSvg(toothNo);
+      updateToothTileNumber(toothNo);
+      updateToothLabelNoteIcon(toothNo);
+    }
+    if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
+    notifyStateChange();
+  }
 }
 
 function downloadJson(payload: Any, filenamePrefix: string){
@@ -4859,8 +5074,25 @@ export function exportFhir(options?: FhirExportOptions){
   downloadJson(bundle, "odontogram-fhir");
 }
 
-function importStatus(data: Any){
-  if(!data || typeof data !== "object") return;
+/**
+ * R2-A Task 2 (D3, RATIFIED): the DATA-ONLY half of the import path — no
+ * DOM/UI calls, so it is directly unit-testable without a live
+ * initOdontogram() mount (mirrors why other module-state tests use
+ * `__setToothStateForTest` instead of calling importStatus() itself: several
+ * of importStatus()'s UI-sync tail calls, e.g. syncControlsFromState() via
+ * updateSelectionUI(), assume a live control-panel DOM and are not part of
+ * this task's scope to change).
+ *
+ * Hydrates `data.teeth` into `charts.status` EXPLICITLY (never the
+ * active-chart alias), so importing a payload while in PLAN mode still loads
+ * the STATUS chart correctly. A `plan` section (payload >=2.11) restores the
+ * PLAN chart too. Its absence (e.g. a legacy <=2.10 payload, or a native
+ * 2.11+ export where plan matched status and was omitted) leaves the plan
+ * chart cleared/uninitialized, so the next setChartMode("plan") deep-copies
+ * the freshly-imported status — it must never resurrect a stale plan left
+ * over from before this import.
+ */
+function hydrateImportedCharts(data: Any): void {
   // FIX 1: only re-infer the legacy caries∩filling recurrent-caries intersection
   // for pre-2.3 payloads. A native ≥2.3 payload (including any FHIR bundle, which
   // parseFhirBundle tags "2.3") carries explicit `secondaryCaries` scores, so an
@@ -4869,7 +5101,53 @@ function importStatus(data: Any){
   const teeth = data.teeth || {};
   for(const toothNo of ALL_TEETH){
     const raw = teeth[toothNo];
-    toothState.set(toothNo, hydrateState(raw, inferLegacySecondaryCaries));
+    charts.status.set(toothNo, hydrateState(raw, inferLegacySecondaryCaries));
+  }
+  if(data.plan && typeof data.plan === "object"){
+    for(const toothNo of ALL_TEETH){
+      const raw = data.plan[toothNo];
+      charts.plan.set(toothNo, hydrateState(raw, inferLegacySecondaryCaries));
+    }
+    planInitialized = true;
+  }else{
+    charts.plan.clear();
+    planInitialized = false;
+  }
+}
+
+/**
+ * R2-A whole-branch review fix: force the active chart back to STATUS
+ * immediately after an import hydrates `charts`. An import is status-primary
+ * and replaces the whole case, so it must always land the user on the
+ * STATUS chart — even if Plan mode was active before the import. Without
+ * this, importing a payload while in Plan mode left `chartMode` on "plan"
+ * and `toothState` aliased to `charts.plan`; the post-hydrate repaint would
+ * then draw from the (possibly just-cleared, by `hydrateImportedCharts`)
+ * plan chart instead of the freshly-imported status data, stranding the
+ * user on an empty/stale plan view with the toggle still reading "Plan".
+ * Forcing status here makes every import land predictably; the user can
+ * switch to Plan afterwards to see the imported plan section, if one was
+ * present.
+ *
+ * Extracted into its own function (rather than inlined in `importStatus()`)
+ * so the test seam below can exercise EXACTLY this state-only logic without
+ * requiring `importStatus()`'s DOM-dependent UI-sync tail (e.g.
+ * `updateSelectionUI()` -> `syncControlsFromState()`, which assumes a live
+ * control-panel DOM — same reason `hydrateImportedCharts()` itself is a
+ * separate, directly-testable function; see its docstring above).
+ */
+function resetActiveChartToStatusAfterImport(): void {
+  chartMode = "status";
+  toothState = charts.status;
+}
+
+function importStatus(data: Any){
+  if(!data || typeof data !== "object") return;
+  hydrateImportedCharts(data);
+  resetActiveChartToStatusAfterImport();
+  // Full repaint-all — now guaranteed to draw the just-imported STATUS chart
+  // regardless of which chart was active before the import.
+  for(const toothNo of ALL_TEETH){
     applyStateToSvg(toothNo);
     updateToothTileNumber(toothNo);
     updateToothLabelNoteIcon(toothNo);
@@ -4887,6 +5165,29 @@ function importStatus(data: Any){
   updateSelectionFilterButtons();
   updateSelectionUI();
   notifyStateChange();
+  syncChartModeUi();
+}
+
+/** TEST-ONLY (R2-A Task 2 seam): exercise the DATA-ONLY import hydrate
+ *  (status-primary teeth + conditional plan restore + planInitialized),
+ *  without requiring a live DOM/initOdontogram() token. Not part of the
+ *  public API. */
+export function __hydrateImportedChartsForTest(data: Any): void {
+  hydrateImportedCharts(data);
+}
+
+/** TEST-ONLY (whole-branch review fix seam): exercise the DATA-ONLY half of
+ *  the import path's chart-mode fix — `hydrateImportedCharts()` followed by
+ *  the new `resetActiveChartToStatusAfterImport()` step `importStatus()`
+ *  now runs — without requiring a live DOM/initOdontogram() token.
+ *  `importStatus()`'s own DOM-dependent UI-sync tail (`updateSelectionUI()`
+ *  -> `syncControlsFromState()`) assumes a live control-panel DOM and is out
+ *  of scope for this seam, same as `__hydrateImportedChartsForTest`. Not
+ *  part of the public API. */
+export function __importStatusForTest(data: Any): void {
+  if(!data || typeof data !== "object") return;
+  hydrateImportedCharts(data);
+  resetActiveChartToStatusAfterImport();
 }
 
 /** Import a FHIR R4 Bundle (object or JSON string) produced by this module. */
@@ -5779,6 +6080,11 @@ function wireControls(){
     updateSelectionUI();
   });
 
+  // R2-A Task 3: Status | Plan chart-mode toggle (chart-header, separate from
+  // both the topbar and the right Controls panel).
+  $("#chartModeStatus").addEventListener("click", ()=>setChartMode("status"));
+  $("#chartModePlan").addEventListener("click", ()=>setChartMode("plan"));
+
   // The global visibility toggles (edentulous / wisdom / occlusal / bone / pulp)
   // are handled by the delegated onGlobalToggleClick listener registered above.
 
@@ -5891,6 +6197,9 @@ export async function initOdontogram(){
   }
   setupBridgeOverlayResize();
   notifyStateChange();
+  // R2-A Task 3: reflect the initial chart mode ("status") in the toggle UI
+  // on first mount, same as any other setChartMode()-driven sync.
+  syncChartModeUi();
 }
 
 /**
@@ -5941,7 +6250,15 @@ export function destroyOdontogram(){
   if(fillings) fillings.innerHTML = "";
   const statusExtra = $("#statusExtraSelect") as HTMLSelectElement | null;
   if(statusExtra) statusExtra.innerHTML = "";
-  toothState.clear();
+  // R2-A Task 1: a full teardown resets the whole case — BOTH charts, not
+  // just the active one — and drops back to "status" mode so a subsequent
+  // initOdontogram() starts clean (mirrors the pre-dual-state behavior of a
+  // single cleared toothState).
+  charts.status.clear();
+  charts.plan.clear();
+  planInitialized = false;
+  chartMode = "status";
+  toothState = charts.status;
   toothSvgRoot.clear();
   toothTile.clear();
   toothLabelUpper.clear();
