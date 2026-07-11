@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.43.0] - 2026-07-31
+### Added
+- **Mombelli modified Plaque Index (mPI)** and **Mombelli modified Sulcus Bleeding Index (mBI)** — implant-only, per-surface graded findings (0-3, mesial/distal/buccal/lingual), each surfaced as a Dental Chart row with an info popup, in the tooth tooltip, and in the whole-mouth summary. Both are gated to implant teeth end-to-end — the setter no-ops on a non-implant tooth, and the Dental Chart cell is active only on an implant. Exported to FHIR as additional per-surface graded components on the per-tooth periodontal Observation (engine-local codes; no dedicated LOINC yet).
+- Consolidated the Dental Chart's overlay whole-mouth read-out (`#perioOverlayReadout`) to also cover `pi`/`gi`/`kg` (previously only `bop`/`plaque` had one), closing a gap left over from the earlier graded-indices release.
+- Neither axis has an `svgLayer` → the odontogram render is unchanged, SVG-fingerprint parity byte-identical. Payload version **2.16** (additive).
+
 ## [1.42.0] - 2026-07-31
 ### Added
 - **Silness-Löe Plaque Index (PI)** and **Löe-Silness Gingival Index (GI)** — per-surface graded findings (0-3, mesial/distal/buccal/lingual), each surfaced as a heat-bucketed Dental Chart row, in the tooth tooltip, and in the whole-mouth summary. Exported to FHIR as additional per-surface graded components.

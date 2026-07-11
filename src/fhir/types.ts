@@ -144,6 +144,17 @@ export interface ToothRecord {
   // LOINC, engine-local finding code only. FHIR IMPORT does not read it back
   // yet, same as perio/furcation/plaque/pi/gi.
   kg?: number;
+  // SP-perio PG-E Task 1: peri-implant Mombelli indices — modified plaque
+  // index (`mpi`) and modified sulcus bleeding index (`mbi`) — per-surface
+  // GRADED (1-3; payload >=2.16, additive). Same shape/semantics as `pi`/`gi`
+  // above (SAME 4 fixed surfaces, absence = grade 0/healthy, no dedicated
+  // LOINC — engine-local components on the SAME periodontal-panel
+  // Observation, see toFhirPerio.ts), but IMPLANT-ONLY: the setter is a
+  // no-op on any tooth that isn't `toothSelection === "implant"` (enforced
+  // at the odontogram.ts API layer, not by this type or FHIR export/import).
+  // FHIR IMPORT does not read it back yet, same as pi/gi/perio/furcation/plaque.
+  mpi?: Record<string, number>;
+  mbi?: Record<string, number>;
   customStates?: Record<string, unknown>;
   note?: string;
 }

@@ -41,6 +41,10 @@ import {
   setGingivalThickness,
   getMillerClass,
   setMillerClass,
+  getPeriImplantPlaque,
+  setPeriImplantPlaque,
+  getPeriImplantBleeding,
+  setPeriImplantBleeding,
   type PerioCellCoord,
   type PerioOverlayLayer,
 } from "./odontogram";
@@ -161,6 +165,10 @@ const EMPTY_SUMMARY: PerioSummaryData = {
   kgDeficientTeeth: 0,
   gtDistribution: { thin: 0, medium: 0, thick: 0 },
   millerDistribution: { i: 0, ii: 0, iii: 0, iv: 0 },
+  // Whole-mouth peri-implant means (over implant teeth) — computed by
+  // getPerioSummary(); null when nothing is charted (empty-chart default here).
+  mpiScore: null,
+  mbiScore: null,
 };
 
 type ToothCellRefs = {
@@ -188,6 +196,11 @@ type ToothCellRefs = {
   kg: HTMLInputElement | null;
   gingivalThickness: HTMLButtonElement | null;
   millerClass: HTMLButtonElement | null;
+  // SP-perio PG-E Task 2: mPI/mBI per-surface (0-3) cycle buttons — mirror
+  // `pi`/`gi` above exactly, but IMPLANT-GATED (see syncToothCells): active
+  // only on an implant tooth, inert everywhere else.
+  mpi: Partial<Record<string, HTMLButtonElement>>;
+  mbi: Partial<Record<string, HTMLButtonElement>>;
 };
 
 type GridHandlers = {
@@ -204,6 +217,8 @@ type GridHandlers = {
   onKg: (toothNo: number, raw: string) => void;
   onGingivalThickness: (toothNo: number) => void;
   onMillerClass: (toothNo: number) => void;
+  onMpiSurface: (toothNo: number, surface: string) => void;
+  onMbiSurface: (toothNo: number, surface: string) => void;
 };
 
 // T3 curve overlay: gather the ordered per-site {pd,gm} readings for one row
@@ -281,8 +296,11 @@ function drawArchCurves(cache: TemplateDocCache, container: HTMLElement | null, 
 // axes) and "pi"/"gi" (Silness-Löe/Löe-Silness graded indices, grouped next
 // to "plaque" — all plaque/gingival-inflammation axes). GT/Miller are
 // categorical, rows-only axes with NO overlay (see the Dental Chart rows).
+// PG-E Task 2 adds "mpi"/"mbi" (Mombelli modified Plaque/Bleeding indices),
+// grouped next to "pi"/"gi" — same graded shape, but IMPLANT-ONLY data, so
+// marks only ever land on implant teeth.
 const SWITCHER_LAYERS: readonly PerioOverlayLayer[] = [
-  "none", "pd", "cal", "gr", "cairo", "kg", "bop", "plaque", "pi", "gi", "pd5", "pd6",
+  "none", "pd", "cal", "gr", "cairo", "kg", "bop", "plaque", "pi", "gi", "mpi", "mbi", "pd5", "pd6",
 ];
 
 // PG-B Task 2 overlay: gather one row's ordered per-site {x, pd, gm, bop}
@@ -417,8 +435,16 @@ export function drawArchOverlay(
   // PG-D Task 4: the PI/GI graded-index overlays — per-surface 0-3 grades
   // (getPlaqueIndex/getGingivalIndex) over the SAME 4 O'Leary surfaces the
   // "plaque" overlay reads, split across both rows exactly like it.
-  if (layer === "pi" || layer === "gi") {
-    const getGrade = layer === "pi" ? getPlaqueIndex : getGingivalIndex;
+  // PG-E Task 2 adds "mpi"/"mbi" (Mombelli modified Plaque/Bleeding indices,
+  // getPeriImplantPlaque/getPeriImplantBleeding) to the SAME shape — implant-
+  // only data, so a non-implant tooth simply reads grade 0 everywhere and
+  // draws no mark, with no extra gating needed here.
+  if (layer === "pi" || layer === "gi" || layer === "mpi" || layer === "mbi") {
+    const getGrade =
+      layer === "pi" ? getPlaqueIndex :
+      layer === "gi" ? getGingivalIndex :
+      layer === "mpi" ? getPeriImplantPlaque :
+      getPeriImplantBleeding;
     const gradeTeeth: PerioGradeTooth[] = layout.teeth.map((tooth) => ({
       x: tooth.x,
       width: tooth.width,
@@ -686,6 +712,33 @@ function syncToothCells(
     btn.setAttribute("aria-pressed", grade > 0 ? "true" : "false");
     btn.disabled = readOnly || hidden;
   }
+  // SP-perio PG-E Task 2: mPI/mBI per-surface grade buttons — mirror PI/GI's
+  // value sync exactly, but IMPLANT-GATED: active only on an implant tooth
+  // (`isToothImplant`, status/plan aware — mirrors `setSurfaceGrade`'s own
+  // implant guard in odontogram.ts). Deliberately NOT gated on `hidden`
+  // (`isPerioRowHidden`) like every other row above — that predicate hides
+  // implant teeth precisely because they have no periodontal PROBING site,
+  // the opposite of what these peri-implant indices need; it still respects
+  // the global readOnly lock.
+  const implant = isToothImplant(toothNo);
+  for (const surface of Object.keys(cells.mpi)) {
+    const btn = cells.mpi[surface];
+    if (!btn) continue;
+    const grade = getPeriImplantPlaque(toothNo, surface);
+    btn.textContent = GRADE_FACE[grade] ?? "–";
+    btn.dataset.grade = String(grade);
+    btn.setAttribute("aria-pressed", grade > 0 ? "true" : "false");
+    btn.disabled = readOnly || !implant;
+  }
+  for (const surface of Object.keys(cells.mbi)) {
+    const btn = cells.mbi[surface];
+    if (!btn) continue;
+    const grade = getPeriImplantBleeding(toothNo, surface);
+    btn.textContent = GRADE_FACE[grade] ?? "–";
+    btn.dataset.grade = String(grade);
+    btn.setAttribute("aria-pressed", grade > 0 ? "true" : "false");
+    btn.disabled = readOnly || !implant;
+  }
   // SP-perio PG-D Task 4: KG — a single per-tooth mm number input (mirrors
   // the pd/gm inputs' omit-when-empty value sync).
   if (cells.kg) {
@@ -895,18 +948,32 @@ function buildRootConcavityCell(
  *  grade via `setPlaqueIndex`/`setGingivalIndex` on click. Built for EVERY
  *  tooth (the 4 surfaces are the same fixed set regardless of position) and
  *  disabled on a hidden-row tooth via `syncToothCells`, mirroring the plaque
- *  toggles. */
+ *  toggles.
+ *  SP-perio PG-E Task 2 reuses this exact builder for "mpi"/"mbi" (Mombelli
+ *  modified Plaque/Bleeding indices, `setPeriImplantPlaque`/
+ *  `setPeriImplantBleeding`) — same 4-surface shape, but built for EVERY
+ *  tooth and gated ACTIVE-only-on-an-implant in `syncToothCells` (opposite of
+ *  the hidden-row gate PI/GI/plaque use, since implants are exactly the
+ *  teeth those axes disable). */
 function buildGradeCell(
   toothNo: number,
-  mapKey: "pi" | "gi",
+  mapKey: "pi" | "gi" | "mpi" | "mbi",
   cells: ToothCellRefs,
   handlers: GridHandlers,
 ): HTMLDivElement {
   const cell = mkEl("div", `perio-fullgrid-cell perio-fullgrid-cell-${mapKey}`);
   cell.dataset.perioField = mapKey;
   const group = mkEl("div", "perio-fullgrid-plaque-quad");
-  const onSurface = mapKey === "pi" ? handlers.onPiSurface : handlers.onGiSurface;
-  const registry = mapKey === "pi" ? cells.pi : cells.gi;
+  const onSurface =
+    mapKey === "pi" ? handlers.onPiSurface :
+    mapKey === "gi" ? handlers.onGiSurface :
+    mapKey === "mpi" ? handlers.onMpiSurface :
+    handlers.onMbiSurface;
+  const registry =
+    mapKey === "pi" ? cells.pi :
+    mapKey === "gi" ? cells.gi :
+    mapKey === "mpi" ? cells.mpi :
+    cells.mbi;
   for (const surface of PLAQUE_SURFACES) {
     const btn = mkEl("button", `perio-fullgrid-${mapKey} perio-fullgrid-${mapKey}-${surface}`);
     btn.type = "button";
@@ -1014,6 +1081,7 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
       pd: {}, gm: {}, bop: {}, cal: {}, mobility: null, furcation: {}, plaque: {},
       cejVisibility: null, rootConcavity: null,
       pi: {}, gi: {}, kg: null, gingivalThickness: null, millerClass: null,
+      mpi: {}, mbi: {},
     });
   }
 
@@ -1122,6 +1190,20 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   arch.appendChild(mkRowLabelCell(t("perio.gi.row"), "perio.info.gi"));
   for (const toothNo of teeth) {
     arch.appendChild(buildGradeCell(toothNo, "gi", registry.get(toothNo)!, handlers));
+  }
+
+  // --- mPI row (Mombelli modified Plaque Index, implant-only, per-surface
+  //     graded 0-3 — SP-perio PG-E Task 2). Built for EVERY tooth like PI/GI,
+  //     but the cells are only ACTIVE on an implant tooth (see syncToothCells). ---
+  arch.appendChild(mkRowLabelCell(t("perio.mpi.row"), "perio.info.mpi"));
+  for (const toothNo of teeth) {
+    arch.appendChild(buildGradeCell(toothNo, "mpi", registry.get(toothNo)!, handlers));
+  }
+
+  // --- mBI row (Mombelli modified sulcus Bleeding Index, implant-only). ---
+  arch.appendChild(mkRowLabelCell(t("perio.mbi.row"), "perio.info.mbi"));
+  for (const toothNo of teeth) {
+    arch.appendChild(buildGradeCell(toothNo, "mbi", registry.get(toothNo)!, handlers));
   }
 
   // --- KG row (keratinized gingiva width, single per-tooth mm cell). ---
@@ -1569,6 +1651,26 @@ export default function PerioChart({
         suppressResyncRef.current = false;
         syncOneTooth(toothNo);
       },
+      // SP-perio PG-E Task 2: cycle one surface's mPI/mBI grade 0->1->2->3->0,
+      // mirroring onPiSurface/onGiSurface exactly. On a non-implant tooth the
+      // cell is disabled (see syncToothCells) so this never fires from the UI;
+      // setPeriImplantPlaque/setPeriImplantBleeding are ALSO implant-gated at
+      // the data layer (no-op on a non-implant tooth), so this stays a no-op
+      // even if invoked directly.
+      onMpiSurface: (toothNo, surface) => {
+        const next = ((getPeriImplantPlaque(toothNo, surface) + 1) % 4) as 0 | 1 | 2 | 3;
+        suppressResyncRef.current = true;
+        setPeriImplantPlaque(toothNo, surface, next);
+        suppressResyncRef.current = false;
+        syncOneTooth(toothNo);
+      },
+      onMbiSurface: (toothNo, surface) => {
+        const next = ((getPeriImplantBleeding(toothNo, surface) + 1) % 4) as 0 | 1 | 2 | 3;
+        suppressResyncRef.current = true;
+        setPeriImplantBleeding(toothNo, surface, next);
+        suppressResyncRef.current = false;
+        syncOneTooth(toothNo);
+      },
       // SP-perio PG-D Task 4: KG mm — trimmed-empty clears (mirrors onPd's
       // empty-un-charts semantics), otherwise the raw string is parsed and
       // clamped by setKeratinizedWidth itself.
@@ -1787,11 +1889,26 @@ export default function PerioChart({
   // the active layer is a rate index, the matching whole-mouth read-out (%BOP
   // for BOP, PI% for plaque). Rendered in the Dental Chart header (inline
   // chrome) and the overlay header (popup chrome).
+  // PG-E Task 2 CONSOLIDATION: every graded overlay (pi/gi/kg/mpi/mbi) now
+  // also gets a whole-mouth read-out, sourced from `summary` (closes the
+  // PG-D-era gap where only bop/plaque had one) — labelled via
+  // `t("perio.overlay.<layer>")`, showing "—" when the score is null
+  // (e.g. a graded index with nothing charted yet).
   const overlayReadout =
     overlayLayer === "bop"
       ? `${t("perio.bopPercent")} ${summary.bopPercent}%`
       : overlayLayer === "plaque"
       ? `${t("plaque.percent")} ${summary.plaquePercent}%`
+      : overlayLayer === "pi"
+      ? `${t("perio.overlay.pi")} ${summary.piScore ?? "—"}`
+      : overlayLayer === "gi"
+      ? `${t("perio.overlay.gi")} ${summary.giScore ?? "—"}`
+      : overlayLayer === "kg"
+      ? `${t("perio.overlay.kg")} ${summary.kgDeficientTeeth}`
+      : overlayLayer === "mpi"
+      ? `${t("perio.overlay.mpi")} ${summary.mpiScore ?? "—"}`
+      : overlayLayer === "mbi"
+      ? `${t("perio.overlay.mbi")} ${summary.mbiScore ?? "—"}`
       : null;
   const overlaySwitch = (
     <div id="perioOverlaySwitch" className="perio-overlay-switch" role="radiogroup" aria-label={t("perio.overlay.label")}>

@@ -140,6 +140,14 @@ vi.mock("../odontogram", async () => {
     setGingivalThickness: actual.setGingivalThickness,
     getMillerClass: actual.getMillerClass,
     setMillerClass: actual.setMillerClass,
+    // SP-perio PG-E Task 2: mPI/mBI rows <PerioChart/>'s grid now needs at
+    // mount/render (buildGradeCell("mpi"/"mbi")), plus the implant-gate read
+    // syncToothCells now performs on EVERY tooth (isToothImplant).
+    isToothImplant: actual.isToothImplant,
+    getPeriImplantPlaque: actual.getPeriImplantPlaque,
+    setPeriImplantPlaque: actual.setPeriImplantPlaque,
+    getPeriImplantBleeding: actual.getPeriImplantBleeding,
+    setPeriImplantBleeding: actual.setPeriImplantBleeding,
   };
 });
 

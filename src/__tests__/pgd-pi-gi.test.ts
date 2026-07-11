@@ -42,10 +42,10 @@ describe("PI/GI per-surface graded axes", () => {
     setGingivalIndex(21, "mesial", 1);
     expect(getGingivalIndex(21, "mesial")).toBe(1);
   });
-  it("serializes omit-when-empty and roundtrips at version 2.15", () => {
+  it("serializes omit-when-empty and roundtrips at version 2.16", () => {
     __setToothStateForTest(11, {});
     const empty = __collectExportPayloadForTest();
-    expect(empty.version).toBe("2.15");
+    expect(empty.version).toBe("2.16");
     expect(Object.prototype.hasOwnProperty.call(empty.teeth["11"], "pi")).toBe(false);
     setPlaqueIndex(11, "buccal", 2);
     setGingivalIndex(11, "buccal", 1);
@@ -58,7 +58,7 @@ describe("PI/GI per-surface graded axes", () => {
     expect(getGingivalIndex(11, "buccal")).toBe(1);
   });
   it("hydrate drops invalid surface/grade", () => {
-    __hydrateImportedChartsForTest({ version: "2.15", teeth: { "11": { pi: { buccal: 2, bogus: 3, mesial: 9 } } } });
+    __hydrateImportedChartsForTest({ version: "2.16", teeth: { "11": { pi: { buccal: 2, bogus: 3, mesial: 9 } } } });
     expect(getPlaqueIndex(11, "buccal")).toBe(2);
     expect(getPlaqueIndex(11, "mesial")).toBe(0);
   });

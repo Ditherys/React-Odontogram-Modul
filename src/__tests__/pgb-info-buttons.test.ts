@@ -40,10 +40,11 @@ afterEach(() => {
 // One arch's labelled rows: plaque(1) + bop(buccal+palatal) + cal(buccal+
 // palatal) + gm(buccal+palatal) + pd(buccal+palatal) + furcation(1) +
 // mobility(1) + cejVisibility(1) + rootConcavity(1) [SP-perio PG-C Task 3] +
-// pi(1) + gi(1) + kg(1) + gt(1) + miller(1) [SP-perio PG-D Task 4] = 18. Two
-// arches (upper+lower) => 36 total. The tooth-number header row and the
-// tooth-graphic placeholder row have NO label/infoKey and so get no button.
-const BUTTONS_PER_ARCH = 18;
+// pi(1) + gi(1) + kg(1) + gt(1) + miller(1) [SP-perio PG-D Task 4] +
+// mpi(1) + mbi(1) [SP-perio PG-E Task 2] = 20. Two arches (upper+lower) =>
+// 40 total. The tooth-number header row and the tooth-graphic placeholder
+// row have NO label/infoKey and so get no button.
+const BUTTONS_PER_ARCH = 20;
 
 describe("PG-B Task 1: .perio-info-btn on every labelled row", () => {
   it("every labelled row-label cell has exactly one .perio-info-btn", () => {
@@ -164,6 +165,28 @@ describe("SP-perio PG-D Task 4: the five new info buttons resolve their keys", (
     { rowKey: "perio.kg.row", infoKey: "perio.info.kg" },
     { rowKey: "perio.gt.row", infoKey: "perio.info.gt" },
     { rowKey: "perio.miller.row", infoKey: "perio.info.miller" },
+  ];
+
+  for (const { rowKey, infoKey } of cases) {
+    it(`${rowKey}'s info button opens a popover with t("${infoKey}")`, () => {
+      openInline();
+      const rowLabels = Array.from(document.querySelectorAll(".perio-fullgrid-row-label"));
+      const target = rowLabels.find((el) => el.textContent?.includes(t(rowKey)));
+      const btn = target!.querySelector(".perio-info-btn") as HTMLButtonElement;
+      expect(btn).toBeTruthy();
+      fireEvent.click(btn);
+      const popover = document.querySelector(".perio-info-popover");
+      expect(popover).toBeTruthy();
+      expect(popover!.textContent).toBe(t(infoKey));
+      expect(t(infoKey).trim().length).toBeGreaterThan(0);
+    });
+  }
+});
+
+describe("SP-perio PG-E Task 2: the two new mPI/mBI info buttons resolve their keys", () => {
+  const cases: Array<{ rowKey: string; infoKey: string }> = [
+    { rowKey: "perio.mpi.row", infoKey: "perio.info.mpi" },
+    { rowKey: "perio.mbi.row", infoKey: "perio.info.mbi" },
   ];
 
   for (const { rowKey, infoKey } of cases) {

@@ -311,6 +311,8 @@ function defaultState(){
     // convention `perio`/`furcation`/`plaque` all use.
     pi: new Map(), // surface -> Silness-Löe plaque grade 1-3 (absent = 0)
     gi: new Map(), // surface -> Löe-Silness gingival grade 1-3 (absent = 0)
+    mpi: new Map(), // implant-only: Mombelli modified plaque index, surface -> grade 1-3 (absent = 0)
+    mbi: new Map(), // implant-only: Mombelli modified sulcus bleeding index, surface -> grade 1-3
     // SP-perio PG-D Task 2: keratinized gingiva width — a single per-tooth
     // BUCCAL mm scalar (integer, clamped 0-15), deliberately NOT per-site/
     // per-surface unlike pi/gi/perio above. `null` = not charted (never a
@@ -1413,6 +1415,17 @@ function plaqueIndexSummaryLine(toothNo: number): string | null {
 }
 function gingivalIndexSummaryLine(toothNo: number): string | null {
   return graduatedSurfaceSummaryLine(toothNo, getGingivalIndex, "perio.gi.row");
+}
+// SP-perio PG-E Task 3: mPI/mBI (Mombelli peri-implant indices) — same
+// per-surface graded summary-line shape as PI/GI above, reusing
+// graduatedSurfaceSummaryLine. Implant-gated at the setter (a non-implant
+// tooth's mpi/mbi maps are always empty), so no extra guard is needed here:
+// graduatedSurfaceSummaryLine already returns null when nothing is charted.
+function periImplantPlaqueSummaryLine(toothNo: number): string | null {
+  return graduatedSurfaceSummaryLine(toothNo, getPeriImplantPlaque, "perio.mpi.row");
+}
+function periImplantBleedingSummaryLine(toothNo: number): string | null {
+  return graduatedSurfaceSummaryLine(toothNo, getPeriImplantBleeding, "perio.mbi.row");
 }
 /** KG: `null` when not charted (mirrors {@link getKeratinizedWidth}'s own
  *  "absence = not charted" semantics — never distinct from a stored 0mm). */
@@ -2855,6 +2868,10 @@ function getStateSummary(toothNo: number): string[]{
   { const kg = keratinizedWidthSummaryLine(toothNo); if(kg) summary.push(kg); }
   { const gt = gingivalThicknessSummaryLabel(toothNo); if(gt) summary.push(gt); }
   { const mc = millerClassSummaryLabel(toothNo); if(mc) summary.push(mc); }
+  // SP-perio PG-E Task 3: mPI/mBI (Mombelli peri-implant indices) — same
+  // periodontal-presence grouping as PI/GI/KG/GT/Miller above.
+  { const mpi = periImplantPlaqueSummaryLine(toothNo); if(mpi) summary.push(mpi); }
+  { const mbi = periImplantBleedingSummaryLine(toothNo); if(mbi) summary.push(mbi); }
   // SP17 Task 1 Fix #2 (gate-parity follow-up): gate on the SAME FULL predicate
   // the #crownLeakageRow control uses (crownLeakageAllowed, ~line 2974) —
   // !restorationRowHidden(state) AND crown/bridge. Checking crown/bridge alone
@@ -4993,6 +5010,8 @@ function serializeState(s: Any){
     // the version bump (payload 2.15).
     ...((s.pi?.size ?? 0) > 0 ? { pi: Object.fromEntries(s.pi) } : {}),
     ...((s.gi?.size ?? 0) > 0 ? { gi: Object.fromEntries(s.gi) } : {}),
+    ...((s.mpi?.size ?? 0) > 0 ? { mpi: Object.fromEntries(s.mpi) } : {}),
+    ...((s.mbi?.size ?? 0) > 0 ? { mbi: Object.fromEntries(s.mbi) } : {}),
     // SP-perio PG-D Task 2: keratinized gingiva width — omitted ENTIRELY when
     // not charted (null), same omit-when-empty convention as pi/gi above — a
     // tooth never touched by KG stays byte-identical (payload stays 2.15,
@@ -5609,6 +5628,21 @@ function hydrateState(raw: Any, inferLegacySecondaryCaries = true){
       if(VALID_PLAQUE_SURFACE.has(surface) && (g === 1 || g === 2 || g === 3)) s.gi.set(surface, g);
     }
   }
+  // SP-perio PG-E Task 1: restore the peri-implant mPI/mBI graded surface
+  // maps, same tolerant parsing as pi/gi above. Hydrate is a non-interactive
+  // path (not gated) — the implant-only restriction is enforced only by the
+  // SETTER, not by hydrate/import, matching every other axis's hydrate
+  // tolerance policy in this file.
+  if(raw.mpi && typeof raw.mpi === "object"){
+    for(const [surface, g] of Object.entries(raw.mpi)){
+      if(VALID_PLAQUE_SURFACE.has(surface) && (g === 1 || g === 2 || g === 3)) s.mpi.set(surface, g);
+    }
+  }
+  if(raw.mbi && typeof raw.mbi === "object"){
+    for(const [surface, g] of Object.entries(raw.mbi)){
+      if(VALID_PLAQUE_SURFACE.has(surface) && (g === 1 || g === 2 || g === 3)) s.mbi.set(surface, g);
+    }
+  }
   // SP-perio PG-D Task 2: restore keratinized gingiva width. Absent/legacy
   // payloads have no `kg` key -> stays the default null (no throw).
   // `clampKg` tolerates any input (non-numeric/out-of-range) and returns
@@ -5669,7 +5703,7 @@ function collectExportPayload(){
   const planTeeth = planInitialized ? collectTeeth(charts.plan) : null;
   const planDiffers = planTeeth !== null && JSON.stringify(planTeeth) !== JSON.stringify(statusTeeth);
   return {
-    version: "2.15",
+    version: "2.16",
     globals: collectGlobals(),
     teeth: statusTeeth,
     ...(planDiffers ? { plan: planTeeth } : {}),
@@ -5698,7 +5732,7 @@ export function getStatusChart(): Any {
  */
 export function getPlanChart(): Any {
   return {
-    version: "2.15",
+    version: "2.16",
     globals: collectGlobals(),
     teeth: collectTeeth(charts.plan),
   };
@@ -6145,10 +6179,12 @@ function getSurfaceGrade(map: Map<string, number>, surface: string): 0|1|2|3 {
  * on a rejected/no-op call — `gateToothEdit`'s `applyFn` returns `false` for
  * a no-op so the DS-1 protocol never marks/mirrors a tooth that didn't change.
  */
-function setSurfaceGrade(toothNo: number, mapKey: "pi"|"gi", surface: string, grade: number): void {
+function setSurfaceGrade(toothNo: number, mapKey: "pi"|"gi"|"mpi"|"mbi", surface: string, grade: number): void {
   if(!VALID_PLAQUE_SURFACE.has(surface)) return;
   let s = toothState.get(toothNo);
   if(!s){ s = defaultState(); toothState.set(toothNo, s); }
+  // PG-E: mPI/mBI are peri-implant indices — only settable on implant teeth.
+  if((mapKey === "mpi" || mapKey === "mbi") && s.toothSelection !== "implant") return;
   gateToothEdit(toothNo, () => {
     const map = s[mapKey] as Map<string, number>;
     if(grade === 0){
@@ -6186,6 +6222,43 @@ export function getGingivalIndex(toothNo: number, surface: string): 0|1|2|3 {
  *  active chart. See {@link setSurfaceGrade} for validation/no-op semantics. */
 export function setGingivalIndex(toothNo: number, surface: string, grade: number): void {
   setSurfaceGrade(toothNo, "gi", surface, grade);
+}
+
+// ---- SP-perio PG-E Task 1: peri-implant Mombelli indices (mPI/mBI) public
+// API. Reuse the exact same per-surface graded machinery as PI/GI above
+// (`setSurfaceGrade`), with one additional guard: mPI/mBI are implant-only —
+// the setter is a silent no-op on any tooth that isn't `toothSelection ===
+// "implant"` (including a never-touched tooth number, which lazily vivifies
+// as a non-implant default and therefore also no-ops). See `setSurfaceGrade`
+// for full validation/no-op semantics (invalid surface/grade).
+
+/** Read a tooth's Mombelli modified Plaque Index grade on one surface from
+ *  the active chart. Grade 0 (default) means healthy/absent — never distinct
+ *  from "never charted". Implant-only in practice (see setter), but the
+ *  getter itself is unconditional (mirrors PI/GI/every other graded axis). */
+export function getPeriImplantPlaque(toothNo: number, surface: string): 0|1|2|3 {
+  return getSurfaceGrade((toothState.get(toothNo)?.mpi as Map<string, number>) ?? new Map(), surface);
+}
+
+/** Set/clear a tooth's Mombelli modified Plaque Index grade on one surface on
+ *  the active chart. Silent no-op unless the tooth is an implant
+ *  (`toothSelection === "implant"`) — see `setSurfaceGrade` for the guard. */
+export function setPeriImplantPlaque(toothNo: number, surface: string, grade: number): void {
+  setSurfaceGrade(toothNo, "mpi", surface, grade);
+}
+
+/** Read a tooth's Mombelli modified sulcus Bleeding Index grade on one
+ *  surface from the active chart. Grade 0 (default) means healthy/absent —
+ *  never distinct from "never charted". */
+export function getPeriImplantBleeding(toothNo: number, surface: string): 0|1|2|3 {
+  return getSurfaceGrade((toothState.get(toothNo)?.mbi as Map<string, number>) ?? new Map(), surface);
+}
+
+/** Set/clear a tooth's Mombelli modified sulcus Bleeding Index grade on one
+ *  surface on the active chart. Silent no-op unless the tooth is an implant
+ *  (`toothSelection === "implant"`) — see `setSurfaceGrade` for the guard. */
+export function setPeriImplantBleeding(toothNo: number, surface: string, grade: number): void {
+  setSurfaceGrade(toothNo, "mbi", surface, grade);
 }
 
 // ---- SP-perio PG-D Task 2: keratinized gingiva width (KG) public API.
@@ -6474,6 +6547,16 @@ export function getToothRecessionType(toothNo: number): RecessionType {
  *     whole mouth, excluding the "not charted" skip value (`unknown`/
  *     `none` respectively) — mirrors how `maxFurcation`'s loop only counts
  *     graded entrances.
+ *
+ * SP-perio PG-E Task 3 addition (own pass, same convention):
+ *   - `mpiScore`/`mbiScore`: mean of ALL charted mPI/mBI surface grades
+ *     across implant teeth (sum of grades / number of CHARTED surfaces, one
+ *     decimal) — `null` when nothing is charted anywhere, mirrors
+ *     `piScore`/`giScore` exactly. mPI/mBI are implant-only axes (the setter
+ *     is a no-op on a non-implant tooth), so guarding the accumulator on
+ *     `s.toothSelection === "implant"` is belt-and-suspenders — a
+ *     non-implant tooth's `mpi`/`mbi` maps can never be non-empty — but
+ *     makes the implant-only intent explicit at the read site too.
  */
 export function getPerioSummary(): {
   chartedSites: number; bleedingSites: number; bopPercent: number;
@@ -6483,6 +6566,9 @@ export function getPerioSummary(): {
   piScore: number | null; giScore: number | null; kgDeficientTeeth: number;
   gtDistribution: { thin: number; medium: number; thick: number };
   millerDistribution: { i: number; ii: number; iii: number; iv: number };
+  // SP-perio PG-E Task 3: mPI/mBI whole-mouth mean, implant-only — mirrors
+  // piScore/giScore's mean-of-charted-grades definition above.
+  mpiScore: number | null; mbiScore: number | null;
 } {
   let chartedSites = 0, bleedingSites = 0;
   let worstCal: number | null = null, worstCalTooth: number | null = null, maxPd: number | null = null;
@@ -6556,9 +6642,24 @@ export function getPerioSummary(): {
   const piScore = piCount > 0 ? Math.round((piSum / piCount) * 10) / 10 : null;
   const giScore = giCount > 0 ? Math.round((giSum / giCount) * 10) / 10 : null;
 
+  // SP-perio PG-E Task 3: mPI/mBI whole-mouth mean, implant-only — own pass
+  // over ALL_TEETH, same reasoning as the PI/GI pass above (mirrors it
+  // exactly, just gated to implant teeth per the doc comment above).
+  let mpiSum = 0, mpiCount = 0, mbiSum = 0, mbiCount = 0;
+  for(const toothNo of ALL_TEETH){
+    const s = toothState.get(toothNo);
+    if(!s) continue;
+    if(s.toothSelection !== "implant") continue;
+    if(s.mpi) for(const grade of (s.mpi as Map<string, number>).values()){ mpiSum += grade; mpiCount++; }
+    if(s.mbi) for(const grade of (s.mbi as Map<string, number>).values()){ mbiSum += grade; mbiCount++; }
+  }
+  const mpiScore = mpiCount > 0 ? Math.round((mpiSum / mpiCount) * 10) / 10 : null;
+  const mbiScore = mbiCount > 0 ? Math.round((mbiSum / mbiCount) * 10) / 10 : null;
+
   return {
     chartedSites, bleedingSites, bopPercent, worstCal, worstCalTooth, maxPd, avgPd, avgCal, maxFurcation, plaquePercent,
     piScore, giScore, kgDeficientTeeth, gtDistribution, millerDistribution,
+    mpiScore, mbiScore,
   };
 }
 
@@ -6788,10 +6889,14 @@ export function setPerioViewMode(mode: PerioViewMode): void {
 //     getGingivalIndex), heat-bucketed like the mm ramps (PG-D Task 4).
 //   - "kg"      : per-tooth keratinized gingiva width in mm (getKeratinizedWidth),
 //     heat-bucketed on a mucogingival-risk ramp (thin = severe) (PG-D Task 4).
+//   - "mpi"/"mbi": per-surface graded Mombelli modified Plaque Index / modified
+//     sulcus Bleeding Index (0-3, mesial/distal/buccal/lingual —
+//     getPeriImplantPlaque/getPeriImplantBleeding), heat-bucketed like pi/gi.
+//     IMPLANT-ONLY data, so marks only ever appear on implant teeth (PG-E).
 // Lives alongside `perioViewMode` (same session-state precedent) and reuses
 // the existing `onStateChange` subscription — PerioChart mirrors it into React
 // state (for the active-button/read-out) and redraws the overlay on notify.
-export type PerioOverlayLayer = "none" | "pd" | "cal" | "gr" | "cairo" | "kg" | "plaque" | "pi" | "gi" | "bop" | "pd5" | "pd6";
+export type PerioOverlayLayer = "none" | "pd" | "cal" | "gr" | "cairo" | "kg" | "plaque" | "pi" | "gi" | "mpi" | "mbi" | "bop" | "pd5" | "pd6";
 let perioOverlayLayer: PerioOverlayLayer = "none";
 
 /** Current Dental Chart overlay layer. Defaults to `"none"`. */
@@ -8595,6 +8700,10 @@ export function getOdontogramSummary(): OdontogramSummary {
     { const kg = keratinizedWidthSummaryLine(toothNo); if(kg) inflamed.push(`${lbl(toothNo)} (${kg})`); }
     { const gt = gingivalThicknessSummaryLabel(toothNo); if(gt) inflamed.push(`${lbl(toothNo)} (${gt})`); }
     { const mc = millerClassSummaryLabel(toothNo); if(mc) inflamed.push(`${lbl(toothNo)} (${mc})`); }
+    // SP-perio PG-E Task 3: mPI/mBI — same periodontal "inflamed" bucket as
+    // PI/GI/KG/GT/Miller above.
+    { const mpi = periImplantPlaqueSummaryLine(toothNo); if(mpi) inflamed.push(`${lbl(toothNo)} (${mpi})`); }
+    { const mbi = periImplantBleedingSummaryLine(toothNo); if(mbi) inflamed.push(`${lbl(toothNo)} (${mbi})`); }
   }
 
   // Overview sentence — plural-aware phrases keep grammar correct per language

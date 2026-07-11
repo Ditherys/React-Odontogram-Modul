@@ -249,6 +249,25 @@ function buildToothPerioObservation(subjectRef: string, tooth: string, rec: Toot
       }).map((s) => [s, giRaw[s] as number]))
     : [];
 
+  // SP-perio PG-E Task 1: peri-implant Mombelli mPI/mBI graded surfaces —
+  // same tolerant parsing as PI/GI above (implant-only enforcement lives at
+  // the odontogram.ts setter layer, not here — FHIR export is unconditional
+  // on whatever is in the payload, same as every other axis).
+  const mpiRaw = rec.mpi && typeof rec.mpi === "object" ? (rec.mpi as Record<string, unknown>) : undefined;
+  const mpiEntries: [PlaqueSurface, number][] = mpiRaw
+    ? (PLAQUE_SURFACES.filter((s) => {
+        const v = mpiRaw[s];
+        return isFiniteNumber(v) && Number.isInteger(v) && v >= 1 && v <= 3;
+      }).map((s) => [s, mpiRaw[s] as number]))
+    : [];
+  const mbiRaw = rec.mbi && typeof rec.mbi === "object" ? (rec.mbi as Record<string, unknown>) : undefined;
+  const mbiEntries: [PlaqueSurface, number][] = mbiRaw
+    ? (PLAQUE_SURFACES.filter((s) => {
+        const v = mbiRaw[s];
+        return isFiniteNumber(v) && Number.isInteger(v) && v >= 1 && v <= 3;
+      }).map((s) => [s, mbiRaw[s] as number]))
+    : [];
+
   // SP-perio PG-D Task 2: keratinized gingiva width — a single per-tooth
   // BUCCAL mm scalar (integer 0-15). Tolerant of malformed/foreign input
   // (non-numeric, out-of-range, null): treated as "not charted", same as
@@ -258,7 +277,8 @@ function buildToothPerioObservation(subjectRef: string, tooth: string, rec: Toot
 
   if (
     chartedSites.length === 0 && gradedEntrances.length === 0 && plaqueSurfaces.length === 0 &&
-    piEntries.length === 0 && giEntries.length === 0 && kgValue === undefined
+    piEntries.length === 0 && giEntries.length === 0 && kgValue === undefined &&
+    mpiEntries.length === 0 && mbiEntries.length === 0
   ) return undefined;
 
   const components: Any[] = [];
@@ -354,6 +374,20 @@ function buildToothPerioObservation(subjectRef: string, tooth: string, rec: Toot
     };
     attachPlaqueBodySite(giComponent, tooth, surface);
     components.push(giComponent);
+  }
+
+  // SP-perio PG-E Task 1: one integer component per graded mPI/mBI surface —
+  // Mombelli modified plaque/sulcus bleeding indices (peri-implant), same
+  // no-dedicated-LOINC treatment as PI/GI above.
+  for (const [surface, grade] of mpiEntries) {
+    const c: Any = { code: localConcept("mod-plaque-index-mombelli", "Modified plaque index (Mombelli)"), valueInteger: grade };
+    attachPlaqueBodySite(c, tooth, surface);
+    components.push(c);
+  }
+  for (const [surface, grade] of mbiEntries) {
+    const c: Any = { code: localConcept("mod-bleeding-index-mombelli", "Modified sulcus bleeding index (Mombelli)"), valueInteger: grade };
+    attachPlaqueBodySite(c, tooth, surface);
+    components.push(c);
   }
 
   // SP-perio PG-D Task 2: one valueQuantity (mm) component for keratinized
