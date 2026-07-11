@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { destroyOdontogram, initOdontogram, setNumberingSystem, clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, openPerioOverlay, closePerioOverlay, isPerioOverlayOpen, getPerioViewMode, setPerioViewMode } from "./odontogram";
-export { clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, getPerioViewMode, setPerioViewMode };
+import { destroyOdontogram, initOdontogram, setNumberingSystem, clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, openPerioOverlay, closePerioOverlay, isPerioOverlayOpen, getPerioViewMode, setPerioViewMode, isDualStateConfirmPending, acceptDualStateConfirm, cancelDualStateConfirm } from "./odontogram";
+export { clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, getPerioViewMode, setPerioViewMode, isDualStateConfirmPending, acceptDualStateConfirm, cancelDualStateConfirm };
 export { default as PerioChart } from "./PerioChart";
 import type { OdontogramSummary, PulpDetailLevel, SecondaryCariesMode, RootCariesMode, RadiographicDepthMode, ToothDetailLevel, SurfaceNotation, PerioViewMode } from "./odontogram";
 export type { PulpDetailLevel, SecondaryCariesMode, RootCariesMode, RadiographicDepthMode, ToothDetailLevel, SurfaceNotation, PerioViewMode } from "./odontogram";
@@ -11,6 +11,7 @@ export { startIntroTour } from "./tour";
 import { useI18n } from "./i18n/useI18n";
 import SettingsModal, { type SettingsState } from "./SettingsModal";
 import PerioChart from "./PerioChart";
+import DualStateConfirm from "./DualStateConfirm";
 import type { Language } from "./i18n/translations";
 import type { NumberingSystem } from "./utils/numbering";
 import { applyThemeConfig, type OdontogramThemeConfig } from "./theme";
@@ -231,6 +232,13 @@ export default function App({
   // showing, only meaningful while `viewMode === "toggle"`.
   const [viewMode, setViewMode] = useState<PerioViewMode>(() => getPerioViewMode());
   const [activeView, setActiveView] = useState<"odontogram" | "dentalChart">("odontogram");
+  // DS-1 Task 2: mirror the module-level "a status edit on a planned tooth is
+  // awaiting confirmation" flag into React state via the existing onStateChange
+  // subscription (requestDualStateConfirm / accept / cancel all notify), so the
+  // blocking confirm dialog opens/closes regardless of which gated edit raised
+  // it. Initialized false — a confirm can only be requested by a post-mount
+  // edit, so there is never a pending confirm at mount.
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Dark mode: controlled via prop or standalone via internal state
   const [internalDark, setInternalDark] = useState<boolean>(() => {
@@ -366,6 +374,14 @@ export default function App({
     const refresh = () => setViewMode(getPerioViewMode());
     refresh();
     return onStateChange(refresh);
+  }, []);
+
+  // DS-1 Task 2: mirror the pending-confirm flag into React state. Subscribe
+  // only (no initial read) — a confirm is only ever requested by a post-mount
+  // edit, so `confirmOpen` starts false and this never calls the module during
+  // the initial render.
+  useEffect(() => {
+    return onStateChange(() => setConfirmOpen(isDualStateConfirmPending()));
   }, []);
 
   useEffect(() => {
@@ -916,6 +932,13 @@ export default function App({
         onClose={() => setSettingsOpen(false)}
         t={t}
         settings={settingsState}
+      />
+
+      <DualStateConfirm
+        open={confirmOpen}
+        t={t}
+        onAccept={acceptDualStateConfirm}
+        onCancel={cancelDualStateConfirm}
       />
     </div>
   );

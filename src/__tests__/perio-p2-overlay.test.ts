@@ -91,6 +91,9 @@ vi.mock("../odontogram", async () => {
     // did to the shared module state.
     getPerioViewMode: vi.fn().mockReturnValue("popup"),
     setPerioViewMode: vi.fn(),
+    isDualStateConfirmPending: vi.fn().mockReturnValue(false),
+    acceptDualStateConfirm: vi.fn(),
+    cancelDualStateConfirm: vi.fn(),
     // P2 Task 2: <PerioChart/>'s grid + summary bar need the full perio data
     // core + these small read helpers, not just the open/close flag.
     PERIO_SITES: actual.PERIO_SITES,

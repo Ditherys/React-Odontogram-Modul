@@ -91,6 +91,9 @@ vi.mock("../odontogram", async () => {
     isPerioOverlayOpen: actual.isPerioOverlayOpen,
     getPerioViewMode: actual.getPerioViewMode,
     setPerioViewMode: actual.setPerioViewMode,
+    isDualStateConfirmPending: actual.isDualStateConfirmPending,
+    acceptDualStateConfirm: actual.acceptDualStateConfirm,
+    cancelDualStateConfirm: actual.cancelDualStateConfirm,
     // The full P1/P2 perio data-core surface <PerioChart/> needs to build its
     // grid + summary bar (same list as perio-p2-overlay.test.ts).
     PERIO_SITES: actual.PERIO_SITES,

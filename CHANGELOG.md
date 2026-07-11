@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.39.0] - 2026-07-11
+### Changed
+- **Smarter Status ↔ Plan editing.** After a plan exists, editing a tooth's **status** now updates the **plan** too — *as long as you haven't planned anything on that tooth yet* — so correcting the current reality no longer shows up as a planned change in the "What changes" box. If you edit the status of a tooth that **does** have planned changes, a **confirmation** appears first; on confirm the status change applies (and the plan stays as planned, so the difference is shown). Whole-mouth actions (Statuses presets, Edentulous, dentition presets) follow the same rule atomically — one confirmation, applied all-or-nothing. No payload/FHIR change.
+
 ## [1.38.0] - 2026-07-11
 ### Changed
 - **Graphical Dental Chart polish.** The tooth arches now face **occlusal-to-occlusal** (upper crowns down, lower crowns up, like the odontogram); a **numbered millimeter guide grid** is drawn behind the teeth (a pocket's depth reads directly against the mm lines); the diagram is **larger and scales with the window**, with tighter tooth spacing; and an **implant graphic** is shown for implant teeth (instead of the natural tooth shape). No payload/FHIR change (the graphic reads template artwork into its own DOM — SVG-fingerprint parity byte-identical).

@@ -425,6 +425,152 @@ function cloneChart(src: Map<Any, Any>, dst: Map<Any, Any>): void {
   for(const [n, s] of src) dst.set(n, hydrateState(serializeState(s)));
 }
 
+// ---- DS-1 Task 1: status->plan edit gate + propagation --------------------
+// The set of teeth that have been EXPLICITLY edited while `chartMode === "plan"`.
+// Runtime-only — NEVER serialized (parity: SVG/FHIR/roundtrip goldens are
+// unaffected). It records which plan teeth the user has intentionally diverged
+// from status, so a later STATUS edit on such a tooth is allowed to diverge
+// (rather than silently overwriting the plan by mirroring). A tooth NOT in this
+// set still has its plan tracking status, so a status edit safely mirrors into
+// plan (keeping the two charts in sync until the user deliberately plans that
+// tooth). Cleared whenever the plan is (re)initialized, reset, or replaced by
+// an import — a fresh plan carries no plan-edits.
+let planEditedTeeth = new Set<number>();
+
+/** Deep-copy tooth `toothNo`'s STATUS state into the PLAN chart via the proven
+ *  serializeState -> hydrateState round-trip (fresh Maps/Sets, no shared refs —
+ *  same guarantee as {@link cloneChart}). Passes `false` for
+ *  `inferLegacySecondaryCaries`: the source is a live, fully-hydrated in-memory
+ *  state whose recurrent-caries severities are already explicit, so no legacy
+ *  inference is wanted. A status tooth with no entry mirrors a `defaultState()`
+ *  into the plan (so the plan tooth exists and matches "sound"). */
+function mirrorStatusToPlan(toothNo: number): void {
+  charts.plan.set(toothNo, hydrateState(serializeState(charts.status.get(toothNo) ?? defaultState()), false));
+}
+
+/** DS-1 central edit GATE for a SINGLE interactive per-tooth edit. Every
+ *  interactive per-tooth mutator routes its mutation through here so the
+ *  status<->plan propagation policy lives in exactly one place. See the
+ *  `planEditedTeeth` comment above for the policy. When the plan is
+ *  uninitialized this is a pure passthrough (byte-identical to the
+ *  pre-dual-state behavior). `applyFn` performs the actual mutation (+ any
+ *  render) on the ACTIVE chart. */
+function gateToothEdit(toothNo: number, applyFn: () => boolean | void): void {
+  // `applyFn` may report `false` to signal it made NO change (a rejected /
+  // no-op edit — e.g. an out-of-range perio value): in that case the tooth is
+  // neither marked plan-edited nor mirrored. Any other return (incl. void) is
+  // treated as a real edit.
+  if(chartMode === "plan"){
+    if(applyFn() !== false) planEditedTeeth.add(toothNo);
+    return;
+  }
+  // chartMode === "status"
+  if(!planInitialized || !planEditedTeeth.has(toothNo)){
+    const changed = applyFn() !== false;
+    if(planInitialized && changed) mirrorStatusToPlan(toothNo);
+    return;
+  }
+  // status edit on a plan-edited tooth -> the status edit would DIVERGE from the
+  // plan (the user has deliberately planned this tooth). T2: confirm BEFORE
+  // applying. `applyFn` is deferred — accept applies it (status only; the plan
+  // stays as planned, so they diverge and the diff shows it), cancel re-syncs
+  // the active tooth's controls so the just-changed control snaps back.
+  requestDualStateConfirm(
+    () => { applyFn(); },
+    revertActiveControls,
+  );
+}
+
+/** DS-1 central edit GATE for a BATCH interactive edit spanning several teeth
+ *  (e.g. `applyToSelected`). `applyFn` mutates ALL `toothNos` in one pass. In
+ *  plan mode every touched tooth is marked plan-edited; in status mode (plan
+ *  initialized) every tooth NOT already plan-edited mirrors status->plan after
+ *  the batch (planned teeth diverge). Uninitialized plan -> pure passthrough.
+ *  T2: a batch touching >=1 plan-edited tooth is CONFIRMED ONCE before applying
+ *  (accept applies all + mirrors the un-planned teeth; cancel applies none +
+ *  re-syncs the active tooth's controls). */
+function gateToothEditBatch(toothNos: number[], applyFn: () => void): void {
+  if(chartMode === "plan"){
+    applyFn();
+    for(const toothNo of toothNos) planEditedTeeth.add(toothNo);
+    return;
+  }
+  // chartMode === "status"
+  if(!planInitialized){
+    applyFn();
+    return;
+  }
+  const mirrorUnplanned = () => {
+    for(const toothNo of toothNos){
+      if(!planEditedTeeth.has(toothNo)) mirrorStatusToPlan(toothNo);
+    }
+  };
+  // A batch touching >=1 plan-edited tooth would DIVERGE the plan -> confirm
+  // ONCE before applying. Otherwise apply immediately and mirror the un-planned
+  // teeth (T1 behavior — planned teeth diverge, un-planned mirror).
+  if(toothNos.some(toothNo => planEditedTeeth.has(toothNo))){
+    requestDualStateConfirm(
+      () => { applyFn(); mirrorUnplanned(); },
+      revertActiveControls,
+    );
+    return;
+  }
+  applyFn();
+  mirrorUnplanned();
+}
+
+// ---- DS-1 Task 2: blocking confirm before a status edit on a plan-edited
+// tooth ---------------------------------------------------------------------
+// A status-mode edit on a tooth the user has deliberately planned (a member of
+// `planEditedTeeth`) must be CONFIRMED before it applies, because it makes the
+// status chart DIVERGE from the plan. The actual mutation (`apply`) and the
+// control-revert (`revert`) are DEFERRED: the gate stores them here and
+// notifies, the host surfaces a modal (driven by `isDualStateConfirmPending()`),
+// and the user's choice runs exactly one of them. Runtime-only — never
+// serialized (SVG/FHIR/roundtrip goldens are unaffected).
+let pendingDualStateConfirm: { apply: () => void; revert: () => void } | null = null;
+
+/** Whether a status-vs-plan divergence confirm is awaiting the user's choice. */
+export function isDualStateConfirmPending(): boolean {
+  return pendingDualStateConfirm !== null;
+}
+
+/** Store a deferred confirm (apply/revert) and notify so the host opens the
+ *  modal. A second request while one is already pending is ignored — the modal
+ *  is blocking so this cannot happen from the UI; the guard is defensive. */
+function requestDualStateConfirm(apply: () => void, revert: () => void): void {
+  if(pendingDualStateConfirm) return;
+  pendingDualStateConfirm = { apply, revert };
+  notifyStateChange();
+}
+
+/** User accepted the divergence: run the deferred edit (status only — the plan
+ *  stays as planned), then notify (post-edit refresh + close the modal). No-op
+ *  when nothing is pending. */
+export function acceptDualStateConfirm(): void {
+  const pending = pendingDualStateConfirm;
+  pendingDualStateConfirm = null;
+  if(pending) pending.apply();
+  notifyStateChange();
+}
+
+/** User cancelled: do NOT apply the edit; re-sync the active tooth's controls
+ *  from stored state so the control the user just changed snaps back (no stale
+ *  UI), then notify (refresh + close the modal). No-op when nothing is pending. */
+export function cancelDualStateConfirm(): void {
+  const pending = pendingDualStateConfirm;
+  pendingDualStateConfirm = null;
+  if(pending) pending.revert();
+  notifyStateChange();
+}
+
+/** Re-sync the active tooth's DOM controls from its stored state (the revert
+ *  used on cancel). Null-safe: with no active tooth (headless module tests) it
+ *  is a no-op; in the live app the full control DOM always exists. */
+function revertActiveControls(): void {
+  if(activeTooth != null) syncControlsFromState(toothState.get(activeTooth));
+}
+
 /** R2-A Task 3: sync the `Status | Plan` toggle in the chart-header with the
  *  current `chartMode` — `.is-active` on whichever of #chartModeStatus /
  *  #chartModePlan matches, `.plan-mode` on the chart card (`.chart`, the
@@ -469,6 +615,8 @@ export function setChartMode(mode: ChartMode): void {
   if(mode === "plan" && !planInitialized){
     cloneChart(charts.status, charts.plan);
     planInitialized = true;
+    // DS-1: a freshly-cloned plan exactly matches status -> no plan-edits yet.
+    planEditedTeeth.clear();
   }
   chartMode = mode;
   toothState = charts[mode];
@@ -2376,8 +2524,62 @@ export function __resetChartStateForTest(): void {
   charts.status.clear();
   charts.plan.clear();
   planInitialized = false;
+  planEditedTeeth.clear();
+  pendingDualStateConfirm = null;
   chartMode = "status";
   toothState = charts.status;
+}
+
+/** TEST-ONLY (DS-1 Task 2 seam): set the active tooth (and lazily vivify its
+ *  state) so a control-revert test can exercise `revertActiveControls()`
+ *  against a real active tooth without going through the DOM tooth grid. Not
+ *  part of the public API. */
+export function __setActiveToothForTest(toothNo: number | null): void {
+  activeTooth = toothNo;
+  if(toothNo != null && !toothState.get(toothNo)) toothState.set(toothNo, defaultState());
+}
+
+/** TEST-ONLY (DS-1 Task 1 seam): snapshot of the teeth currently flagged as
+ *  plan-edited (a COPY — mutating it never touches module state). Not part of
+ *  the public API. */
+export function __planEditedTeethForTest(): number[] {
+  return Array.from(planEditedTeeth);
+}
+
+/** TEST-ONLY (DS-1 Task 1 seam): invoke {@link mirrorStatusToPlan} directly so
+ *  the deep-copy behavior can be exercised without going through the gate. Not
+ *  part of the public API. */
+export function __mirrorStatusToPlanForTest(toothNo: number): void {
+  mirrorStatusToPlan(toothNo);
+}
+
+/** TEST-ONLY (DS-1 review-fix seam): drive {@link setEdentulous} directly so the
+ *  gated whole-mouth structural edit can be exercised without a live DOM/
+ *  initOdontogram() token. Not part of the public API. */
+export function __setEdentulousForTest(on: boolean): void {
+  setEdentulous(on);
+}
+
+/** TEST-ONLY (DS-1 review-fix seam): drive the single-tooth reset through the
+ *  same code path as the zoom-popover / context-menu reset buttons, without a
+ *  live DOM/initOdontogram() token. Not part of the public API. */
+export function __resetToothForTest(toothNo: number): void {
+  resetToothGated(toothNo);
+}
+
+/** TEST-ONLY (DS-1 review-fix seam): drive the multi-tooth (selection) reset
+ *  through the same code path as the "Reset selected teeth" button, without a
+ *  live DOM/initOdontogram() token. Not part of the public API. */
+export function __resetTeethForTest(toothNos: number[]): void {
+  resetTeethGated(toothNos);
+}
+
+/** TEST-ONLY (DS-1 review-fix seam): drive a dentition preset through the same
+ *  code path as the #btnPrimaryDentition / #btnMixedDentition buttons, without a
+ *  live DOM/initOdontogram() token. Not part of the public API. */
+export function __applyDentitionPresetForTest(kind: "primary" | "mixed"): void {
+  if(kind === "primary") applyPrimaryDentition();
+  else applyMixedDentition();
 }
 
 /** TEST-ONLY: set the module-level `showHealthyPulp` flag directly, without the
@@ -3497,21 +3699,137 @@ function applyAndSync(toothNo: Any){
 
 function applyToSelected(fn: Any){
   if(selectedTeeth.size === 0) return;
-  for(const toothNo of selectedTeeth){
-    const s = toothState.get(toothNo);
-    if(!s) continue;
-    fn(s, toothNo);
+  // DS-1: route the whole selection edit through the batch gate — in plan mode
+  // every selected tooth is marked plan-edited; in status mode (plan
+  // initialized) every selected tooth that is NOT already plan-edited mirrors
+  // status->plan after the batch (planned teeth diverge). Uninitialized plan is
+  // a pure passthrough (byte-identical to the pre-dual-state behavior).
+  const toothNos = Array.from(selectedTeeth) as number[];
+  gateToothEditBatch(toothNos, () => {
+    for(const toothNo of toothNos){
+      const s = toothState.get(toothNo);
+      if(!s) continue;
+      fn(s, toothNo);
+      applyStateToSvg(toothNo);
+      updateToothTileNumber(toothNo);
+    }
+    if(activeTooth && selectedTeeth.has(activeTooth)){
+      syncControlsFromState(toothState.get(activeTooth));
+    }
+    if(edentulous && !suppressEdentulousSync){
+      setEdentulous(false);
+    }
+    updateSelectionFilterButtons();
+    notifyStateChange();
+  });
+}
+
+/** DS-1 (review Fix 1): reset a SINGLE tooth to `defaultState()`, routed through
+ *  the edit {@link gateToothEdit} so a per-tooth reset behaves like every other
+ *  edit — on an un-planned tooth it mirrors status->plan (no spurious diff), on
+ *  a plan-edited tooth it CONFIRMS before applying (parity with clearing the
+ *  tooth via the restoration dropdown). Render + control-sync live INSIDE the
+ *  gated closure so on the deferred-confirm path they run only on Accept.
+ *  Shared by the zoom-popover and context-menu single-tooth reset buttons + the
+ *  `__resetToothForTest` seam. */
+function resetToothGated(toothNo: number): void {
+  gateToothEdit(toothNo, () => {
+    toothState.set(toothNo, defaultState());
     applyStateToSvg(toothNo);
     updateToothTileNumber(toothNo);
-  }
-  if(activeTooth && selectedTeeth.has(activeTooth)){
-    syncControlsFromState(toothState.get(activeTooth));
-  }
-  if(edentulous && !suppressEdentulousSync){
-    setEdentulous(false);
-  }
-  updateSelectionFilterButtons();
-  notifyStateChange();
+    if(activeTooth === toothNo) syncControlsFromState(toothState.get(toothNo));
+  });
+}
+
+/** DS-1 (review Fix 1): reset a SET of selected teeth to `defaultState()`,
+ *  routed through {@link gateToothEditBatch} — one confirm covers the whole set
+ *  when it touches a plan-edited tooth; un-planned teeth mirror status->plan.
+ *  The `edentulous` flip + render + control-sync all live INSIDE the gated
+ *  closure so on the deferred-confirm path they take effect only on Accept
+ *  (no flag/teeth mismatch on Cancel — same rationale as `setEdentulous` and
+ *  the dentition presets). Shared by the "Reset selected teeth" button + the
+ *  `__resetTeethForTest` seam. */
+function resetTeethGated(toothNos: number[]): void {
+  if(toothNos.length === 0) return;
+  gateToothEditBatch(toothNos, () => {
+    if(edentulous){
+      edentulous = false;
+      setToggleButton($("#btnEdentulous"), edentulous);
+    }
+    for(const toothNo of toothNos){
+      toothState.set(toothNo, defaultState());
+      applyStateToSvg(toothNo);
+      updateToothTileNumber(toothNo);
+    }
+    if(activeTooth){
+      setControlsEnabled(true);
+      syncControlsFromState(toothState.get(activeTooth));
+    }
+    notifyStateChange();
+  });
+}
+
+/** DS-1: apply the PRIMARY (deciduous) dentition preset — a STRUCTURAL
+ *  interactive edit (not a reset), routed through the batch gate. `targetFor`
+ *  is the state each tooth ends up in; only teeth that actually change are
+ *  passed to the gate so unchanged teeth are not marked plan-edited / mirrored
+ *  (per-tooth no-op signaling). Uninitialized plan stays a pure passthrough.
+ *  DS-1 (review Fix 3): the `edentulous` flip + button state live INSIDE the
+ *  gated closure so on the deferred-confirm path they take effect only on
+ *  Accept — otherwise Cancel would leave `edentulous` flipped while every tooth
+ *  is untouched (flag/teeth mismatch). `notifyStateChange()` moves inside too so
+ *  the whole-mouth refresh fires when the batch actually applies. */
+function applyPrimaryDentition(): void {
+  const targetFor = (toothNo: number)=>{
+    const s = defaultState();
+    s.toothSelection = PRIMARY_MILK.has(toothNo) ? "milktooth" : "none";
+    return s;
+  };
+  const changed = ALL_TEETH.filter(tn => JSON.stringify(serializeState(toothState.get(tn) ?? defaultState())) !== JSON.stringify(serializeState(targetFor(tn))));
+  gateToothEditBatch(changed, ()=>{
+    edentulous = false;
+    setToggleButton($("#btnEdentulous"), edentulous);
+    suppressEdentulousSync = true;
+    for(const toothNo of ALL_TEETH){
+      toothState.set(toothNo, targetFor(toothNo));
+      applyStateToSvg(toothNo);
+      updateToothTileNumber(toothNo);
+    }
+    suppressEdentulousSync = false;
+    if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
+    notifyStateChange();
+  });
+}
+
+/** DS-1: apply the MIXED dentition preset — see {@link applyPrimaryDentition};
+ *  gated STRUCTURAL edit with per-tooth no-op signaling and (Fix 3) the
+ *  `edentulous` flip inside the gated closure. */
+function applyMixedDentition(): void {
+  const targetFor = (toothNo: number)=>{
+    const s = defaultState();
+    if(MIXED_PERMANENT.has(toothNo)){
+      s.toothSelection = "tooth-base";
+    }else if(MIXED_MILK.has(toothNo)){
+      s.toothSelection = "milktooth";
+    }else if(MIXED_NONE.has(toothNo)){
+      s.toothSelection = "none";
+    }
+    return s;
+  };
+  const changed = ALL_TEETH.filter(tn => JSON.stringify(serializeState(toothState.get(tn) ?? defaultState())) !== JSON.stringify(serializeState(targetFor(tn))));
+  gateToothEditBatch(changed, ()=>{
+    edentulous = false;
+    setToggleButton($("#btnEdentulous"), edentulous);
+    suppressEdentulousSync = true;
+    for(const toothNo of ALL_TEETH){
+      toothState.set(toothNo, targetFor(toothNo));
+      applyStateToSvg(toothNo);
+      updateToothTileNumber(toothNo);
+    }
+    suppressEdentulousSync = false;
+    if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
+    notifyStateChange();
+  });
 }
 
 function updateActiveLabel(){
@@ -3754,10 +4072,7 @@ function showZoomPopover(toothNo: number){
 
   const resetBtn = el("button", { class: "odon-zoom-btn danger", text: t("touch.ctx.reset") });
   resetBtn.addEventListener("click", () => {
-    toothState.set(toothNo, defaultState());
-    applyStateToSvg(toothNo);
-    updateToothTileNumber(toothNo);
-    if(activeTooth === toothNo) syncControlsFromState(toothState.get(toothNo));
+    resetToothGated(toothNo);
     hideZoomPopover();
   });
 
@@ -3837,10 +4152,7 @@ function showContextMenu(toothNo: number, touch: Touch){
 
   const resetItem = el("button", { class: "odon-ctx-item danger", text: t("touch.ctx.reset") });
   resetItem.addEventListener("click", () => {
-    toothState.set(toothNo, defaultState());
-    applyStateToSvg(toothNo);
-    updateToothTileNumber(toothNo);
-    if(activeTooth === toothNo) syncControlsFromState(toothState.get(toothNo));
+    resetToothGated(toothNo);
     hideContextMenu();
   });
   menu.appendChild(resetItem);
@@ -4414,20 +4726,45 @@ function updateToothTileVisibility(){
 }
 
 function setEdentulous(on: Any){
-  edentulous = on;
-  setToggleButton($("#btnEdentulous"), edentulous);
-  if(edentulous){
-    suppressEdentulousSync = true;
-    for(const toothNo of ALL_TEETH){
-      const s = defaultState();
-      s.toothSelection = "none";
-      toothState.set(toothNo, s);
-      applyStateToSvg(toothNo);
-      updateToothTileNumber(toothNo);
-    }
-    suppressEdentulousSync = false;
-    if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
+  if(on){
+    // DS-1: turning on whole-mouth edentulous is a STRUCTURAL interactive edit
+    // (not a reset), so route it through the batch gate — in plan mode every
+    // changed tooth is marked plan-edited; in status mode (plan initialized)
+    // every changed tooth NOT already plan-edited mirrors status->plan (planned
+    // teeth diverge). Only teeth that ACTUALLY change (were not already sound-
+    // missing) are passed to the gate, so an already-missing tooth's plan is
+    // left untouched (per-tooth no-op signaling). Uninitialized plan stays a
+    // pure passthrough (byte-identical to the pre-dual-state behavior).
+    const missingKey = JSON.stringify(serializeState((()=>{ const s = defaultState(); s.toothSelection = "none"; return s; })()));
+    const changed = ALL_TEETH.filter(tn => JSON.stringify(serializeState(toothState.get(tn) ?? defaultState())) !== missingKey);
+    // DS-1 (review Fix 3): set the `edentulous` global + the toggle-button state
+    // INSIDE the gated closure, NOT synchronously before it resolves. On the
+    // deferred-confirm path they must take effect only on Accept — otherwise
+    // Cancel (which never runs this closure) would leave `edentulous === true`
+    // while every tooth is untouched, so getStatusChart().globals.edentulous
+    // would export a wrong flag. `notifyStateChange()` also moves inside so the
+    // whole-mouth refresh fires when the batch actually applies.
+    gateToothEditBatch(changed, ()=>{
+      edentulous = true;
+      setToggleButton($("#btnEdentulous"), edentulous);
+      suppressEdentulousSync = true;
+      for(const toothNo of ALL_TEETH){
+        const s = defaultState();
+        s.toothSelection = "none";
+        toothState.set(toothNo, s);
+        applyStateToSvg(toothNo);
+        updateToothTileNumber(toothNo);
+      }
+      suppressEdentulousSync = false;
+      if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
+      notifyStateChange();
+    });
+    return;
   }
+  // Un-setting edentulous is not a per-tooth structural edit (it touches no tooth
+  // state here), so it applies immediately and is never gated.
+  edentulous = false;
+  setToggleButton($("#btnEdentulous"), edentulous);
   notifyStateChange();
 }
 
@@ -5218,6 +5555,12 @@ export function setPlanChart(payload: Any): void {
     charts.plan.set(toothNo, hydrateState(raw, inferLegacySecondaryCaries));
   }
   planInitialized = true;
+  // DS-1: replacing the plan chart wholesale resets any runtime plan-edits.
+  planEditedTeeth.clear();
+  // DS-1 (review Fix 2): drop any pending dual-state confirm — its deferred
+  // `applyFn` was captured against the pre-replace plan and must not run against
+  // the freshly-hydrated plan chart via a later acceptDualStateConfirm().
+  pendingDualStateConfirm = null;
   if(getChartMode() === "plan"){
     for(const toothNo of ALL_TEETH){
       applyStateToSvg(toothNo);
@@ -5447,45 +5790,52 @@ export function setPerioSite(toothNo: number, site: string, patch: PerioSitePatc
   if(!(PERIO_SITES as readonly string[]).includes(site)) return;
   let s = toothState.get(toothNo);
   if(!s){ s = defaultState(); toothState.set(toothNo, s); }
-  const perio = s.perio;
-  let changed = false;
+  // DS-1: route the actual mutation through the status->plan gate. The closure
+  // returns whether it changed state so a rejected/no-op edit neither marks the
+  // tooth plan-edited nor mirrors it (preserving the "notify only on change"
+  // contract). The lazy vivify above stays OUTSIDE the gate (not a user edit).
+  gateToothEdit(toothNo, () => {
+    const perio = s.perio;
+    let changed = false;
 
-  if("pd" in patch){
-    const pd = patch.pd;
-    if(pd === null || pd === undefined || (typeof pd === "number" && pd < 1)){
-      if(perio.pd.has(site) || perio.gm.has(site) || perio.bop.has(site) || perio.sup.has(site)){
-        perio.pd.delete(site);
-        perio.gm.delete(site);
-        perio.bop.delete(site);
-        perio.sup.delete(site);
-        changed = true;
+    if("pd" in patch){
+      const pd = patch.pd;
+      if(pd === null || pd === undefined || (typeof pd === "number" && pd < 1)){
+        if(perio.pd.has(site) || perio.gm.has(site) || perio.bop.has(site) || perio.sup.has(site)){
+          perio.pd.delete(site);
+          perio.gm.delete(site);
+          perio.bop.delete(site);
+          perio.sup.delete(site);
+          changed = true;
+        }
+        if(changed) notifyStateChange();
+        return changed;
       }
-      if(changed) notifyStateChange();
-      return;
+      const clampedPd = clampPerio("pd", pd);
+      if(clampedPd === null) return false; // non-integer pd -> reject the WHOLE call
+      if(perio.pd.get(site) !== clampedPd){ perio.pd.set(site, clampedPd); changed = true; }
     }
-    const clampedPd = clampPerio("pd", pd);
-    if(clampedPd === null) return; // non-integer pd -> reject the WHOLE call
-    if(perio.pd.get(site) !== clampedPd){ perio.pd.set(site, clampedPd); changed = true; }
-  }
 
-  if(!perio.pd.has(site)){
+    if(!perio.pd.has(site)){
+      if(changed) notifyStateChange();
+      return changed; // never orphan gm/bop/sup onto an un-charted site
+    }
+
+    if(patch.gm !== undefined){
+      const clampedGm = clampPerio("gm", patch.gm);
+      if(clampedGm !== null && perio.gm.get(site) !== clampedGm){ perio.gm.set(site, clampedGm); changed = true; }
+    }
+    if(patch.bop !== undefined){
+      if(patch.bop){ if(!perio.bop.has(site)){ perio.bop.add(site); changed = true; } }
+      else if(perio.bop.has(site)){ perio.bop.delete(site); changed = true; }
+    }
+    if(patch.sup !== undefined){
+      if(patch.sup){ if(!perio.sup.has(site)){ perio.sup.add(site); changed = true; } }
+      else if(perio.sup.has(site)){ perio.sup.delete(site); changed = true; }
+    }
     if(changed) notifyStateChange();
-    return; // never orphan gm/bop/sup onto an un-charted site
-  }
-
-  if(patch.gm !== undefined){
-    const clampedGm = clampPerio("gm", patch.gm);
-    if(clampedGm !== null && perio.gm.get(site) !== clampedGm){ perio.gm.set(site, clampedGm); changed = true; }
-  }
-  if(patch.bop !== undefined){
-    if(patch.bop){ if(!perio.bop.has(site)){ perio.bop.add(site); changed = true; } }
-    else if(perio.bop.has(site)){ perio.bop.delete(site); changed = true; }
-  }
-  if(patch.sup !== undefined){
-    if(patch.sup){ if(!perio.sup.has(site)){ perio.sup.add(site); changed = true; } }
-    else if(perio.sup.has(site)){ perio.sup.delete(site); changed = true; }
-  }
-  if(changed) notifyStateChange();
+    return changed;
+  });
 }
 
 /** Read a tooth's perio sub-record from the active chart as a PLAIN object
@@ -5529,14 +5879,19 @@ export function setFurcation(toothNo: number, entrance: string, grade: number | 
   if(!furcationEntrances(toothNo).includes(entrance)) return;
   let s = toothState.get(toothNo);
   if(!s){ s = defaultState(); toothState.set(toothNo, s); }
-  const furcation = s.furcation as Map<string, number>;
+  // DS-1: gate the mutation (see setPerioSite). Returns whether it changed so a
+  // rejected/no-op edit is neither marked plan-edited nor mirrored.
+  gateToothEdit(toothNo, () => {
+    const furcation = s.furcation as Map<string, number>;
 
-  if(grade === null || grade === undefined){
-    if(furcation.has(entrance)){ furcation.delete(entrance); notifyStateChange(); }
-    return;
-  }
-  if(!Number.isInteger(grade) || !VALID_FURCATION_GRADE.has(grade)) return;
-  if(furcation.get(entrance) !== grade){ furcation.set(entrance, grade); notifyStateChange(); }
+    if(grade === null || grade === undefined){
+      if(furcation.has(entrance)){ furcation.delete(entrance); notifyStateChange(); return true; }
+      return false;
+    }
+    if(!Number.isInteger(grade) || !VALID_FURCATION_GRADE.has(grade)) return false;
+    if(furcation.get(entrance) !== grade){ furcation.set(entrance, grade); notifyStateChange(); return true; }
+    return false;
+  });
 }
 
 /** Read a tooth's furcation sub-record from the active chart as a PLAIN
@@ -5573,12 +5928,17 @@ export function setPlaque(toothNo: number, surface: string, present: boolean): v
   if(!VALID_PLAQUE_SURFACE.has(surface)) return;
   let s = toothState.get(toothNo);
   if(!s){ s = defaultState(); toothState.set(toothNo, s); }
-  const plaque = s.plaque as Set<string>;
-  if(present){
-    if(!plaque.has(surface)){ plaque.add(surface); notifyStateChange(); }
-  }else{
-    if(plaque.has(surface)){ plaque.delete(surface); notifyStateChange(); }
-  }
+  // DS-1: gate the mutation (see setPerioSite). Returns whether it changed so a
+  // no-op edit is neither marked plan-edited nor mirrored.
+  gateToothEdit(toothNo, () => {
+    const plaque = s.plaque as Set<string>;
+    if(present){
+      if(!plaque.has(surface)){ plaque.add(surface); notifyStateChange(); return true; }
+    }else{
+      if(plaque.has(surface)){ plaque.delete(surface); notifyStateChange(); return true; }
+    }
+    return false;
+  });
 }
 
 /** Read a tooth's plaque sub-record from the active chart as a PLAIN array
@@ -5843,11 +6203,13 @@ export function setToothMobility(toothNo: number, value: string): void {
   let s = toothState.get(toothNo);
   if(!s){ s = defaultState(); toothState.set(toothNo, s); }
   if(s.mobility === value) return;
-  s.mobility = value;
-  applyStateToSvg(toothNo);
-  updateToothTileNumber(toothNo);
-  if(toothNo === activeTooth) syncControlsFromState(toothState.get(toothNo));
-  notifyStateChange();
+  gateToothEdit(toothNo, () => {
+    s.mobility = value;
+    applyStateToSvg(toothNo);
+    updateToothTileNumber(toothNo);
+    if(toothNo === activeTooth) syncControlsFromState(toothState.get(toothNo));
+    notifyStateChange();
+  });
 }
 
 // ---- Periodontal-arc sub-project P2, Task 1: perio-chart overlay open/close ----
@@ -6207,6 +6569,14 @@ function hydrateImportedCharts(data: Any): void {
     charts.plan.clear();
     planInitialized = false;
   }
+  // DS-1: an import replaces the whole case — a freshly imported plan carries
+  // no runtime plan-edits (they are never serialized), so drop any stale marks
+  // regardless of whether the import brought a `plan` section.
+  planEditedTeeth.clear();
+  // DS-1 (review Fix 2): also drop any pending dual-state confirm. Its deferred
+  // `applyFn` was captured against the PRE-import state; a later
+  // acceptDualStateConfirm() must never run it against freshly-hydrated charts.
+  pendingDualStateConfirm = null;
 }
 
 /**
@@ -6300,18 +6670,61 @@ function applyStatusExtra(option: Any){
   const archTeeth = (arch)=> meta?.[arch] || [];
   const archWisdom = (arch)=> meta?.wisdom?.[arch] || [];
 
-  const applyChanges = (teeth, fn)=>{
+  // DS-1 (review Fix 1+2): a Statuses preset is a SINGLE atomic interactive edit
+  // over a SET of teeth — it MUST go through the batch gate exactly once (like
+  // setEdentulous / the dentition presets), NOT a per-tooth `gateToothEdit` loop.
+  // Per-tooth gating was doubly broken: (1) a preset touching >=2 already
+  // plan-edited teeth hit the confirm's single-slot guard on the 2nd+ tooth, so
+  // that tooth's edit was silently discarded even after Accept (data loss);
+  // (2) a preset touching a planned + an unplanned tooth applied the unplanned
+  // tooth immediately (before the user answered the confirm), so Cancel left a
+  // partial apply. The fix: PRECOMPUTE the set of teeth the preset will ACTUALLY
+  // change (same skip/predicate/unchanged-value detection the per-tooth path
+  // used, via a serialized before/after comparison, computed on a CLONE so
+  // nothing is committed before the gate resolves), then apply ALL of them in
+  // ONE `gateToothEditBatch` closure — ONE confirm if any changed tooth is
+  // plan-edited, apply-all-or-none, and mark/mirror only the actually-changed
+  // teeth. `changes` accumulates across the (possibly several) `collect()` calls
+  // a single preset makes (bar-denture makes three), so the WHOLE preset is one
+  // atomic batch. Uninitialized plan stays a pure passthrough (byte-identical).
+  const changes = new Map<number, Any>(); // toothNo -> precomputed next state
+  const collect = (teeth, fn)=>{
     for(const toothNo of teeth){
-      const s = toothState.get(toothNo) ?? defaultState();
-      const next = fn(s, toothNo) || s;
-      toothState.set(toothNo, next);
-      applyStateToSvg(toothNo);
-      updateToothTileNumber(toothNo);
+      // Base successive collects for the same tooth on the prior collect's result
+      // (so multi-collect presets compose exactly like the old sequential
+      // per-tooth application), else on the tooth's current committed state.
+      const base = changes.get(toothNo) ?? toothState.get(toothNo) ?? defaultState();
+      const clone = hydrateState(serializeState(base), false);
+      const next = fn(clone, toothNo) || clone;
+      changes.set(toothNo, next);
     }
-    if(activeTooth){
-      syncControlsFromState(toothState.get(activeTooth));
-    }
-    updateSelectionFilterButtons();
+  };
+  const commit = ()=>{
+    // Keep only teeth whose FINAL next state differs from what is committed now —
+    // this uniformly drops the three no-op cases (wisdom skip, predicate
+    // mismatch, unchanged value) so the gate never marks/mirrors an unchanged
+    // tooth (mirroring how setPerioSite/setFurcation/setPlaque signal `changed`).
+    const entries = [...changes.entries()].filter(([toothNo, next]) =>
+      JSON.stringify(serializeState(next)) !== JSON.stringify(serializeState(toothState.get(toothNo) ?? defaultState())));
+    const changed = entries.map(([toothNo]) => toothNo);
+    gateToothEditBatch(changed, ()=>{
+      for(const [toothNo, next] of entries){
+        toothState.set(toothNo, next);
+        applyStateToSvg(toothNo);
+        updateToothTileNumber(toothNo);
+      }
+      if(activeTooth){
+        syncControlsFromState(toothState.get(activeTooth));
+      }
+      updateSelectionFilterButtons();
+      // B9: applyStateToSvg only touches per-tooth SVG; notifyStateChange() is
+      // what drives updateBridgeOverlay() (the bridge-span connector) + every
+      // listener. Fire it ONCE here, after all changed teeth are applied — and
+      // INSIDE the gated closure so it runs when the batch actually applies
+      // (synchronously on the immediate path; on Accept for a deferred confirm),
+      // never while the confirm is still pending.
+      notifyStateChange();
+    });
   };
 
   // Legacy crownMaterial values only ever offered "zircon" | "metal" here; fold
@@ -6338,19 +6751,14 @@ function applyStatusExtra(option: Any){
   };
 
   if(option.type === "span"){
-    applyChanges(option.teeth || [], (s)=>{
+    collect(option.teeth || [], (s)=>{
       if(s.toothSelection === "tooth-base"){
         setBridgeCrown(s, option.material);
       }else if(s.toothSelection === "none"){
         setBridgePontic(s, option.material);
       }
     });
-    // B9: applyChanges() only touches per-tooth SVG (applyStateToSvg); it never
-    // calls notifyStateChange(), so updateBridgeOverlay() (the only caller of
-    // renderBridgeOverlay()) never runs and a bridge added via a Statuses
-    // preset shows no connector. Fire it once here, after all teeth in this
-    // preset are applied, not per-tooth.
-    notifyStateChange();
+    commit();
     return;
   }
 
@@ -6364,7 +6772,7 @@ function applyStatusExtra(option: Any){
       const startIdx = teeth.indexOf(first);
       const endIdx = teeth.indexOf(last);
       const between = startIdx < endIdx ? teeth.slice(startIdx + 1, endIdx) : [];
-      applyChanges(teeth, (s, tn)=>{
+      collect(teeth, (s, tn)=>{
         if(wisdom.has(tn)) return;
         if(s.toothSelection === "tooth-base"){
           setBridgeCrown(s, option.material);
@@ -6373,40 +6781,40 @@ function applyStatusExtra(option: Any){
         }
       });
     }else{
-      applyChanges(teeth, (s, tn)=>{
+      collect(teeth, (s, tn)=>{
         if(wisdom.has(tn)) return;
         if(s.toothSelection === "tooth-base"){
           setBridgeCrown(s, option.material);
         }
       });
     }
-    notifyStateChange();
+    commit();
     return;
   }
 
   if(option.type === "partial-removable"){
     const teeth = archTeeth(option.arch);
     const wisdom = new Set(archWisdom(option.arch));
-    applyChanges(teeth, (s, tn)=>{
+    collect(teeth, (s, tn)=>{
       if(wisdom.has(tn)) return;
       if(s.toothSelection === "none"){
         s.prosthesis = "removable-partial";
       }
     });
-    notifyStateChange();
+    commit();
     return;
   }
 
   if(option.type === "full-removable"){
     const teeth = archTeeth(option.arch);
     const wisdom = new Set(archWisdom(option.arch));
-    applyChanges(teeth, (_s, tn)=>{
+    collect(teeth, (_s, tn)=>{
       const next = defaultState();
       next.toothSelection = "none";
       next.prosthesis = wisdom.has(tn) ? "none" : "removable-full";
       return next;
     });
-    notifyStateChange();
+    commit();
     return;
   }
 
@@ -6415,24 +6823,24 @@ function applyStatusExtra(option: Any){
     const missingTeeth = option.missing || [];
     const archTeeth = option.arch ? (getStatusExtrasMeta()?.[option.arch] || []) : [];
     const sevenEight = archTeeth.filter(tn => [7,8].includes(tn % 10));
-    applyChanges(implantTeeth, (_s, _tn)=>{
+    collect(implantTeeth, (_s, _tn)=>{
       const next = defaultState();
       next.toothSelection = "implant";
       next.prosthesis = "bar-denture";
       return next;
     });
-    applyChanges(missingTeeth, (_s, _tn)=>{
+    collect(missingTeeth, (_s, _tn)=>{
       const next = defaultState();
       next.toothSelection = "none";
       next.prosthesis = "bar-denture";
       return next;
     });
-    applyChanges(sevenEight, (_s, _tn)=>{
+    collect(sevenEight, (_s, _tn)=>{
       const next = defaultState();
       next.toothSelection = "none";
       return next;
     });
-    notifyStateChange();
+    commit();
   }
 }
 
@@ -7023,16 +7431,7 @@ function wireControls(){
   // Reset buttons
   $("#btnResetTooth").addEventListener("click", ()=>{
     if(selectedTeeth.size === 0) return;
-    setEdentulous(false);
-    for(const toothNo of selectedTeeth){
-      toothState.set(toothNo, defaultState());
-      applyStateToSvg(toothNo);
-      updateToothTileNumber(toothNo);
-    }
-    if(activeTooth){
-      setControlsEnabled(true);
-      syncControlsFromState(toothState.get(activeTooth));
-    }
+    resetTeethGated(Array.from(selectedTeeth) as number[]);
   });
 
   $("#btnResetAll").addEventListener("click", ()=>{
@@ -7048,43 +7447,9 @@ function wireControls(){
     }
   });
 
-  $("#btnPrimaryDentition").addEventListener("click", ()=>{
-    setEdentulous(false);
-    suppressEdentulousSync = true;
-    for(const toothNo of ALL_TEETH){
-      const s = defaultState();
-      if(PRIMARY_MILK.has(toothNo)){
-        s.toothSelection = "milktooth";
-      }else{
-        s.toothSelection = "none";
-      }
-      toothState.set(toothNo, s);
-      applyStateToSvg(toothNo);
-      updateToothTileNumber(toothNo);
-    }
-    suppressEdentulousSync = false;
-    if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
-  });
+  $("#btnPrimaryDentition").addEventListener("click", applyPrimaryDentition);
 
-  $("#btnMixedDentition").addEventListener("click", ()=>{
-    setEdentulous(false);
-    suppressEdentulousSync = true;
-    for(const toothNo of ALL_TEETH){
-      const s = defaultState();
-      if(MIXED_PERMANENT.has(toothNo)){
-        s.toothSelection = "tooth-base";
-      }else if(MIXED_MILK.has(toothNo)){
-        s.toothSelection = "milktooth";
-      }else if(MIXED_NONE.has(toothNo)){
-        s.toothSelection = "none";
-      }
-      toothState.set(toothNo, s);
-      applyStateToSvg(toothNo);
-      updateToothTileNumber(toothNo);
-    }
-    suppressEdentulousSync = false;
-    if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
-  });
+  $("#btnMixedDentition").addEventListener("click", applyMixedDentition);
 
   // Status extras
   const statusExtras = getStatusExtras();
@@ -7356,6 +7721,8 @@ export function destroyOdontogram(){
   charts.status.clear();
   charts.plan.clear();
   planInitialized = false;
+  planEditedTeeth.clear();
+  pendingDualStateConfirm = null;
   chartMode = "status";
   toothState = charts.status;
   toothSvgRoot.clear();

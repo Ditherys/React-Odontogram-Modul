@@ -1324,6 +1324,55 @@ select:focus{
   }
 }
 
+/* DS-1 Task 2: blocking confirm dialog (status edit on a planned tooth).
+   Mirrors .odon-settings-backdrop/.odon-settings-modal's look. Layered ABOVE
+   every other overlay/modal (settings 150, perio overlay 160) because it is a
+   blocking confirmation — nothing may sit over it. */
+.odon-confirm-backdrop{
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  background: rgba(20,28,40,.55);
+  backdrop-filter: blur(4px);
+  animation: odon-fade-in .12s ease;
+}
+.odon-confirm-modal{
+  position: relative;
+  display: flex; flex-direction: column; gap: 18px;
+  width: min(420px, 96vw);
+  padding: 22px 22px 18px;
+  background: var(--panel, #fff);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(20,28,40,.30);
+  animation: odon-ctx-pop .12s ease;
+}
+.odon-confirm-message{
+  margin: 0; font-size: 14px; line-height: 1.5; color: var(--text);
+}
+.odon-confirm-actions{
+  display: flex; justify-content: flex-end; gap: 10px;
+}
+.odon-confirm-btn{
+  padding: 8px 16px;
+  border: 1px solid var(--line); border-radius: 10px;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer;
+}
+.odon-confirm-btn:focus-visible{
+  outline: none; box-shadow: 0 0 0 3px rgba(59,123,255,.35);
+}
+.odon-confirm-cancel{
+  background: rgba(0,0,0,.04); color: var(--text);
+}
+.odon-confirm-cancel:hover{ background: rgba(0,0,0,.08); }
+.odon-confirm-accept{
+  background: var(--brand, #3b7bff); color: #fff; border-color: transparent;
+}
+.odon-confirm-accept:hover{ filter: brightness(1.05); }
+.dark .odon-confirm-cancel{ background: rgba(255,255,255,.06); }
+.dark .odon-confirm-cancel:hover{ background: rgba(255,255,255,.12); }
+
 /* P2 Task 1: perio-chart overlay shell. Full-screen, layered ABOVE the
    odontogram (which it never unmounts) — higher z-index than every other
    overlay/modal in this file (settings modal is 150). Mirrors
