@@ -825,3 +825,242 @@ export function buildMmGridLayer(opts: {
 
   return g;
 }
+
+// ---------------------------------------------------------------------------
+// PG-B Task 2: the discrete-highlight overlay layers (BOP / plaque / >=5mm /
+// >=6mm). Display-only marks drawn OVER the arch, in the SAME row-local
+// coordinate space (and via the SAME `archToothLayout` site x-positions +
+// `PERIO_MM_PX`) the teeth + curve ride — so a mark lands on exactly the site
+// it describes, on both arches, after the T1 occlusal-to-occlusal flip.
+//
+// The pure geometry (`perioOverlayMarks`/`perioPlaqueMarks`) turns per-site /
+// per-tooth-surface readings into positioned marks; the pure DOM builder
+// (`buildPerioOverlayLayer`) renders them into an aria-hidden `<g>`. Both are
+// DOM-free logic tested in isolation (mirrors `perioCurve`/
+// `buildPerioCurveLayer`); `PerioChart.drawArchOverlay` wires them to the live
+// perio data + appends the result into the oriented row groups.
+// ---------------------------------------------------------------------------
+
+/** A single positioned overlay mark (row-local coordinate space). `kind`
+ *  selects the CSS class / colour: a red BOP dot, a plaque mark, or a
+ *  pocket-threshold heat spot (`pd5`/`pd6`). */
+export interface OverlayMark {
+  x: number;
+  y: number;
+  kind: "bop" | "plaque" | "pd5" | "pd6" | "heat-shallow" | "heat-moderate" | "heat-deep";
+}
+
+/** One ordered site's reading for the discrete site-based overlays. `pd`
+ *  absent/undefined == "not charted" (never marked). Same shape/orientation
+ *  convention as {@link PerioCurveSite}, plus the site's `x` and its `bop`
+ *  flag. */
+export interface PerioOverlaySite {
+  x: number;
+  pd?: number | null;
+  gm?: number | null;
+  bop?: boolean;
+  /** Clinical attachment level (= pd + gm), as returned by `getToothCal`. Only
+   *  populated/consumed by the PG-B Task 3 CAL heat overlay; every other
+   *  discrete overlay (bop/pd5/pd6) ignores it. Kept on this shared shape
+   *  (rather than a parallel interface) since it reuses the exact same x/pd/gm
+   *  fields `collectOverlayInput` already builds. */
+  cal?: number | null;
+}
+
+/** Discrete overlay layers that are site-based (one mark per probing site). */
+export type SiteOverlayLayer = "bop" | "pd5" | "pd6";
+
+/**
+ * Pure geometry for the site-based discrete overlays. Uses the EXACT same
+ * coordinate math as `perioCurve` (`marginY = cejY + gm*mmPx`, `pocketY =
+ * marginY + pd*mmPx`), so a mark sits on the same point the curve draws:
+ *   - `bop`      : a dot at the gingival MARGIN of every bleeding, charted
+ *                  site (a bop flag on an uncharted site is ignored, mirroring
+ *                  `getPerioSummary().bopPercent`).
+ *   - `pd5`/`pd6`: a heat spot at the POCKET BASE of every charted site whose
+ *                  probing depth is >= 5 / >= 6 mm.
+ * An uncharted site (`pd` undefined/null) never produces a mark.
+ */
+export function perioOverlayMarks(
+  layer: SiteOverlayLayer,
+  sites: readonly PerioOverlaySite[],
+  opts: { cejY: number; mmPx: number },
+): OverlayMark[] {
+  const { cejY, mmPx } = opts;
+  const out: OverlayMark[] = [];
+  for (const s of sites) {
+    const charted = s.pd !== undefined && s.pd !== null;
+    if (!charted) continue;
+    const pd = s.pd as number;
+    const marginY = cejY + (s.gm ?? 0) * mmPx;
+    if (layer === "bop") {
+      if (s.bop) out.push({ x: s.x, y: marginY, kind: "bop" });
+    } else {
+      const threshold = layer === "pd5" ? 5 : 6;
+      if (pd >= threshold) out.push({ x: s.x, y: marginY + pd * mmPx, kind: layer });
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// PG-B Task 3: the continuous mm heat overlays (PD / CAL / GR). Unlike T2's
+// discrete threshold marks (bop/pd5/pd6, each a fixed pass/fail highlight),
+// these heat-colour EVERY charted site by how deep its reading is, via a
+// small pure value->bucket ramp (unit-testable in isolation, mirroring
+// `perioOverlayMarks`'s pure-geometry shape). Bucket names double as the mark
+// `kind` (prefixed "heat-"), so `buildPerioOverlayLayer` needs no changes —
+// it already classes/sizes a circle purely from `mark.kind`.
+// ---------------------------------------------------------------------------
+
+/** Severity bucket for a continuous mm heat overlay — shallow/moderate/deep,
+ *  reused across PD, CAL, and GR (each with its own threshold ramp below). */
+export type MmHeatBucket = "shallow" | "moderate" | "deep";
+
+/**
+ * Pure ramp for a probing-style distance in mm — PD (raw probing depth) or
+ * CAL (`pd + gm`, i.e. attachment loss from the CEJ). Thresholds mirror the
+ * existing T2 pd5/pd6 discrete-overlay thresholds (>=4mm starts to matter
+ * clinically, >=6mm is a deep/severe pocket), so the new heat scale and the
+ * old discrete >=5mm/>=6mm highlights read consistently side by side.
+ */
+export function pdCalHeatBucket(mm: number): MmHeatBucket {
+  if (mm >= 6) return "deep";
+  if (mm >= 4) return "moderate";
+  return "shallow";
+}
+
+/**
+ * Pure ramp for gingival recession (`gm`, in mm — only meaningful when
+ * `gm > 0`; a non-positive `gm` is a pseudopocket/coronal margin, never
+ * recession, and must be filtered out by the caller before ramping). Lower
+ * thresholds than {@link pdCalHeatBucket}: recession is measured on a
+ * shallower clinical scale than pocket/attachment depth.
+ */
+export function recessionHeatBucket(mm: number): MmHeatBucket {
+  if (mm >= 4) return "deep";
+  if (mm >= 2) return "moderate";
+  return "shallow";
+}
+
+/** The 3 continuous mm heat overlay layers. */
+export type MmHeatOverlayLayer = "pd" | "cal" | "gr";
+
+/**
+ * Pure geometry for the continuous mm heat overlays. Reuses the EXACT same
+ * coordinate math as `perioCurve`/`perioOverlayMarks` (`marginY = cejY +
+ * gm*mmPx`, `pocketY = marginY + pd*mmPx`):
+ *   - `pd` : every charted site, heat-bucketed by probing depth, marked at the
+ *            pocket base (same point the pd5/pd6 discrete marks use).
+ *   - `cal`: every charted site, heat-bucketed by CAL (`site.cal`, falling
+ *            back to `pd + gm` if the caller didn't attach it — the two are
+ *            always numerically identical, see `getToothCal`), marked at the
+ *            SAME pocket-base point (`cejY + cal*mmPx === cejY + (pd+gm)*mmPx`
+ *            — CAL measured from the CEJ IS the pocket base).
+ *   - `gr` : only sites with recession (`gm > 0`) are marked, heat-bucketed by
+ *            `gm` via {@link recessionHeatBucket}, at the gingival margin
+ *            (the same point the recession sits at — mirrors `bop`'s
+ *            margin-point placement).
+ * An uncharted site (`pd` undefined/null) never produces a mark, matching
+ * every other site-based overlay.
+ */
+export function perioMmHeatMarks(
+  layer: MmHeatOverlayLayer,
+  sites: readonly PerioOverlaySite[],
+  opts: { cejY: number; mmPx: number },
+): OverlayMark[] {
+  const { cejY, mmPx } = opts;
+  const out: OverlayMark[] = [];
+  for (const s of sites) {
+    const charted = s.pd !== undefined && s.pd !== null;
+    if (!charted) continue;
+    const pd = s.pd as number;
+    const gm = s.gm ?? 0;
+
+    if (layer === "gr") {
+      if (gm <= 0) continue;
+      out.push({ x: s.x, y: cejY + gm * mmPx, kind: `heat-${recessionHeatBucket(gm)}` });
+      continue;
+    }
+
+    const mm = layer === "cal" ? s.cal ?? pd + gm : pd;
+    const y = cejY + (gm + pd) * mmPx; // pocket base — equals cejY + cal*mmPx for CAL
+    out.push({ x: s.x, y, kind: `heat-${pdCalHeatBucket(mm)}` });
+  }
+  return out;
+}
+
+/** One tooth's plaque input for {@link perioPlaqueMarks}: its row-local x +
+ *  viewBox width and the set of O'Leary surfaces that carry plaque. */
+export interface PerioPlaqueTooth {
+  x: number;
+  width: number;
+  surfaces: readonly string[];
+}
+
+/**
+ * Pure geometry for the plaque overlay: one mark per charted O'Leary surface,
+ * placed on the tooth's cervical band (at the shared CEJ baseline). Plaque is
+ * a whole-tooth, 4-surface index (mesial/distal/buccal/lingual) rather than a
+ * per-probing-site reading, so the marks split across the two rows:
+ *   - the BUCCAL aspect shows mesial/buccal/distal (interproximal + facial),
+ *   - the PALATAL/LINGUAL aspect shows lingual.
+ * This way every charted surface is drawn exactly once across the two rows.
+ */
+export function perioPlaqueMarks(
+  teeth: readonly PerioPlaqueTooth[],
+  aspect: "buccal" | "palatal",
+  opts: { cejY: number; mmPx: number },
+): OverlayMark[] {
+  const out: OverlayMark[] = [];
+  for (const tooth of teeth) {
+    const has = (surface: string) => tooth.surfaces.includes(surface);
+    if (aspect === "buccal") {
+      if (has("mesial")) out.push({ x: tooth.x + tooth.width * 0.2, y: opts.cejY, kind: "plaque" });
+      if (has("buccal")) out.push({ x: tooth.x + tooth.width * 0.5, y: opts.cejY, kind: "plaque" });
+      if (has("distal")) out.push({ x: tooth.x + tooth.width * 0.8, y: opts.cejY, kind: "plaque" });
+    } else {
+      if (has("lingual")) out.push({ x: tooth.x + tooth.width * 0.5, y: opts.cejY, kind: "plaque" });
+    }
+  }
+  return out;
+}
+
+/** Per-kind marker radius (row-local units). BOP dots read small + crisp; the
+ *  pocket-threshold heat spots are larger fills; plaque sits between. */
+const OVERLAY_MARK_RADIUS: Record<OverlayMark["kind"], number> = {
+  bop: 2,
+  plaque: 2.6,
+  pd5: 3.4,
+  pd6: 4,
+  "heat-shallow": 2.4,
+  "heat-moderate": 3.2,
+  "heat-deep": 4.2,
+};
+
+/**
+ * Build the overlay `<g>` for ONE row from a positioned mark list: an
+ * aria-hidden group (decorative — the accessible data lives in the number
+ * cells/summary) of one `<circle>` per mark, classed `perio-overlay-{kind}`
+ * so CSS colours the BOP dot red, the plaque mark, and the pd5/pd6 heat spots.
+ * Pure DOM (jsdom in tests / the browser at runtime) — no perio-module call,
+ * so it is trivially unit-testable and parity-irrelevant.
+ */
+export function buildPerioOverlayLayer(
+  marks: readonly OverlayMark[],
+  opts: { width: number; className?: string },
+): SVGGElement {
+  const g = document.createElementNS(SVG_NS, "g") as unknown as SVGGElement;
+  g.setAttribute("class", `perio-overlay-layer${opts.className ? ` ${opts.className}` : ""}`);
+  g.setAttribute("aria-hidden", "true");
+  for (const mark of marks) {
+    const c = document.createElementNS(SVG_NS, "circle");
+    c.setAttribute("class", `perio-overlay-mark perio-overlay-${mark.kind}`);
+    c.setAttribute("data-kind", mark.kind);
+    c.setAttribute("cx", fmt(mark.x));
+    c.setAttribute("cy", fmt(mark.y));
+    c.setAttribute("r", fmt(OVERLAY_MARK_RADIUS[mark.kind]));
+    g.appendChild(c);
+  }
+  return g;
+}

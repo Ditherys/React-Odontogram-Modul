@@ -91,6 +91,10 @@ vi.mock("../odontogram", async () => {
     // did to the shared module state.
     getPerioViewMode: vi.fn().mockReturnValue("popup"),
     setPerioViewMode: vi.fn(),
+    // PG-B Task 2: PerioChart now reads/sets the overlay-layer flag — forward
+    // the real implementations so its switcher/overlay effects work here.
+    getPerioOverlayLayer: actual.getPerioOverlayLayer,
+    setPerioOverlayLayer: actual.setPerioOverlayLayer,
     isDualStateConfirmPending: vi.fn().mockReturnValue(false),
     acceptDualStateConfirm: vi.fn(),
     cancelDualStateConfirm: vi.fn(),

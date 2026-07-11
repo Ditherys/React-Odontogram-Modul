@@ -91,6 +91,10 @@ vi.mock("../odontogram", async () => {
     isPerioOverlayOpen: actual.isPerioOverlayOpen,
     getPerioViewMode: actual.getPerioViewMode,
     setPerioViewMode: actual.setPerioViewMode,
+    // PG-B Task 2: PerioChart now reads/sets the overlay-layer flag — forward
+    // the real implementations so its switcher/overlay effects work here.
+    getPerioOverlayLayer: actual.getPerioOverlayLayer,
+    setPerioOverlayLayer: actual.setPerioOverlayLayer,
     isDualStateConfirmPending: actual.isDualStateConfirmPending,
     acceptDualStateConfirm: actual.acceptDualStateConfirm,
     cancelDualStateConfirm: actual.cancelDualStateConfirm,

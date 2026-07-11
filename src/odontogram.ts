@@ -6262,6 +6262,35 @@ export function setPerioViewMode(mode: PerioViewMode): void {
   notifyStateChange();
 }
 
+// ---- Periodontal "Dental Chart" PG-B Task 2: the index-switcher overlay ----
+// Session-level UI preference (no payload/FHIR change) selecting WHICH
+// clinical index is highlighted OVER the Dental Chart arch graphic, on top of
+// the always-drawn PD/GM curve. Purely a DISPLAY selector over existing perio
+// data — it never mutates a tooth's state, adds an axis, or touches the live
+// odontogram, so SVG-fingerprint / FHIR / round-trip goldens are unaffected.
+//   - "none"    : no overlay (default).
+//   - "plaque"  : marks on O'Leary plaque surfaces (getToothPlaque).
+//   - "bop"     : dots on bleeding-on-probing sites (perio.bop).
+//   - "pd5"/"pd6": highlight sites whose probing depth >= 5 / >= 6 mm.
+//   - "pd"/"cal"/"gr": reserved for T3's continuous heat (no-op stubs here).
+// Lives alongside `perioViewMode` (same session-state precedent) and reuses
+// the existing `onStateChange` subscription — PerioChart mirrors it into React
+// state (for the active-button/read-out) and redraws the overlay on notify.
+export type PerioOverlayLayer = "none" | "pd" | "cal" | "gr" | "plaque" | "bop" | "pd5" | "pd6";
+let perioOverlayLayer: PerioOverlayLayer = "none";
+
+/** Current Dental Chart overlay layer. Defaults to `"none"`. */
+export function getPerioOverlayLayer(): PerioOverlayLayer {
+  return perioOverlayLayer;
+}
+
+/** Select the Dental Chart overlay layer. Always notifies (so the overlay
+ *  redraws + the switcher's active state updates) even when unchanged. */
+export function setPerioOverlayLayer(layer: PerioOverlayLayer): void {
+  perioOverlayLayer = layer;
+  notifyStateChange();
+}
+
 function downloadJson(payload: Any, filenamePrefix: string){
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);

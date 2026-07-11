@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.40.0] - 2026-07-11
+### Added
+- **Index switcher on the Dental Chart.** A toggle row highlights the teeth by a chosen periodontal measure — probing depth, CAL, recession, plaque, bleeding, or ≥5 mm/≥6 mm deep-pocket heat — repainting the same tooth diagram (one canvas, swappable layer). All layers are computed from the data you already entered (no new measurements); API `getPerioOverlayLayer()` / `setPerioOverlayLayer()`.
+- **Info popups on the perio rows.** A small "i" icon on each row label (PD, GM, CAL, BOP, plaque, furcation, mobility) opens a short explanation of that index. No payload/FHIR change.
+
 ## [1.39.0] - 2026-07-11
 ### Changed
 - **Smarter Status ↔ Plan editing.** After a plan exists, editing a tooth's **status** now updates the **plan** too — *as long as you haven't planned anything on that tooth yet* — so correcting the current reality no longer shows up as a planned change in the "What changes" box. If you edit the status of a tooth that **does** have planned changes, a **confirmation** appears first; on confirm the status change applies (and the plan stays as planned, so the difference is shown). Whole-mouth actions (Statuses presets, Edentulous, dentition presets) follow the same rule atomically — one confirmation, applied all-or-nothing. No payload/FHIR change.

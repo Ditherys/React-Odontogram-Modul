@@ -24,7 +24,10 @@ import {
   onStateChange,
   nextPerioCell,
   prevPerioCell,
+  getPerioOverlayLayer,
+  setPerioOverlayLayer,
   type PerioCellCoord,
+  type PerioOverlayLayer,
 } from "./odontogram";
 import {
   loadTemplateCache,
@@ -32,12 +35,19 @@ import {
   archToothLayout,
   perioCurve,
   buildPerioCurveLayer,
+  perioOverlayMarks,
+  perioPlaqueMarks,
+  perioMmHeatMarks,
+  buildPerioOverlayLayer,
   PERIO_MM_PX,
   TOOTH_GAP,
   PERIO_DISPLAY_SCALE,
   type TemplateDocCache,
   type ArchLayout,
   type PerioCurveSite,
+  type PerioOverlaySite,
+  type SiteOverlayLayer,
+  type MmHeatOverlayLayer,
 } from "./perioGraphic";
 
 // Width of the sticky left-hand row-label column (px). The arch graphic and
@@ -188,15 +198,243 @@ function drawArchCurves(cache: TemplateDocCache, container: HTMLElement | null, 
   palatalParent.appendChild(lingualLayer);
 }
 
+// PG-B Task 2/3 switcher: the overlay layers offered by the switch row, in
+// display order. T2 shipped the discrete highlights (bop/plaque/pd5/pd6); T3
+// adds the continuous mm heat layers (pd/cal/gr).
+const SWITCHER_LAYERS: readonly PerioOverlayLayer[] = ["none", "pd", "cal", "gr", "bop", "plaque", "pd5", "pd6"];
+
+// PG-B Task 2 overlay: gather one row's ordered per-site {x, pd, gm, bop}
+// readings — the SAME per-tooth x/width `archToothLayout` gives the arch teeth
+// (and the curve), so the overlay marks track the teeth. Reads getToothPerio
+// (active chart) -> status/plan aware + live-updates, mirroring
+// `collectCurveInput`.
+function collectOverlayInput(layout: ArchLayout, siteKeys: readonly PerioSite[]): PerioOverlaySite[] {
+  const out: PerioOverlaySite[] = [];
+  for (const tooth of layout.teeth) {
+    const perio = getToothPerio(tooth.toothNo);
+    siteKeys.forEach((site, j) => {
+      const charted = Object.prototype.hasOwnProperty.call(perio.pd, site);
+      out.push({
+        x: tooth.x + (tooth.width * (j + 0.5)) / 3,
+        pd: charted ? perio.pd[site] : undefined,
+        gm: Object.prototype.hasOwnProperty.call(perio.gm, site) ? perio.gm[site] : undefined,
+        bop: perio.bop.includes(site),
+      });
+    });
+  }
+  return out;
+}
+
+// PG-B Task 3 overlay: gather one row's ordered per-site {x, pd, gm, cal}
+// readings for the continuous mm heat overlays — same shape/x-positioning as
+// `collectOverlayInput`, plus the site's CAL (via the REAL `getToothCal`, not
+// a re-derived `pd+gm`, so the heat overlay can never drift from the public
+// CAL definition). Reads getToothPerio/getToothCal (active chart) ->
+// status/plan aware + live-updates, mirroring `collectOverlayInput`.
+function collectMmHeatInput(layout: ArchLayout, siteKeys: readonly PerioSite[]): PerioOverlaySite[] {
+  const out: PerioOverlaySite[] = [];
+  for (const tooth of layout.teeth) {
+    const perio = getToothPerio(tooth.toothNo);
+    const cal = getToothCal(tooth.toothNo);
+    siteKeys.forEach((site, j) => {
+      const charted = Object.prototype.hasOwnProperty.call(perio.pd, site);
+      out.push({
+        x: tooth.x + (tooth.width * (j + 0.5)) / 3,
+        pd: charted ? perio.pd[site] : undefined,
+        gm: Object.prototype.hasOwnProperty.call(perio.gm, site) ? perio.gm[site] : undefined,
+        cal: cal.has(site) ? cal.get(site) : undefined,
+      });
+    });
+  }
+  return out;
+}
+
+/**
+ * PG-B Task 2/3: draw (or clear) the overlay for ONE arch band into the arch
+ * SVG `buildArchGraphic` produced. Stale overlay layers are removed first, so
+ * this is safe to call on every state / layer change. The overlay `<g>` is
+ * appended INTO the SAME oriented row groups the teeth + curve ride
+ * (`.perio-tooth-row-buccal` / `.perio-tooth-row-palatal-inner`), so the T1
+ * occlusal-to-occlusal flip + the palatal mirror carry the marks along with
+ * the teeth — one coordinate space, no divergent geometry (it reuses
+ * `archToothLayout` + `PERIO_MM_PX`, exactly like `drawArchCurves`).
+ *
+ * `none` draws nothing (after the stale clear), so selecting None leaves a
+ * bare arch. Exported for direct unit testing against a hand-built template
+ * cache (see pgb-switcher.test.ts / pgb-mm-overlays.test.ts); the component
+ * calls it from the graphic effect.
+ */
+export function drawArchOverlay(
+  cache: TemplateDocCache,
+  container: HTMLElement | null,
+  teeth: readonly number[],
+  layer: PerioOverlayLayer,
+): void {
+  if (!container) return;
+  const svg = container.querySelector("svg.perio-tooth-arch");
+  if (!svg) return;
+  // Remove any stale overlay first (safe to call on every state/layer change).
+  svg.querySelectorAll(".perio-overlay-layer").forEach((el) => el.remove());
+  if (layer === "none") return;
+
+  const buccalParent = (svg.querySelector(".perio-tooth-row-buccal") as SVGGElement | null) ?? svg;
+  const palatalParent = (svg.querySelector(".perio-tooth-row-palatal-inner") as SVGGElement | null) ?? svg;
+
+  const layout = archToothLayout(cache, teeth);
+  const opts = { cejY: layout.cejY, mmPx: PERIO_MM_PX };
+  const className = `perio-overlay-${layer}`;
+
+  if (layer === "plaque") {
+    const plaqueTeeth = layout.teeth.map((tooth) => ({
+      x: tooth.x,
+      width: tooth.width,
+      surfaces: getToothPlaque(tooth.toothNo),
+    }));
+    buccalParent.appendChild(
+      buildPerioOverlayLayer(perioPlaqueMarks(plaqueTeeth, "buccal", opts), { width: layout.totalWidth, className }),
+    );
+    palatalParent.appendChild(
+      buildPerioOverlayLayer(perioPlaqueMarks(plaqueTeeth, "palatal", opts), { width: layout.totalWidth, className }),
+    );
+    return;
+  }
+
+  // PG-B Task 3: the continuous mm heat overlays (pd / cal / gr) — every
+  // charted site heat-bucketed by depth, over the SAME sites/x-positions the
+  // T2 discrete overlays + curve use (`collectMmHeatInput` mirrors
+  // `collectOverlayInput`, adding the real `getToothCal` reading for `cal`).
+  if (layer === "pd" || layer === "cal" || layer === "gr") {
+    const mmHeatLayer = layer as MmHeatOverlayLayer;
+    const buccalMarks = perioMmHeatMarks(mmHeatLayer, collectMmHeatInput(layout, BUCCAL_SITES), opts);
+    buccalParent.appendChild(buildPerioOverlayLayer(buccalMarks, { width: layout.totalWidth, className }));
+    const lingualMarks = perioMmHeatMarks(mmHeatLayer, collectMmHeatInput(layout, LINGUAL_SITES), opts);
+    palatalParent.appendChild(buildPerioOverlayLayer(lingualMarks, { width: layout.totalWidth, className }));
+    return;
+  }
+
+  // Site-based discrete overlays (bop / pd5 / pd6).
+  const siteLayer = layer as SiteOverlayLayer;
+  const buccalMarks = perioOverlayMarks(siteLayer, collectOverlayInput(layout, BUCCAL_SITES), opts);
+  buccalParent.appendChild(buildPerioOverlayLayer(buccalMarks, { width: layout.totalWidth, className }));
+  const lingualMarks = perioOverlayMarks(siteLayer, collectOverlayInput(layout, LINGUAL_SITES), opts);
+  palatalParent.appendChild(buildPerioOverlayLayer(lingualMarks, { width: layout.totalWidth, className }));
+}
+
 function mkEl<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
   if (className) node.className = className;
   return node;
 }
 
-function mkRowLabelCell(text: string): HTMLDivElement {
+/** SP-perio PG-B Task 1: at most ONE row-label info popover is open across the
+ *  whole perio chart (upper+lower arch, overlay or inline) at any time —
+ *  module-scope singleton, mirroring `odontogram.ts`'s
+ *  `showCariesDepthPopup`/`hideCariesDepthPopup` outside-click/Escape
+ *  contract. Opening a new popover always closes any previous one first. */
+let activeInfoPopover: {
+  popover: HTMLDivElement;
+  button: HTMLButtonElement;
+  cleanup: () => void;
+} | null = null;
+
+function hideInfoPopover(): void {
+  if (!activeInfoPopover) return;
+  const { popover, button, cleanup } = activeInfoPopover;
+  cleanup();
+  popover.remove();
+  button.setAttribute("aria-expanded", "false");
+  activeInfoPopover = null;
+}
+
+/** Open (or, when the SAME button is clicked again, close) a lightweight
+ *  positioned popover explaining one perio index (`t(infoKey)`), anchored
+ *  below the row-label "i" button that triggered it. Dismisses on
+ *  click-away or Esc via CAPTURE-phase document listeners — added
+ *  synchronously (not deferred with `setTimeout`, unlike
+ *  `showCariesDepthPopup`): the triggering "i" button's own click handler
+ *  runs during the bubble phase of a "click" event, and any "mousedown" for
+ *  that SAME user interaction has already fully dispatched by then (mousedown
+ *  -> mouseup -> click), so a listener added here can never see a stale event
+ *  from the click that opened it. Capture phase (not bubble) also means Esc
+ *  is consumed here BEFORE it can bubble up into the perio-overlay dialog's
+ *  own Esc-closes-the-whole-overlay handler (`PerioChart`'s `onKeyDown`) —
+ *  the popover closes without also closing the overlay. Never stacks with
+ *  the DS-1 confirm modal: `.perio-info-popover`'s z-index sits below
+ *  `.odon-confirm-backdrop`'s (200) — see index.css. */
+function toggleInfoPopover(infoKey: string, anchor: HTMLButtonElement): void {
+  const reopening = activeInfoPopover?.button === anchor;
+  hideInfoPopover();
+  if (reopening) return;
+
+  const popover = mkEl("div", "perio-info-popover");
+  popover.id = "perioInfoPopover";
+  popover.setAttribute("role", "dialog");
+  popover.setAttribute("aria-modal", "false");
+  const text = mkEl("p", "perio-info-popover-text");
+  text.textContent = t(infoKey);
+  popover.appendChild(text);
+  popover.setAttribute("aria-label", text.textContent);
+  document.body.appendChild(popover);
+
+  // Position below the anchor, clamped to the viewport (mirrors
+  // showCariesDepthPopup's positioning in odontogram.ts).
+  const rect = anchor.getBoundingClientRect();
+  const pw = popover.offsetWidth || 260;
+  const left = Math.min(rect.left, window.innerWidth - pw - 8);
+  const top = Math.min(rect.bottom + 6, window.innerHeight - (popover.offsetHeight || 0) - 8);
+  popover.style.left = `${Math.max(8, left)}px`;
+  popover.style.top = `${Math.max(8, top)}px`;
+
+  anchor.setAttribute("aria-expanded", "true");
+
+  const onDocMouseDown = (e: MouseEvent) => {
+    const target = e.target as Node | null;
+    if (target && (popover.contains(target) || anchor.contains(target))) return;
+    hideInfoPopover();
+  };
+  const onDocKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      hideInfoPopover();
+    }
+  };
+  document.addEventListener("mousedown", onDocMouseDown, true);
+  document.addEventListener("keydown", onDocKeyDown, true);
+
+  activeInfoPopover = {
+    popover,
+    button: anchor,
+    cleanup: () => {
+      document.removeEventListener("mousedown", onDocMouseDown, true);
+      document.removeEventListener("keydown", onDocKeyDown, true);
+    },
+  };
+}
+
+/** Builds a sticky row-label cell. When `infoKey` is given, appends a small
+ *  `.perio-info-btn` ("i" icon, real `aria-label`) after the label text that
+ *  opens a positioned `.perio-info-popover` with `t(infoKey)` on click (see
+ *  {@link toggleInfoPopover}). Rows with no label (the tooth-number header /
+ *  tooth-graphic placeholder rows) call this with no `infoKey` and get no
+ *  button, same as before. */
+function mkRowLabelCell(text: string, infoKey?: string): HTMLDivElement {
   const cell = mkEl("div", "perio-fullgrid-row-label");
-  cell.textContent = text;
+  const label = mkEl("span", "perio-fullgrid-row-label-text");
+  label.textContent = text;
+  cell.appendChild(label);
+  if (infoKey) {
+    const btn = mkEl("button", "perio-info-btn") as HTMLButtonElement;
+    btn.type = "button";
+    btn.textContent = "i";
+    btn.setAttribute("aria-label", t("perio.info.button", { label: text }));
+    btn.setAttribute("aria-haspopup", "dialog");
+    btn.setAttribute("aria-expanded", "false");
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleInfoPopover(infoKey, btn);
+    });
+    cell.appendChild(btn);
+  }
   return cell;
 }
 
@@ -426,21 +664,24 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   const buccalLabel = t("perio.buccal");
   const lingualLabel = isUpper ? t("perio.palatal") : t("perio.lingual");
 
-  // Append one full field row (label cell + one field cell per tooth).
+  // Append one full field row (label cell + one field cell per tooth). The
+  // row-label's info button always wires to `perio.info.<field>` — PD/GM/CAL/
+  // BOP each has exactly ONE explanation, shared by both its buccal- and
+  // palatal-aspect rows (SP-perio PG-B Task 1).
   const appendFieldRow = (
     field: "pd" | "gm" | "cal" | "bop",
     sites: readonly PerioSite[],
     aspect: "buccal" | "palatal",
     label: string,
   ) => {
-    arch.appendChild(mkRowLabelCell(label));
+    arch.appendChild(mkRowLabelCell(label, `perio.info.${field}`));
     for (const toothNo of teeth) {
       arch.appendChild(buildFieldCell(toothNo, field, sites, aspect, registry.get(toothNo)!, handlers));
     }
   };
 
   // --- Plaque row (whole-tooth O'Leary index), at the very top ---
-  arch.appendChild(mkRowLabelCell(t("plaque.label")));
+  arch.appendChild(mkRowLabelCell(t("plaque.label"), "perio.info.plaque"));
   for (const toothNo of teeth) {
     arch.appendChild(buildPlaqueCell(toothNo, registry.get(toothNo)!, handlers));
   }
@@ -452,7 +693,7 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   appendFieldRow("pd", BUCCAL_SITES, "buccal", `${buccalLabel} ${t("perio.pd")}`);
 
   // --- Furcation row, nearest the teeth (just above the graphic) ---
-  arch.appendChild(mkRowLabelCell(t("furcation.label")));
+  arch.appendChild(mkRowLabelCell(t("furcation.label"), "perio.info.furcation"));
   for (const toothNo of teeth) {
     arch.appendChild(buildFurcationCell(toothNo, registry.get(toothNo)!, handlers));
   }
@@ -483,7 +724,7 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   appendFieldRow("bop", LINGUAL_SITES, "palatal", `${lingualLabel} ${t("perio.bop")}`);
 
   // --- Mobility row: one select per tooth, no site subdivision. ---
-  arch.appendChild(mkRowLabelCell(t("perio.mobility")));
+  arch.appendChild(mkRowLabelCell(t("perio.mobility"), "perio.info.mobility"));
   const mobilityOptions = optionsFor("mobility").map((o) => ({ value: o.value, label: t(o.labelKey) }));
   for (const toothNo of teeth) {
     const cell = mkEl("div", "perio-fullgrid-cell perio-fullgrid-cell-mobility");
@@ -597,6 +838,13 @@ export default function PerioChart({
   // `open`-gated effect below. Replaced with the real summary as soon as
   // that effect's first fullResync() runs.
   const [summary, setSummary] = useState<PerioSummaryData>(EMPTY_SUMMARY);
+  // PG-B Task 2: the active overlay layer, mirrored from the module-level flag
+  // (odontogram.ts) into React state so the switcher's active button + the
+  // header read-out re-render on change. Static default ("none") — like
+  // `summary` above, this hook runs on every mount regardless of `open`, so
+  // the real value is read in the `active`-gated effect below (never at module
+  // eval), keeping the partial-mock tests unaffected.
+  const [overlayLayer, setOverlayLayer] = useState<PerioOverlayLayer>("none");
 
   const fullResync = useCallback(() => {
     const registry = registryRef.current;
@@ -900,6 +1148,10 @@ export default function PerioChart({
       container.removeEventListener("keydown", handleGridKeyDown);
       container.removeEventListener("focusout", handleGridFocusOut);
       unsubscribe();
+      // The info popover is appended to document.body (outside `container`),
+      // so it would otherwise be orphaned when the grid is torn down (dialog
+      // close / inline unmount) — close it explicitly.
+      hideInfoPopover();
       registryRef.current = null;
       gridUpperRef.current = null;
       gridLowerRef.current = null;
@@ -965,10 +1217,16 @@ export default function PerioChart({
       const cache = archCacheRef.current;
       if (!cache) return;
       // Rebuild the teeth first if the implant set changed (cheap 32-tooth check),
-      // then (re)draw the curves into the fresh/existing arch SVGs.
+      // then (re)draw the curves + the PG-B Task 2 discrete overlay into the
+      // fresh/existing arch SVGs. The overlay reads the active layer from the
+      // module flag (getPerioOverlayLayer), so switching layers — which fires
+      // notifyStateChange -> this redraw — repaints it.
       if (implantSig() !== lastImplantSig) buildArches(cache);
       drawArchCurves(cache, archUpperRef.current, UPPER_ARCH);
       drawArchCurves(cache, archLowerRef.current, LOWER_ARCH);
+      const layer = getPerioOverlayLayer();
+      drawArchOverlay(cache, archUpperRef.current, UPPER_ARCH, layer);
+      drawArchOverlay(cache, archLowerRef.current, LOWER_ARCH, layer);
     };
     loadTemplateCache()
       .then((cache) => {
@@ -982,6 +1240,9 @@ export default function PerioChart({
         buildArches(cache);
         drawArchCurves(cache, archUpperRef.current, UPPER_ARCH);
         drawArchCurves(cache, archLowerRef.current, LOWER_ARCH);
+        const layer = getPerioOverlayLayer();
+        drawArchOverlay(cache, archUpperRef.current, UPPER_ARCH, layer);
+        drawArchOverlay(cache, archLowerRef.current, LOWER_ARCH, layer);
       })
       .catch((err) => {
         // eslint-disable-next-line no-console
@@ -995,6 +1256,19 @@ export default function PerioChart({
       unsubscribe();
       archCacheRef.current = null;
     };
+  }, [active]);
+
+  // PG-B Task 2: mirror the module-level overlay-layer flag into React state
+  // so the switcher's active button + header read-out re-render on change.
+  // Active-gated (like every other real-module effect here) so a closed/
+  // unmounted PerioChart never touches "./odontogram". `setPerioOverlayLayer`
+  // fires notifyStateChange, so a click anywhere (this instance or another
+  // consumer) keeps every mounted switcher in sync.
+  useEffect(() => {
+    if (!active) return;
+    setOverlayLayer(getPerioOverlayLayer());
+    const unsubscribe = onStateChange(() => setOverlayLayer(getPerioOverlayLayer()));
+    return unsubscribe;
   }, [active]);
 
   const onKeyDown = useCallback(
@@ -1031,6 +1305,40 @@ export default function PerioChart({
     summary.worstCal === null
       ? "–"
       : `${summary.worstCal}${summary.worstCalTooth !== null ? ` (${formatToothLabel(summary.worstCalTooth)})` : ""}`;
+
+  // PG-B Task 2: the Dental Chart index switcher — a radio-style toggle row
+  // that drives `setPerioOverlayLayer`, showing the active selection and, when
+  // the active layer is a rate index, the matching whole-mouth read-out (%BOP
+  // for BOP, PI% for plaque). Rendered in the Dental Chart header (inline
+  // chrome) and the overlay header (popup chrome).
+  const overlayReadout =
+    overlayLayer === "bop"
+      ? `${t("perio.bopPercent")} ${summary.bopPercent}%`
+      : overlayLayer === "plaque"
+      ? `${t("plaque.percent")} ${summary.plaquePercent}%`
+      : null;
+  const overlaySwitch = (
+    <div id="perioOverlaySwitch" className="perio-overlay-switch" role="radiogroup" aria-label={t("perio.overlay.label")}>
+      {SWITCHER_LAYERS.map((layer) => (
+        <button
+          key={layer}
+          type="button"
+          role="radio"
+          aria-checked={overlayLayer === layer}
+          className={"perio-overlay-switch-btn" + (overlayLayer === layer ? " is-active" : "")}
+          data-overlay-layer={layer}
+          onClick={() => setPerioOverlayLayer(layer)}
+        >
+          {t(`perio.overlay.${layer}`)}
+        </button>
+      ))}
+      {overlayReadout && (
+        <span className="perio-overlay-readout" id="perioOverlayReadout">
+          {overlayReadout}
+        </span>
+      )}
+    </div>
+  );
 
   // Shared body (grid + summary bar) — identical in both chrome variants,
   // only the wrapping id/class differs (`#perioInlineGrid` vs
@@ -1099,8 +1407,9 @@ export default function PerioChart({
     // so it visually matches the odontogram card it's replacing in place.
     return (
       <section id="perioInlinePanel" className="chart perio-inline-panel" aria-label={t("perio.chart.title")}>
-        <div className="chart-header">
+        <div className="chart-header perio-chart-header">
           <div className="chart-title">{t("perio.chart.title")}</div>
+          {overlaySwitch}
         </div>
         {gridBody}
       </section>
@@ -1126,6 +1435,7 @@ export default function PerioChart({
           <h2 className="perio-overlay-title" id={titleId}>
             {t("perio.chart.title")}
           </h2>
+          {overlaySwitch}
           <button
             type="button"
             className="perio-overlay-close"
