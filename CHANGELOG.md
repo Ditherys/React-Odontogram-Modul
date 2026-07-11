@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.33.0] - 2026-07-11
+### Added
+- **Proposed styling** in Plan mode: any finding the plan *adds* relative to the current status (a planned crown, extraction, orthodontic movement, prosthesis, etc.) now renders with a distinct **dashed, tinted "proposed" outline**, so the plan chart reads as intent rather than fact. Findings unchanged from the status render solid as usual; a finding the plan *removes* simply doesn't appear. A small **"dashed = proposed" legend** shows in the chart card while Plan mode is active. Completes the round-2 Status/Plan split (after 1.31.0's dual-state core and 1.32.0's diff box).
+- Render in **Status mode is byte-identical** to before — the proposed treatment runs only in Plan mode, through a non-fingerprinted style channel, and is fully reset when switching back to Status. No payload/FHIR change.
+
 ## [1.32.0] - 2026-07-11
 ### Added
 - Status → Plan **diff** and a **"What changes"** box under the Tooth-information panel. When a plan differs from the current status, the box lists every difference per tooth and per treatment axis (presence, tooth substrate, restoration, prosthesis, planned crown, orthodontics, pulp/endo, apical) as a `tooth: axis  from → to` line, reusing the same human-readable labels the tooltip and whole-mouth summary already use. The box is hidden whenever no plan exists or the plan is identical to the status, and refreshes live as either chart is edited.

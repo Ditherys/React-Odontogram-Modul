@@ -215,6 +215,27 @@ select:focus{
   box-shadow: 0 0 0 2px rgba(59,123,255,.18);
 }
 
+/* R2-C Task 2: "dashed = proposed" legend. Always in the DOM (see App.tsx);
+   visibility is pure CSS, gated on the SAME `.plan-mode` cue the chart card
+   already carries — no separate JS toggle. */
+.proposed-legend{
+  display:none;
+  align-items:center;
+  gap:6px;
+  margin-top:4px;
+  font-size:12px;
+  color: var(--muted);
+}
+.chart.plan-mode .proposed-legend{
+  display:flex;
+}
+.proposed-legend-swatch{
+  display:inline-block;
+  width:18px;
+  height:0;
+  border-top:2px dashed var(--accent);
+}
+
 .tooth-grid{
   display:grid;
   grid-template-columns: repeat(16, minmax(36px, 1fr));
@@ -694,6 +715,8 @@ select:focus{
   border-color: rgba(96,165,250,.6);
   box-shadow: 0 0 0 2px rgba(96,165,250,.28);
 }
+.dark .proposed-legend{color: var(--text)}
+.dark .proposed-legend-swatch{border-top-color: rgba(96,165,250,.85)}
 .dark .tooth-label-cell{color: rgba(241,245,249,.6)}
 .dark .tooth-label-cell:hover{color: rgba(241,245,249,1)}
 .dark .tooth-tile{background: rgba(30,41,59,.7)}

@@ -2080,11 +2080,88 @@ function applyStateToSvgSingle(toothNo: Any, svg: Any, state: Any = toothState.g
   updateWarnings(state);
 }
 
+// R2-C Task 1: proposed-layer styling. In Plan mode, a layer that is active
+// in the PLAN chart but NOT in the STATUS chart (a "plan add" — e.g. a crown
+// proposed on a tooth that is sound in status) gets a distinct dashed+tinted
+// look, so a plan reads as PROPOSED treatment rather than as-if-already-done
+// findings. PARITY IS SACRED: `collectActiveLayers` (below) fingerprints only
+// id/opacity/class, so this marking uses ONLY `style.strokeDasharray` +
+// `style.stroke` — never `style.opacity` and never a CSS class — and the
+// whole pass is gated on `chartMode === "plan" && planInitialized`, so
+// status-mode rendering (including the parity capture, which always renders
+// in status mode) is a byte-identical no-op.
+const PROPOSED_DASH = "4 2";
+const PROPOSED_TINT = "#5b7a9d";
+
+/** Restore every previously-marked layer in `svg` to its captured base style,
+ *  then drop the `data-proposed` marker. Runs FIRST on every
+ *  `applyProposedStyling` call (symmetric reset — SP12 discoloration
+ *  capture-once pattern, see the discoloration tint block above): this is
+ *  what un-dashes a layer when switching plan -> status, or when a plan edit
+ *  is reverted back to match status. */
+function clearProposedStyling(svg: Any){
+  const marked = svg.querySelectorAll ? svg.querySelectorAll('[data-proposed="1"]') : [];
+  for(const el of Array.from(marked) as Any[]){
+    if(el.getAttribute("data-base-dash") !== null){ el.style.strokeDasharray = el.getAttribute("data-base-dash") || ""; }
+    if(el.getAttribute("data-base-pstroke") !== null){ el.style.stroke = el.getAttribute("data-base-pstroke") || ""; }
+    el.removeAttribute("data-proposed");
+  }
+}
+
+/** Mark `el` as a proposed (plan-only) layer: capture its base
+ *  strokeDasharray/stroke ONCE (data-base-dash/data-base-pstroke — mirrors
+ *  the SP12 `data-base-fill` pattern so a reused node's second render doesn't
+ *  capture an already-tinted value as "base"), then apply the dashed+tint
+ *  treatment. Neither captured/written attribute is part of the SVG
+ *  fingerprint (`collectActiveLayers` reads only id/opacity/class). */
+function markProposed(el: Any){
+  if(el.getAttribute("data-proposed") === "1") return;
+  if(el.getAttribute("data-base-dash") === null) el.setAttribute("data-base-dash", el.style.strokeDasharray || "");
+  if(el.getAttribute("data-base-pstroke") === null) el.setAttribute("data-base-pstroke", el.style.stroke || "");
+  el.style.strokeDasharray = PROPOSED_DASH;
+  el.style.stroke = PROPOSED_TINT;
+  el.setAttribute("data-proposed", "1");
+}
+
+/** Compute which of `svg`'s currently-active layers (already painted with
+ *  the ACTIVE chart's state by the caller — see `applyStateToSvg`) are
+ *  present in the PLAN chart but absent from the STATUS chart, and mark only
+ *  those as "proposed". Always resets first (symmetric — see
+ *  `clearProposedStyling`), then gates on Plan mode being active. The
+ *  `charts.status.get(toothNo) ?? defaultState()` fallback is required: an
+ *  absent status tooth passed as `undefined` makes `applyStateToSvgSingle`
+ *  early-return, which would leave the clone showing the (already-painted)
+ *  PLAN layers — collapsing statusIds to planIds and marking nothing. */
+function applyProposedStyling(toothNo: Any, svg: Any){
+  clearProposedStyling(svg);
+  if(chartMode !== "plan" || !planInitialized) return;
+  const planIds = new Set(collectActiveLayers(svg).map((l) => l.id));
+  const clone = svg.cloneNode(true); // detached; getElementById/querySelectorAll work on the clone's own subtree
+  applyStateToSvgSingle(toothNo, clone, charts.status.get(toothNo) ?? defaultState());
+  const statusIds = new Set(collectActiveLayers(clone).map((l) => l.id));
+  for(const id of planIds){
+    if(statusIds.has(id)) continue;
+    const el = svgGetById(svg, id);
+    if(el) markProposed(el);
+  }
+}
+
+/** TEST-ONLY: invoke `applyProposedStyling` directly on a detached, already-
+ *  painted svg node (as returned by `__parseSvgForTest` + `__renderActiveLayersOnNode`),
+ *  without requiring a live grid (`toothSvgRoot`/`applyStateToSvg` needs
+ *  registered DOM roots — see addTile()). Reads the module's live
+ *  `charts`/`chartMode`/`planInitialized`, exactly as the real
+ *  `applyStateToSvg` roots loop does. Not part of the public API. */
+export function __applyProposedStylingForTest(toothNo: Any, svg: Any): void {
+  applyProposedStyling(toothNo, svg);
+}
+
 function applyStateToSvg(toothNo: Any){
   const roots = toothSvgRoot.get(toothNo);
   if(!roots) return;
   for(const svg of roots){
     applyStateToSvgSingle(toothNo, svg);
+    applyProposedStyling(toothNo, svg); // R2-C Task 1: dashed+tint plan-only layers (Plan mode only)
   }
   applyPluginOverlays(toothNo);
   updateToothTooltip(toothNo);

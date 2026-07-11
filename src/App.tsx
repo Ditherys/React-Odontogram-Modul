@@ -495,6 +495,16 @@ export default function App({
               <button id="chartModePlan" type="button" className="chart-mode-btn" role="tab" aria-selected="false">{t("chartMode.plan")}</button>
               <span id="chartModePlanBadge" className="plan-badge hidden">{t("chartMode.planBadge")}</span>
             </div>
+            {/* R2-C Task 2: "dashed = proposed" legend. Always rendered — its
+                visibility is pure CSS, scoped by the `.chart.plan-mode
+                #proposedLegend` descendant selector (src/index.css), which
+                reuses the SAME `.plan-mode` cue the chart card already gets
+                from the real, unchanged syncChartModeUi() in odontogram.ts.
+                No new React state, no new engine call. */}
+            <div id="proposedLegend" className="proposed-legend">
+              <span className="proposed-legend-swatch" aria-hidden="true"></span>
+              {t("chart.proposedLegend")}
+            </div>
             <div className="chart-actions">
               <button id="btnOcclView" className="btn btn-toggle btn-icon" aria-pressed="true" title={t("chart.actions.occlusal")} aria-label={t("chart.actions.occlusal")} data-icon-src={iconOcclUrl} data-xline="1"></button>
               <button id="btnWisdomVisible" className="btn btn-toggle btn-icon" aria-pressed="true" title={t("chart.actions.wisdom")} aria-label={t("chart.actions.wisdom")} data-icon-src={icon8Url} data-xline="1"></button>
