@@ -1,7 +1,7 @@
 # 🦷 React Odontogram Modul
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-1.34.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-1.35.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
 
@@ -87,9 +87,9 @@ This project is an interactive, browser-based odontogram editor that supports fa
 - 📝 Per-tooth notes: double-click to add/edit notes, note icon next to tooth number, hover tooltip with note text, JSON export/import
 - 🔀 Status ↔ Plan chart split: a `Status | Plan` toggle in the chart header switches between a current-**status** chart and a **plan** (intended post-treatment) chart, each with its own tooth states; the plan chart starts as a copy of status the first time you switch to it, and edits in one chart never affect the other. Export/import (`exportStatus`/`exportFhir`/file import) always target the status chart; the plan chart is read/written separately via its own API (see Public API below) and — when it differs from status — is included as an additive `plan` section in the JSON export
 - 📝 "What changes" box: whenever the plan differs from the current status, a box under the Tooth-information panel lists every difference per tooth and per treatment axis (presence, substrate, restoration, prosthesis, planned crown, orthodontics, pulp/endo, apical) as a `tooth: axis  from → to` line; also available programmatically via `getPlanChanges()`
-- 🩺 Periodontal charting (data core): per-site **probing depth**, **gingival margin**, **bleeding on probing** (+ suppuration) at the six standard sites per tooth, with derived **clinical attachment level (CAL = PD + gingival margin)**, recession, and whole-mouth **%BOP**; a minimal per-site input with a live read-out (the full perio-chart grid follows). Per-site **FHIR** export via the LOINC periodontal panel (`74029-0`; PD `32910-2`, recession `32911-0`, CAL `32912-8`)
+- 🩺 Periodontal charting: per-site **probing depth**, **gingival margin**, **bleeding on probing** (+ suppuration) at the six standard sites per tooth, with derived **clinical attachment level (CAL = PD + gingival margin)**, recession, and whole-mouth **%BOP**. A **full-mouth perio-chart grid** (all teeth × 6 sites, PD/GM/CAL/BOP + mobility + summary) with **keyboard auto-advance** entry, delivered as a **separately-invocable overlay** so a host app can call up the perio chart independently of the base odontogram. Per-site **FHIR** export via the LOINC periodontal panel (`74029-0`; PD `32910-2`, recession `32911-0`, CAL `32912-8`)
 - 🅿️ Proposed styling: in Plan mode, findings the plan **adds** vs the current status (planned crown, extraction, orthodontic movement, prosthesis, …) render with a distinct **dashed, tinted "proposed" outline** so the plan reads as intent, not fact — with a "dashed = proposed" legend in the chart card. Status-mode rendering is byte-identical; the treatment is plan-only and fully reset on switching back
-- 🧪 968 automated tests passing (1 additional test skipped) (Vitest) across 105 test files covering numbering, translations, presets, i18n, App component, theme, touch, plugins, accessibility, and clinical-axis/diagnosis parity
+- 🧪 1015 automated tests passing (1 additional test skipped) (Vitest) across 108 test files covering numbering, translations, presets, i18n, App component, theme, touch, plugins, accessibility, and clinical-axis/diagnosis parity
 - 📖 TypeDoc API documentation with JSDoc comments on all public exports (`npm run docs`)
 
 ### 📦 Modules
@@ -357,7 +357,7 @@ setPluginState(11, "implant-brand", "Straumann");
 
 ### 🧪 Testing
 ```bash
-npm run test           # Run all 968 tests (1 additional test skipped)
+npm run test           # Run all 1015 tests (1 additional test skipped)
 npm run test:watch     # Watch mode
 npm run test:coverage  # Coverage report
 ```
@@ -419,6 +419,8 @@ npm run docs           # Generate TypeDoc docs in docs/
 | `getToothCal(toothNo)` | Get derived per-site CAL (`pd + gingival margin`) for a tooth |
 | `getPerioSummary()` | Whole-mouth periodontal aggregates: charted-site count, bleeding count, %BOP, worst CAL, max PD |
 | `getPerioChart()` | Get the active chart's per-tooth periodontal records |
+| `PerioChart` | React component (named export) — the full-mouth perio-chart overlay (`{ open, onClose }`), mountable independently of `OdontogramShell` for host integration |
+| `openPerioOverlay()` / `closePerioOverlay()` / `isPerioOverlayOpen()` | Programmatically open/close/query the perio-chart overlay — lets a host call up the periodontal chart separately from the base odontogram (shared case state) |
 | `exportFhir(options?)` | Export the chart as an HL7 FHIR R4 collection Bundle (JSON download). Optional `{ subject }` reference; otherwise a placeholder Patient is embedded |
 | `exportImage(format)` | Download the chart as an image — `"png"` or `"jpg"` |
 | `exportSvg()` | Download the chart as a scalable SVG (vector) |
@@ -499,7 +501,7 @@ The export creates a JSON file (version `2.11`; imports also accept legacy `1.4`
 - `src/fhir/` - HL7 FHIR R4 export/import: `toFhir.ts`/`fromFhir.ts`, code systems, field mappings, primitives
 - `src/bridgeOverlay.ts` - multi-tooth bridge-span connector overlay (arch-aware saddle geometry)
 - `src/SettingsModal.tsx` - tabbed Settings dialog (General/Panels/Tooth details/Caries/Pulpa/Notes)
-- `src/__tests__/` + `src/registry/__tests__/` - Vitest test suite (968 tests passing, 1 skipped, across 105 files)
+- `src/__tests__/` + `src/registry/__tests__/` - Vitest test suite (1015 tests passing, 1 skipped, across 108 files)
 - `src/assets/teeth-svgs/` - SVG tooth templates (6 files: incisors, canines, premolars, molars + occlusal views)
 - `src/assets/icon-svgs/` - toolbar icon SVGs (5 files)
 

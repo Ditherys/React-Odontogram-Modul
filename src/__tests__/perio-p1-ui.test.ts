@@ -79,6 +79,9 @@ vi.mock("../odontogram", async () => {
       sections: [], implants: null, periodontalTitle: "", periodontalText: "",
     }),
     onStateChange: vi.fn().mockReturnValue(() => {}),
+    openPerioOverlay: vi.fn(),
+    closePerioOverlay: vi.fn(),
+    isPerioOverlayOpen: vi.fn().mockReturnValue(false),
     exportFhir: vi.fn(),
     exportImage: vi.fn(),
     exportSvg: vi.fn(),
@@ -88,6 +91,18 @@ vi.mock("../odontogram", async () => {
     setPerioSite: actual.setPerioSite,
     getToothPerio: actual.getToothPerio,
     getToothCal: actual.getToothCal,
+    // P2 Task 2: <PerioChart/> (mounted unconditionally inside <App/>, just
+    // hidden while closed) now imports these too — needed even though this
+    // file never opens the overlay, since PERIO_SITES is read at PerioChart
+    // module-eval time and getPerioSummary() is called on every mount's
+    // initial useState (both happen regardless of `open`).
+    isUpperTooth: actual.isUpperTooth,
+    formatToothLabel: actual.formatToothLabel,
+    getPerioChart: actual.getPerioChart,
+    getPerioSummary: actual.getPerioSummary,
+    getToothMobility: actual.getToothMobility,
+    setToothMobility: actual.setToothMobility,
+    isPerioRowHidden: actual.isPerioRowHidden,
     __syncPerioRowForTest: actual.__syncPerioRowForTest,
     __perioRowHiddenForTest: actual.__perioRowHiddenForTest,
     __buildPerioGridForTest: actual.__buildPerioGridForTest,

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { destroyOdontogram, initOdontogram, setNumberingSystem, clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat } from "./odontogram";
+import { destroyOdontogram, initOdontogram, setNumberingSystem, clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, openPerioOverlay, closePerioOverlay, isPerioOverlayOpen } from "./odontogram";
 export { clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat };
+export { default as PerioChart } from "./PerioChart";
 import type { OdontogramSummary, PulpDetailLevel, SecondaryCariesMode, RootCariesMode, RadiographicDepthMode, ToothDetailLevel, SurfaceNotation } from "./odontogram";
 export type { PulpDetailLevel, SecondaryCariesMode, RootCariesMode, RadiographicDepthMode, ToothDetailLevel, SurfaceNotation } from "./odontogram";
 export type { OdontogramSummary, OdontogramSummarySection } from "./odontogram";
@@ -9,6 +10,7 @@ import { startIntroTour } from "./tour";
 export { startIntroTour } from "./tour";
 import { useI18n } from "./i18n/useI18n";
 import SettingsModal, { type SettingsState } from "./SettingsModal";
+import PerioChart from "./PerioChart";
 import type { Language } from "./i18n/translations";
 import type { NumberingSystem } from "./utils/numbering";
 import { applyThemeConfig, type OdontogramThemeConfig } from "./theme";
@@ -215,6 +217,11 @@ export default function App({
   const exportRef = useRef<HTMLDivElement | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const importRef = useRef<HTMLDivElement | null>(null);
+  // P2 Task 1: demo state mirroring the module-level perio-overlay flag
+  // (odontogram.ts), kept in sync via the existing onStateChange subscription
+  // below so a host that calls openPerioOverlay()/closePerioOverlay() directly
+  // (bypassing this button entirely) still gets <PerioChart/> to re-render.
+  const [perioOpen, setPerioOpen] = useState(false);
 
   // Dark mode: controlled via prop or standalone via internal state
   const [internalDark, setInternalDark] = useState<boolean>(() => {
@@ -331,6 +338,17 @@ export default function App({
     refresh();
     return onStateChange(refresh);
   }, [toothInfoOn, lang, currentNumbering]);
+
+  // P2 Task 1: mirror the module-level perio-overlay flag into React state via
+  // the existing onStateChange subscription (openPerioOverlay/closePerioOverlay
+  // both call notifyStateChange()), so <PerioChart/> re-renders regardless of
+  // whether it was opened/closed via this button or a host calling the
+  // imperative API directly.
+  useEffect(() => {
+    const refresh = () => setPerioOpen(isPerioOverlayOpen());
+    refresh();
+    return onStateChange(refresh);
+  }, []);
 
   useEffect(() => {
     const handler = (event: MouseEvent) => {
@@ -483,6 +501,18 @@ export default function App({
       </header>
 
       <main className="layout">
+        <div className="perio-launch-bar">
+          <button
+            type="button"
+            id="openPerioOverlayBtn"
+            className="btn btn-ghost"
+            onClick={() => openPerioOverlay()}
+            title={t("perio.open")}
+            aria-label={t("perio.open")}
+          >
+            {t("perio.open")}
+          </button>
+        </div>
         <div className="chart-column">
         <section className="chart">
           <div className="chart-header">
@@ -825,6 +855,8 @@ export default function App({
           </div>
         </aside>
       </main>
+
+      <PerioChart open={perioOpen} onClose={closePerioOverlay} />
 
       <SettingsModal
         open={settingsOpen}

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.35.0] - 2026-07-11
+### Added
+- **Periodontal charting grid** — a full-mouth clinician-style perio chart: all teeth × 6 sites, with probing depth, gingival margin, bleeding-on-probing, derived CAL, and mobility, plus a whole-mouth summary (charted sites, %BOP, worst CAL, max PD). **Keyboard auto-advance** entry (type a probing-depth digit → focus jumps to the next site in charting order; arrows navigate; space toggles BOP; a leading `-` primes a negative gingival margin; clearing a depth un-charts the site).
+- The perio chart is a **separately-invocable overlay** so a host application can call up the periodontal chart independently of the base odontogram: `PerioChart` is a named export, and `openPerioOverlay()` / `closePerioOverlay()` / `isPerioOverlayOpen()` drive it programmatically. It shares the same loaded case as the base chart (one case, two surfaces) and is dual-state aware. Render of the base odontogram is byte-identical (the overlay layers over it; no payload/FHIR change). Second sub-project of the periodontal arc; furcation + plaque follow in P2b.
+
 ## [1.34.0] - 2026-07-11
 ### Added
 - **Periodontal charting — data core (6 sites/tooth).** Each tooth now carries a `perio` record with per-site **probing depth (PD)**, **gingival-margin position** (signed vs the CEJ), **bleeding on probing (BOP)**, and suppuration, over the six standard sites (MB/B/DB buccal, ML/L/DL lingual). **Clinical attachment level (CAL = PD + gingival margin)**, recession, and whole-mouth **%BOP** are derived (never stored). A minimal per-site input on the selected-tooth panel authors the data with a live CAL/%BOP read-out; the polished perio-chart grid follows in a later release. First sub-project of the periodontal-parameters arc.

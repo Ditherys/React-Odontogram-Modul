@@ -5438,6 +5438,155 @@ export function getPerioChart(): Record<string, PlainPerio> {
   return out;
 }
 
+// ---- Periodontal-arc sub-project P2, Task 3: keyboard charting order ----
+// Explicit, pure charting-order table driving the full-mouth grid's keyboard
+// auto-advance (PerioChart.tsx). There are two "rows" — pd, then gm. WITHIN
+// a row: the buccal sites (MB,B,DB) are charted tooth-by-tooth across the
+// arch order (upper then lower — `ALL_TEETH`, the exact array `PerioChart.tsx`
+// mirrors as its own module-scope `UPPER_ARCH`/`LOWER_ARCH` concat) before
+// moving on to the lingual sites (ML,L,DL) the same way; this mirrors the
+// grid's own DOM layout (`buildArch`'s field-row loop: tooth outer, site
+// inner) and `PERIO_SITES`' own MB/B/DB/ML/L/DL grouping. Once every lingual
+// gm site of the last tooth is reached, the order ends (`nextPerioCell`
+// returns `null` — deliberately NOT wrapping back to the first pd cell, so a
+// clinician doing a final full-mouth charting pass gets an explicit "done"
+// signal rather than looping silently).
+//
+// Built ONCE at module load (2 rows * 6 sites * 32 teeth = 384 entries) so
+// `nextPerioCell`/`prevPerioCell` are plain array lookups, not a
+// re-derivation per call. Pure/side-effect-free — no `toothState` read, no
+// DOM — safe to unit-test directly, independent of the grid.
+const PERIO_CHART_ROWS = ["pd", "gm"] as const;
+const PERIO_SITE_GROUPS: readonly (readonly PerioSite[])[] = [
+  ["MB", "B", "DB"],
+  ["ML", "L", "DL"],
+];
+
+export type PerioCellCoord = { toothNo: number; site: PerioSite; row: "pd" | "gm" };
+
+const PERIO_CELL_ORDER: PerioCellCoord[] = (() => {
+  const order: PerioCellCoord[] = [];
+  for(const row of PERIO_CHART_ROWS){
+    for(const siteGroup of PERIO_SITE_GROUPS){
+      for(const toothNo of ALL_TEETH){
+        for(const site of siteGroup){
+          order.push({ toothNo, site, row });
+        }
+      }
+    }
+  }
+  return order;
+})();
+
+function perioCellKey(c: { toothNo: number; site: string; row: string }): string {
+  return `${c.row}:${c.toothNo}:${c.site}`;
+}
+
+const PERIO_CELL_INDEX: Map<string, number> = new Map(
+  PERIO_CELL_ORDER.map((c, i) => [perioCellKey(c), i]),
+);
+
+/**
+ * Pure charting-order helper for the full-mouth perio grid's keyboard
+ * auto-advance (PerioChart.tsx) — given the cell just charted, returns the
+ * NEXT cell in charting order (see the order table comment above), or
+ * `null` at the very end (last lingual gm site of the last tooth in the
+ * arch order). An unrecognized `cur` (a site string not in {@link PERIO_SITES}
+ * or a `row` other than "pd"/"gm") also returns `null`. Never mutates
+ * state — a plain-object round trip, trivially unit-testable in isolation.
+ */
+export function nextPerioCell(cur: { toothNo: number; site: string; row: "pd" | "gm" }): PerioCellCoord | null {
+  const idx = PERIO_CELL_INDEX.get(perioCellKey(cur));
+  if(idx === undefined) return null;
+  return PERIO_CELL_ORDER[idx + 1] ?? null;
+}
+
+/** Reverse of {@link nextPerioCell} — the grid's Left-arrow / previous-cell
+ *  step. `null` for an unrecognized `cur` or at the very first cell. */
+export function prevPerioCell(cur: { toothNo: number; site: string; row: "pd" | "gm" }): PerioCellCoord | null {
+  const idx = PERIO_CELL_INDEX.get(perioCellKey(cur));
+  if(idx === undefined || idx === 0) return null;
+  return PERIO_CELL_ORDER[idx - 1] ?? null;
+}
+
+// ---- Periodontal-arc sub-project P2, Task 2: full-mouth grid support ----
+// Two small production (non-test) reads/writes the perio-chart overlay's grid
+// (PerioChart.tsx, a separate React component/module) needs, since it lives
+// outside odontogram.ts and can't reach the private `toothState` map,
+// `perioRowHidden`, or `applyToSelected` directly.
+
+/** Whether tooth `toothNo`'s periodontal probing sites are chartable on the
+ *  active chart — the SAME gate {@link perioRowHidden} applies to the
+ *  tooth-info panel's `#perioRow` (missing/implant/under-gum/extraction-
+ *  socket teeth have no probing site to chart). The full-mouth perio-chart
+ *  overlay grid (P2 Task 2) disables a tooth's entire column (site cells +
+ *  mobility cell) on this same predicate — a tooth never touched (no stored
+ *  state yet) reads as present/chartable, mirroring every other per-tooth
+ *  default read here. */
+export function isPerioRowHidden(toothNo: number): boolean {
+  return perioRowHidden(toothState.get(toothNo));
+}
+
+/** Read tooth `toothNo`'s Miller mobility grade from the active chart
+ *  ("none" for a never-touched tooth, matching {@link defaultState}). */
+export function getToothMobility(toothNo: number): string {
+  return toothState.get(toothNo)?.mobility ?? "none";
+}
+
+/**
+ * Set tooth `toothNo`'s Miller mobility grade on the active chart from
+ * OUTSIDE the tooth-info panel. The panel's own `#mobilitySelect` writes
+ * mobility through `applyToSelected()`, which applies to the bulk
+ * `selectedTeeth` set — unusable here, since the full-mouth perio-chart
+ * overlay grid (P2 Task 2) edits one specific tooth at a time that is not
+ * necessarily `activeTooth` or selected on the base chart. This reuses the
+ * EXACT SAME mutation + render + notify steps that path takes
+ * (`applyStateToSvg`, `updateToothTileNumber`, re-syncing the panel when
+ * `toothNo` happens to be the active tooth, `notifyStateChange`) — no new
+ * mobility derivation or render logic, just a single-tooth entry point into
+ * it. Lazily initializes a never-touched tooth's state first, exactly like
+ * `setPerioSite` does. An unrecognized `value` (not in {@link VALID_MOBILITY})
+ * is a silent no-op, exactly like every other per-tooth enum setter here.
+ */
+export function setToothMobility(toothNo: number, value: string): void {
+  if(!VALID_MOBILITY.has(value)) return;
+  let s = toothState.get(toothNo);
+  if(!s){ s = defaultState(); toothState.set(toothNo, s); }
+  if(s.mobility === value) return;
+  s.mobility = value;
+  applyStateToSvg(toothNo);
+  updateToothTileNumber(toothNo);
+  if(toothNo === activeTooth) syncControlsFromState(toothState.get(toothNo));
+  notifyStateChange();
+}
+
+// ---- Periodontal-arc sub-project P2, Task 1: perio-chart overlay open/close ----
+// Separately-invocable imperative API so a host dental application can call up
+// the perio overlay independently of the base odontogram (e.g. from its own
+// menu/shortcut, without going through any odontogram-specific UI). The flag
+// lives here (alongside the rest of the module-level session state) and reuses
+// the existing `onStateChange` subscription — `App.tsx`'s demo subscribes and
+// mirrors the flag into React state (`perioOpen`) so `<PerioChart/>` re-renders
+// on open/close. No tooth-state mutation, no payload/FHIR change.
+let perioOverlayOpen = false;
+
+/** Open the perio-chart overlay. No-op (still notifies) if already open. */
+export function openPerioOverlay(): void {
+  perioOverlayOpen = true;
+  notifyStateChange();
+}
+
+/** Close the perio-chart overlay. No-op (still notifies) if already closed. */
+export function closePerioOverlay(): void {
+  perioOverlayOpen = false;
+  notifyStateChange();
+}
+
+/** Whether the perio-chart overlay is currently open. */
+export function isPerioOverlayOpen(): boolean {
+  return perioOverlayOpen;
+}
+
 function downloadJson(payload: Any, filenamePrefix: string){
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);

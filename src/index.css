@@ -144,6 +144,14 @@ select:focus{
   gap:14px;
   padding:14px;
 }
+/* P2 Task 1: slim bar at the top of <main class="layout">, spanning both grid
+   columns, holding the "open Perio overlay" button. Separate from the topbar
+   and from .chart-actions — the overlay is invocable independently of any
+   specific tooth/chart UI. */
+.perio-launch-bar{
+  grid-column: 1 / -1;
+  display:flex; justify-content:flex-end;
+}
 .chart{
   background: rgba(255,255,255,.9);
   border:1px solid var(--line);
@@ -1275,4 +1283,147 @@ select:focus{
     border-right: none; border-bottom: 1px solid var(--line);
     overflow-x: auto;
   }
+}
+
+/* P2 Task 1: perio-chart overlay shell. Full-screen, layered ABOVE the
+   odontogram (which it never unmounts) — higher z-index than every other
+   overlay/modal in this file (settings modal is 150). Mirrors
+   .odon-settings-backdrop/.odon-settings-modal's look, but #perioOverlay
+   itself carries role="dialog" (no separate backdrop element). */
+.perio-overlay{
+  position: fixed; inset: 0; z-index: 160;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  background: rgba(20,28,40,.55);
+  backdrop-filter: blur(4px);
+  animation: odon-fade-in .12s ease;
+}
+.perio-overlay-panel{
+  display: flex; flex-direction: column;
+  width: min(960px, 96vw);
+  max-height: min(90vh, 800px);
+  background: var(--panel, #fff);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 24px 64px rgba(20,28,40,.30);
+  overflow: hidden;
+  animation: odon-ctx-pop .12s ease;
+}
+.perio-overlay-header{
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.perio-overlay-title{
+  margin: 0; font-size: 16px; font-weight: 700; color: var(--text);
+}
+.perio-overlay-close{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: rgba(0,0,0,.04); color: var(--text);
+  cursor: pointer;
+}
+.perio-overlay-close:hover{ background: rgba(0,0,0,.08); }
+.perio-overlay-close:focus-visible{
+  outline: none; box-shadow: 0 0 0 3px rgba(59,123,255,.35);
+}
+.perio-overlay-body{
+  flex: 1; min-height: 240px;
+  padding: 16px 18px;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.dark .perio-overlay-close{ background: rgba(255,255,255,.06); }
+.dark .perio-overlay-close:hover{ background: rgba(255,255,255,.12); }
+
+/* P2 Task 2: full-mouth perio grid + summary bar, built inside
+   #perioOverlayGrid (.perio-overlay-body above). Distinct class prefix
+   (`perio-fullgrid-*`) from the P1 tooth-panel's single-tooth
+   `.perio-grid`/`.perio-site-*` classes (index.css ~657) — the overlay uses
+   its own unique id (#perioOverlayGrid) so it never collides with the P1
+   panel's always-present #perioGrid, and the two class prefixes never
+   collide since the two subtrees are never both matched by the same
+   selector. */
+.perio-fullgrid-summary{
+  flex: 0 0 auto;
+  display: flex; flex-wrap: wrap; gap: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: rgba(0,0,0,.02);
+  position: sticky; top: 0; z-index: 3;
+}
+.dark .perio-fullgrid-summary{ background: rgba(255,255,255,.04); }
+.perio-fullgrid-summary-item{ display: flex; align-items: baseline; gap: 6px; font-size: 12px; }
+.perio-fullgrid-summary-label{ color: var(--muted); }
+.perio-fullgrid-summary-value{ font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+
+.perio-fullgrid-scroll{
+  flex: 1 1 auto;
+  overflow: auto;
+  border: 1px solid var(--line); border-radius: 10px;
+}
+.perio-fullgrid-arch{
+  display: grid;
+  align-items: stretch;
+}
+.perio-fullgrid-arch + .perio-fullgrid-arch{
+  border-top: 2px solid var(--line);
+}
+.perio-fullgrid-row-label{
+  position: sticky; left: 0; z-index: 2;
+  display: flex; align-items: center;
+  padding: 4px 8px;
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  white-space: nowrap;
+}
+.perio-fullgrid-header-cell{
+  position: sticky; top: 0; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  padding: 6px 4px;
+  font-size: 12px; font-weight: 700; color: var(--text);
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.perio-fullgrid-arch .perio-fullgrid-row-label:first-child,
+.perio-fullgrid-header-cell + .perio-fullgrid-header-cell:first-of-type{
+  z-index: 4;
+}
+.perio-fullgrid-cell{
+  display: flex; align-items: center; justify-content: center;
+  padding: 3px 2px;
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+.perio-fullgrid-sitegroup{
+  display: flex; gap: 3px;
+}
+.perio-fullgrid-input{
+  width: 30px;
+  font-size: 11px; text-align: center;
+  padding: 2px 1px;
+  border: 1px solid var(--line); border-radius: 4px;
+  background: var(--card); color: var(--text);
+}
+.perio-fullgrid-input:disabled,
+.perio-fullgrid-mobility-select:disabled{
+  opacity: .45; cursor: not-allowed;
+}
+.perio-fullgrid-cal{
+  width: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.perio-fullgrid-bop{ width: 14px; height: 14px; margin: auto; }
+.perio-fullgrid-cell-mobility{ padding: 3px 4px; }
+.perio-fullgrid-mobility-select{
+  width: 100%;
+  font-size: 11px;
+  padding: 2px 3px;
+  border: 1px solid var(--line); border-radius: 4px;
+  background: var(--card); color: var(--text);
 }
