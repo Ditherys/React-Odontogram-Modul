@@ -1446,6 +1446,138 @@ select:focus{
 .perio-fullgrid-summary-label{ color: var(--muted); }
 .perio-fullgrid-summary-value{ font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 
+/* UI-1 Task 2: `<PerioSidebar/>` — the three titled cards (whole-mouth
+   summary / "Páciens adatok" case metadata / 2017 classification, the last
+   nested inside the metadata card under its own subheading). Background/
+   border/radius mirror `.card` exactly so the sidebar reads as part of the
+   same design system (dark-mode override mirrors `.dark .card` too). Rows
+   are a two-column label->control grid (`.case-meta-row`); the classification
+   axis rows add a third column for the derived value
+   (`.perio-class-row`: label / derived value / override select). Collapses
+   to a single column below the mobile breakpoint. */
+.perio-summary-card,
+.case-meta-panel{
+  background: rgba(255,255,255,.9);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.dark .perio-summary-card,
+.dark .case-meta-panel{
+  background: rgba(30,41,59,.8);
+  border-color: var(--line);
+}
+.perio-summary-card{ padding: 12px; }
+.perio-summary-card-title{ font-weight: 800; margin-bottom: 10px; color: var(--text); }
+.perio-summary-card .perio-fullgrid-summary{
+  /* Reset the P2 full-grid overlay's sticky header treatment — inside this
+     titled card the summary bar is plain content, not a sticky toolbar. */
+  position: static;
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 16px;
+}
+
+.case-meta-panel{ overflow: hidden; }
+.case-meta-panel-title{
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 12px;
+  font-weight: 800; color: var(--text);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.case-meta-panel-title::-webkit-details-marker{ display: none; }
+.case-meta-panel-title::after{
+  content: "";
+  width: 8px; height: 8px; flex-shrink: 0;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform .15s ease;
+}
+.case-meta-panel[open] .case-meta-panel-title::after{ transform: rotate(45deg); }
+.case-meta-panel-title:hover{ background: rgba(0,0,0,.03); }
+.dark .case-meta-panel-title:hover{ background: rgba(255,255,255,.04); }
+.case-meta-panel-title:focus-visible{
+  outline: none; box-shadow: inset 0 0 0 3px rgba(59,123,255,.30);
+}
+.case-meta-panel-body{
+  padding: 2px 12px 14px;
+  border-top: 1px solid var(--line);
+  display: flex; flex-direction: column;
+}
+.case-meta-row{
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  column-gap: 12px;
+  padding-top: 10px;
+}
+.case-meta-row:first-child{ padding-top: 12px; }
+.case-meta-row-label{ font-size: 13px; font-weight: 600; color: var(--text); }
+.case-meta-row-disabled{ opacity: .55; }
+.case-meta-row-disabled .case-meta-row-label{ color: var(--muted); }
+.case-meta-input,
+.case-meta-select{
+  justify-self: start;
+  padding: 6px 10px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--panel, #fff); color: var(--text);
+  font-size: 13px; font-family: inherit;
+}
+.case-meta-input:focus-visible,
+.case-meta-select:focus-visible{
+  outline: none; box-shadow: 0 0 0 3px rgba(59,123,255,.30); border-color: rgba(59,123,255,.5);
+}
+.case-meta-input-narrow{ width: 72px; }
+.dark .case-meta-input,
+.dark .case-meta-select{ background: #1e293b; }
+.case-meta-panel-subheading{
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-weight: 800; font-size: 13px; color: var(--text);
+}
+.perio-class-row{
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 6px;
+  padding-top: 10px;
+}
+.perio-class-row-label{ font-size: 13px; font-weight: 600; color: var(--text); }
+.perio-class-derived{
+  font-size: 12px; color: var(--muted); font-style: italic;
+  justify-self: start;
+}
+/* The override <select> drops to its own full-width line so its long
+   "(use derived: …)" option can never overflow the fixed-width sidebar
+   (the native select truncates its text internally). */
+.perio-class-row .case-meta-select{
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 600px){
+  .perio-summary-card .perio-fullgrid-summary{ grid-template-columns: 1fr; }
+  .case-meta-row,
+  .perio-class-row{
+    grid-template-columns: 1fr;
+    row-gap: 6px;
+  }
+  .case-meta-input,
+  .case-meta-select{
+    justify-self: stretch;
+    width: 100%;
+  }
+  .case-meta-input-narrow{ width: 100%; }
+}
+
 /* "Dental Chart" graphical redesign, Task 2: the tooth-row graphic — one
    composite arch SVG per arch band (upper/lower), each built by
    `buildArchGraphic` (perioGraphic.ts). Purely decorative (`aria-hidden` is
@@ -1526,11 +1658,20 @@ select:focus{
 /* PG-B Task 2: the Dental Chart index switcher (a radio-style toggle row in
    the Dental Chart / overlay header) + the discrete-highlight overlay marks
    it drives. Display-only over the existing perio data. */
-.perio-chart-header{ flex-wrap: wrap; gap: 8px; }
+/* UI-1 Task 4: `.chart-title` at 800 (rather than the shared `.chart-header`
+   default of 700) matches the sidebar cards' title weight
+   (`.perio-summary-card-title`/`.panel-title`, both 800) now that this header
+   carries the "Parodontális Státusz" wording shared with the view toggle —
+   scoped to `.perio-chart-header` only, so the odontogram chart card's own
+   header is untouched. Row/column gaps split out (rather than one shared
+   `gap`) so wrapped pills get a bit more breathing room between rows than
+   between the title and the pill row. */
+.perio-chart-header{ flex-wrap: wrap; row-gap: 10px; column-gap: 12px; }
+.perio-chart-header .chart-title{ font-weight: 800; }
 .perio-overlay-switch{
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 .perio-overlay-switch-btn{
@@ -1606,19 +1747,26 @@ select:focus{
 .perio-fullgrid-arch + .perio-fullgrid-arch{
   border-top: 2px solid var(--line);
 }
+/* UI-1 Task 3: the column widened (`ROW_LABEL_WIDTH` 132 -> 220,
+   PerioChart.tsx) to fit full row-label names instead of truncating them.
+   220px still doesn't fit every language's longest label on one line, so
+   `white-space: nowrap` is dropped here (was forcing a single line) — the
+   text below wraps instead of clipping; the row simply grows taller (grid
+   rows are auto-sized), never breaking the shared first-track alignment. */
 .perio-fullgrid-row-label{
   position: sticky; left: 0; z-index: 2;
-  display: flex; align-items: center; gap: 4px;
-  padding: 4px 8px;
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px;
   font-size: 11px; font-weight: 600; color: var(--muted);
   background: var(--panel);
   border-bottom: 1px solid var(--line);
   border-right: 1px solid var(--line);
-  white-space: nowrap;
 }
 .perio-fullgrid-row-label-text{
   min-width: 0;
-  overflow: hidden; text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: break-word;
+  line-height: 1.25;
 }
 /* SP-perio PG-B Task 1: the small "i" info button appended after a row
    label's text (see `mkRowLabelCell` in PerioChart.tsx) + the positioned
@@ -1690,18 +1838,43 @@ select:focus{
 .perio-fullgrid-graphic-cell .perio-tooth-arch{ display: block; }
 .perio-fullgrid-cell{
   display: flex; align-items: center; justify-content: center;
-  padding: 2px 1px;
+  /* UI-1 Task 3: vertical padding only bumped (2px -> 3px) for a taller tap
+     target — horizontal padding is UNCHANGED. Every tooth column's width is
+     baked in from the tooth's real SVG viewBox (`applyArchColumns`,
+     PerioChart.tsx — off-limits to this task).
+     UI-1 Task 3b: the column width is no longer a fixed multiple of the
+     viewBox width — `applyArchColumns` now fits a dynamic per-render
+     `fillScale` (`computeFillScale`, perioGraphic.ts) to the container, so
+     the narrowest columns (lateral incisors) grow well past the old
+     ~50.6px on anything wider than a narrow/mobile viewport. The
+     `.perio-fullgrid-input`/`.perio-fullgrid-cal` tiles inside now flex-fill
+     the sitegroup's width instead of a fixed 13/15px, so extra column width
+     goes straight to bigger, more tappable PD/GM/CAL cells — horizontal
+     padding here stays untouched since the site tiles absorb the growth. */
+  padding: 3px 1px;
   border-bottom: 1px solid var(--line);
   border-left: 1px solid var(--line);
 }
+/* UI-1 Task 3b: the site group now stretches to fill its (now dynamically
+   scaled, see `applyArchColumns`/`computeFillScale` in PerioChart.tsx) cell
+   width, so the 3 PD/GM/CAL tiles it holds grow proportionally with the
+   column instead of staying pinned to a fixed pixel size. */
 .perio-fullgrid-sitegroup{
   display: flex; gap: 1px;
+  width: 100%;
 }
+/* UI-1 Task 3b: PD/GM inputs now FILL their one-third share of the (dynamic)
+   site-group width instead of a fixed 13px — `flex:1 1 0` + `min-width:0`
+   divides the group's width evenly across the 3 site tiles, growing with the
+   column as the chart's fill-scale widens on a bigger screen; `width:100%`
+   is the fallback for `.perio-fullgrid-kg` below, which is NOT inside a
+   sitegroup (no flex-basis context) and keeps its own fixed width instead.
+   `box-sizing:border-box` so the border doesn't add to the flexed width. */
 .perio-fullgrid-input{
-  width: 13px; box-sizing: content-box;
+  flex: 1 1 0; width: 100%; min-width: 0; box-sizing: border-box;
   font-size: 10px; text-align: center;
-  padding: 2px 0;
-  border: 1px solid var(--line); border-radius: 3px;
+  padding: 3px 0;
+  border: 1px solid var(--line); border-radius: 4px;
   background: var(--card); color: var(--text);
   -moz-appearance: textfield;
 }
@@ -1715,30 +1888,43 @@ select:focus{
 .perio-fullgrid-mobility-select:disabled{
   opacity: .45; cursor: not-allowed;
 }
+/* CAL read-out: same fluid one-third-of-the-sitegroup share as PD/GM above
+   (it is a third 3-per-tooth row) — not interactive, so weight/contrast carry
+   the "bigger" intent alongside the extra pixels a wide screen now gives it. */
 .perio-fullgrid-cal{
-  width: 15px;
+  flex: 1 1 0; width: 100%; min-width: 0; box-sizing: border-box;
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 10px; font-variant-numeric: tabular-nums;
+  font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
-.perio-fullgrid-bop{ width: 11px; height: 11px; margin: auto; }
-.perio-fullgrid-cell-mobility{ padding: 2px 3px; }
+/* KG (keratinized gingiva width) reuses `.perio-fullgrid-input` but is a
+   SINGLE per-tooth cell (no site subdivision, no sitegroup), so it keeps its
+   own FIXED width/flex for a comfortable touch target rather than stretching
+   to fill the whole cell (`flex: 0 0 auto` overrides the `.perio-fullgrid-input`
+   `flex: 1 1 0` above — `.perio-fullgrid-cell` is a flex container too, so
+   without this override a lone flex-growing input would stretch edge-to-edge). */
+.perio-fullgrid-kg{ width: 30px; flex: 0 0 auto; }
+.perio-fullgrid-bop{ width: 14px; height: 14px; margin: auto; }
+.perio-fullgrid-cell-mobility{ padding: 3px 6px; }
 .perio-fullgrid-mobility-select{
   width: 100%;
-  font-size: 10px;
-  padding: 1px 2px;
-  border: 1px solid var(--line); border-radius: 3px;
+  font-size: 11px;
+  padding: 3px 4px;
+  border: 1px solid var(--line); border-radius: 4px;
   background: var(--card); color: var(--text);
 }
 
 /* SP-perio P2b Task 4: furcation cycle control — a compact square button per
    entrance whose face is the current Glickman grade (I-IV, "–" when none).
-   A set grade (data-grade > 0) is emphasised with the accent colour. */
+   A set grade (data-grade > 0) is emphasised with the accent colour.
+   UI-1 Task 3: enlarged (15px -> 20px) — furcation is a SINGLE control per
+   entrance (max 3 on an upper molar), not 3-per-site like PD/GM, so it has
+   real spare width in every tooth column, even the narrowest. */
 .perio-fullgrid-furc{
-  width: 15px; height: 15px; padding: 0;
-  font-size: 9px; font-weight: 700; line-height: 1;
+  width: 20px; height: 20px; padding: 0;
+  font-size: 10px; font-weight: 700; line-height: 1;
   text-align: center; cursor: pointer;
-  border: 1px solid var(--line); border-radius: 3px;
+  border: 1px solid var(--line); border-radius: 4px;
   background: var(--card); color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -1750,17 +1936,21 @@ select:focus{
 
 /* SP-perio P2b Task 4: plaque control — a 2x2 quadrant of toggle buttons
    (mesial/distal/buccal/lingual). An active surface (data-present="1") fills
-   with the plaque colour; an inactive one is a hollow outline. */
+   with the plaque colour; an inactive one is a hollow outline.
+   UI-1 Task 3: tiles doubled (8px -> 16px) — only 2 tiles sit side-by-side
+   (mesial/distal above buccal/lingual), well within even the narrowest tooth
+   column's budget. The SAME quad container is reused (unstyled) for the
+   PI/GI/mPI/mBI per-surface grade buttons, so they grow to match too. */
 .perio-fullgrid-plaque-quad{
   display: grid;
-  grid-template-columns: repeat(2, 8px);
-  grid-template-rows: repeat(2, 8px);
-  gap: 1px;
+  grid-template-columns: repeat(2, 16px);
+  grid-template-rows: repeat(2, 16px);
+  gap: 2px;
 }
 .perio-fullgrid-plaque{
-  width: 8px; height: 8px; padding: 0;
+  width: 16px; height: 16px; padding: 0;
   cursor: pointer; font-size: 0;
-  border: 1px solid var(--line); border-radius: 2px;
+  border: 1px solid var(--line); border-radius: 3px;
   background: var(--card);
 }
 .perio-fullgrid-plaque[data-present="1"]{
@@ -1777,28 +1967,98 @@ select:focus{
   background: var(--accent, #4d8bff); border-color: var(--accent, #4d8bff);
 }
 
-/* SP-perio PG-C Task 3: CEJ-visibility + root-concavity cycle controls — one
-   compact button per tooth (mirrors .perio-fullgrid-furc above), face shows
-   a short abbreviation of the current value ("–" when none). */
+/* SP-perio PG-C Task 3 / PG-D Task 4: CEJ-visibility, root-concavity,
+   gingival-thickness (GT) and Miller-class cycle controls — one compact
+   button per tooth, face shows a short abbreviation of the current value
+   ("–" when none/unknown). GT/Miller previously had NO dedicated CSS (fell
+   back to unstyled native buttons) — UI-1 Task 3 folds them into this same
+   rule group instead of leaving them unstyled, and enlarges all four
+   (17x15 -> 30x24): each is a SINGLE control per tooth, so — like furcation
+   above — there is ample spare width even on the narrowest tooth column. */
 .perio-fullgrid-cej,
-.perio-fullgrid-rootconcavity{
-  width: 17px; height: 15px; padding: 0;
-  font-size: 8px; font-weight: 700; line-height: 1;
+.perio-fullgrid-rootconcavity,
+.perio-fullgrid-gt,
+.perio-fullgrid-miller{
+  width: 30px; height: 24px; padding: 0;
+  font-size: 9px; font-weight: 700; line-height: 1;
   text-align: center; cursor: pointer;
-  border: 1px solid var(--line); border-radius: 3px;
+  border: 1px solid var(--line); border-radius: 4px;
   background: var(--card); color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 .perio-fullgrid-cej[data-value]:not([data-value="none"]),
-.perio-fullgrid-rootconcavity[data-value]:not([data-value="none"]){
+.perio-fullgrid-rootconcavity[data-value]:not([data-value="none"]),
+.perio-fullgrid-gt[data-value]:not([data-value="unknown"]),
+.perio-fullgrid-miller[data-value]:not([data-value="none"]){
   border-color: var(--accent, #c0392b);
   background: var(--accent, #c0392b); color: #fff;
 }
 .perio-fullgrid-cej:disabled,
-.perio-fullgrid-rootconcavity:disabled{ opacity: .45; cursor: not-allowed; }
+.perio-fullgrid-rootconcavity:disabled,
+.perio-fullgrid-gt:disabled,
+.perio-fullgrid-miller:disabled{ opacity: .45; cursor: not-allowed; }
 .dark .perio-fullgrid-cej,
-.dark .perio-fullgrid-rootconcavity{ background: rgba(255,255,255,.04); }
+.dark .perio-fullgrid-rootconcavity,
+.dark .perio-fullgrid-gt,
+.dark .perio-fullgrid-miller{ background: rgba(255,255,255,.04); }
 .dark .perio-fullgrid-cej[data-value]:not([data-value="none"]),
-.dark .perio-fullgrid-rootconcavity[data-value]:not([data-value="none"]){
+.dark .perio-fullgrid-rootconcavity[data-value]:not([data-value="none"]),
+.dark .perio-fullgrid-gt[data-value]:not([data-value="unknown"]),
+.dark .perio-fullgrid-miller[data-value]:not([data-value="none"]){
   background: var(--accent, #e05252); border-color: var(--accent, #e05252);
+}
+
+/* UI-1 Task 3: responsive scale-down for the enlarged touch-target cells
+   above, at the same breakpoints already used elsewhere in this file
+   (1100/600/520). The grid stays horizontally scrollable at every width
+   (`.perio-fullgrid-scroll`, `overflow:auto`, bounded by ancestors that all
+   carry `min-width:0` — `.chart-column`/`.dental-chart-column`/
+   `.perio-overlay-body`) — never a page-level scroll — these rules only trim
+   the per-cell footprint so a narrow/mobile viewport needs less of it. The
+   3-per-site PD/GM/BOP/CAL inputs/CAL read-out are intentionally NOT resized
+   here (or above) — their width is already at the ceiling the narrowest real
+   tooth column allows (see the comments above); shrinking them further would
+   only reduce legibility, not the scroll distance in any meaningful way. */
+@media (max-width: 1100px){
+  .perio-fullgrid-bop{ width: 12px; height: 12px; }
+  .perio-fullgrid-plaque-quad{
+    grid-template-columns: repeat(2, 13px);
+    grid-template-rows: repeat(2, 13px);
+    gap: 1px;
+  }
+  .perio-fullgrid-plaque{ width: 13px; height: 13px; }
+  .perio-fullgrid-furc{ width: 17px; height: 17px; }
+  .perio-fullgrid-cej,
+  .perio-fullgrid-rootconcavity,
+  .perio-fullgrid-gt,
+  .perio-fullgrid-miller{ width: 25px; height: 21px; }
+  .perio-fullgrid-kg{ width: 24px; }
+}
+@media (max-width: 600px){
+  .perio-fullgrid-bop{ width: 11px; height: 11px; }
+  .perio-fullgrid-plaque-quad{
+    grid-template-columns: repeat(2, 10px);
+    grid-template-rows: repeat(2, 10px);
+    gap: 1px;
+  }
+  .perio-fullgrid-plaque{ width: 10px; height: 10px; }
+  .perio-fullgrid-furc{ width: 15px; height: 15px; font-size: 9px; }
+  .perio-fullgrid-cej,
+  .perio-fullgrid-rootconcavity,
+  .perio-fullgrid-gt,
+  .perio-fullgrid-miller{ width: 20px; height: 17px; font-size: 8px; }
+  .perio-fullgrid-kg{ width: 20px; }
+  .perio-fullgrid-mobility-select{ font-size: 10px; padding: 2px 3px; }
+}
+@media (max-width: 520px){
+  .perio-fullgrid-plaque-quad{
+    grid-template-columns: repeat(2, 8px);
+    grid-template-rows: repeat(2, 8px);
+  }
+  .perio-fullgrid-plaque{ width: 8px; height: 8px; }
+  .perio-fullgrid-cej,
+  .perio-fullgrid-rootconcavity,
+  .perio-fullgrid-gt,
+  .perio-fullgrid-miller{ width: 17px; height: 15px; }
+  .perio-fullgrid-kg{ width: 16px; }
 }

@@ -400,8 +400,51 @@ export const TOOTH_GAP = 2;
  *  `PERIO_DISPLAY_SCALE` px — so the teeth read larger while the columns stay
  *  locked to them (one shared `archToothLayout`, never two divergent
  *  geometries). `> 1` bumps the base scale so the teeth read larger (T1
- *  polish); visual size is confirmed in a browser (see task-1-report.md). */
+ *  polish); visual size is confirmed in a browser (see task-1-report.md).
+ *
+ *  UI-1 Task 3b (dynamic fill-scale): `applyArchColumns` no longer uses this
+ *  FIXED value at runtime — it now computes a per-render `fillScale` via
+ *  {@link computeFillScale} so the chart fills the available container width
+ *  instead of leaving empty space on a wide screen. This constant is kept as
+ *  the historical reference/floor value (`MIN_FILL_SCALE` below is set equal
+ *  to it, so a narrow container reproduces the exact pre-Task-3b layout) —
+ *  still exported since other modules/tests reference it as "the base display
+ *  scale", never delete. */
 export const PERIO_DISPLAY_SCALE = 1.5;
+
+/** Floor for the dynamic fill-scale (UI-1 Task 3b) — below this the teeth
+ *  would read uncomfortably small, so a narrow container instead relies on
+ *  `.perio-fullgrid-scroll`'s horizontal scrollbar rather than shrinking
+ *  further. Equal to the legacy `PERIO_DISPLAY_SCALE` so a narrow/unmeasured
+ *  container (including jsdom, which reports `clientWidth === 0`) renders
+ *  identically to the pre-Task-3b fixed layout. */
+export const MIN_FILL_SCALE = PERIO_DISPLAY_SCALE;
+
+/** Ceiling for the dynamic fill-scale (UI-1 Task 3b) — caps how large the
+ *  teeth/number cells grow on an ultra-wide monitor so they don't become
+ *  absurdly oversized. */
+export const MAX_FILL_SCALE = 2.6;
+
+/**
+ * Pure scale-fitting math for the dynamic fill-scale (UI-1 Task 3b, no DOM):
+ * given the pixel width available for an arch's tooth columns and the summed
+ * base-scale (1x) footprint of that arch's teeth (`ArchLayout.totalWidth`),
+ * return the per-tooth column multiplier that makes the columns fill
+ * `available`, clamped to `[MIN_FILL_SCALE, MAX_FILL_SCALE]`. Guards against
+ * a non-finite/non-positive `baseCols` (empty arch, or the template cache not
+ * loaded yet) and a non-finite/negative `available` (unmeasured or
+ * over-subtracted container width) by falling back to the floor — the same
+ * value the chart always used before this task, so "can't measure" degrades
+ * to the historical fixed layout rather than a broken one.
+ */
+export function computeFillScale(available: number, baseCols: number): number {
+  if (!Number.isFinite(available) || !Number.isFinite(baseCols) || baseCols <= 0) {
+    return MIN_FILL_SCALE;
+  }
+  const raw = available / baseCols;
+  if (!Number.isFinite(raw)) return MIN_FILL_SCALE;
+  return Math.min(MAX_FILL_SCALE, Math.max(MIN_FILL_SCALE, raw));
+}
 
 /** One tooth's horizontal footprint within an arch row (row-local x). */
 export interface ArchToothLayout {

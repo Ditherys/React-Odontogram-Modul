@@ -45,22 +45,10 @@ import {
   setPeriImplantPlaque,
   getPeriImplantBleeding,
   setPeriImplantBleeding,
-  getCaseMeta,
-  setCaseAge,
-  setSmokingStatus,
-  setCigarettesPerDay,
-  setDiabetesStatus,
-  setHba1c,
-  setToothLossPerio,
-  setMaxRblPercent,
-  getPerioClassification,
-  setDiagnosisOverride,
-  setStageOverride,
-  setGradeOverride,
-  setExtentOverride,
   type PerioCellCoord,
   type PerioOverlayLayer,
 } from "./odontogram";
+import PerioSidebar from "./PerioSidebar";
 import {
   loadTemplateCache,
   buildArchGraphic,
@@ -76,7 +64,7 @@ import {
   buildPerioOverlayLayer,
   PERIO_MM_PX,
   TOOTH_GAP,
-  PERIO_DISPLAY_SCALE,
+  computeFillScale,
   type TemplateDocCache,
   type ArchLayout,
   type PerioCurveSite,
@@ -91,7 +79,14 @@ import {
 // Width of the sticky left-hand row-label column (px). The arch graphic and
 // every number row share ONE CSS grid whose first track is this label column,
 // so the tooth columns (tracks 2..N+1) start at the same x in every row.
-const ROW_LABEL_WIDTH = 132;
+// UI-1 Task 3: raised from 132 -> 220 so full row-label names (e.g. the
+// longest, "Peri-implant Bleeding Index (mBI)") are no longer force-
+// truncated by the old fixed-width + CSS ellipsis combo. 220px still isn't
+// wide enough for every language's full label on one line (several
+// translations run longer than the English source) — `.perio-fullgrid-row-
+// label-text` (index.css) allows those to wrap onto a second line instead of
+// clipping; the row's height simply grows to fit (grid rows are auto-sized).
+const ROW_LABEL_WIDTH = 220;
 
 // Provisional per-tooth column width (px) used until the tooth-template cache
 // loads and the real, per-tooth arch-layout widths are applied
@@ -184,72 +179,12 @@ const EMPTY_SUMMARY: PerioSummaryData = {
   mbiScore: null,
 };
 
-// P4a Task 2: case-metadata panel — static default (NOT getCaseMeta()), same
-// module-eval-safety reason as EMPTY_SUMMARY/EMPTY_PERIO above (this hook
-// runs on every mount regardless of `active`; the real value is read in the
-// `active`-gated effect below).
-type CaseMetaData = ReturnType<typeof getCaseMeta>;
-const EMPTY_CASE_META: CaseMetaData = {
-  age: null,
-  smokingStatus: "unknown",
-  cigarettesPerDay: null,
-  diabetesStatus: "unknown",
-  hba1c: null,
-  toothLossPerio: null,
-  maxRblPercent: null,
-  // P4b Task 2: classification overrides — same static-default reasoning.
-  diagnosisOverride: null,
-  stageOverride: null,
-  gradeOverride: null,
-  extentOverride: null,
-};
-
-// P4b Task 4: classification panel — static default (NOT getPerioClassification()),
-// same module-eval-safety reason as EMPTY_CASE_META above (this hook runs on
-// every mount regardless of `active`; the real value is read in the
-// `active`-gated effect below). Shape mirrors `PerioClassificationResult`
-// (odontogram.ts) exactly; the concrete values here are never shown (the
-// `active`-gated effect replaces them before first paint of a mounted panel).
-type ClassificationData = ReturnType<typeof getPerioClassification>;
-const EMPTY_CLASSIFICATION: ClassificationData = {
-  diagnosis: "health",
-  stage: "na",
-  grade: "indeterminate",
-  extent: "na",
-  derived: {
-    diagnosis: "health",
-    stage: "na",
-    grade: "indeterminate",
-    extent: "na",
-    buckets: { smoking: "A", diabetes: "A", direct: null },
-  },
-  overridden: { diagnosis: false, stage: false, grade: false, extent: false },
-};
-
-// P4b Task 4: per-axis derived-value label helpers — shared by the
-// "current derived value" display and the override <select>'s first
-// "(use derived: X)" option, so both always show the exact same text.
-// `stage`/`grade` can additionally read the pure-derivation-only
-// "indeterminate" placeholder, and `stage`/`extent` can read "na" — both are
-// DISPLAY-only (never an authorable override value), so they're labelled
-// explicitly here rather than left to fall through to a raw enum key.
-function diagnosisLabel(v: string): string {
-  return t(`perio.class.dx.${v}`);
-}
-function stageLabel(v: string): string {
-  if (v === "na") return t("perio.class.stage.na");
-  if (v === "indeterminate") return t("perio.class.stage.indeterminate");
-  return t(`perio.class.stage.${v}`);
-}
-function gradeLabel(v: string): string {
-  if (v === "indeterminate") return t("perio.class.grade.indeterminate");
-  return t(`perio.class.grade.${v}`);
-}
-function extentLabel(v: string): string {
-  if (v === "na") return t("perio.class.extent.na");
-  if (v === "molar-incisor") return t("perio.class.extent.molarIncisor");
-  return t(`perio.class.extent.${v}`);
-}
+// UI-1 Task 1: the case-metadata (`CaseMetaData`/`EMPTY_CASE_META`) and
+// classification (`ClassificationData`/`EMPTY_CLASSIFICATION`) state + the
+// per-axis derived-value label helpers (`diagnosisLabel`/`stageLabel`/
+// `gradeLabel`/`extentLabel`) moved to `src/PerioSidebar.tsx` along with the
+// panel JSX that was their only consumer — nothing in `PerioChart.tsx` itself
+// reads `getCaseMeta()`/`getPerioClassification()` anymore.
 
 type ToothCellRefs = {
   pd: Partial<Record<PerioSite, HTMLInputElement>>;
@@ -1142,8 +1077,8 @@ function buildMillerClassCell(
  * structure: the buccal-aspect number rows sit ABOVE the tooth graphic and the
  * palatal-aspect rows BELOW it, PD innermost on each side (nearest the teeth),
  * with the tooth-number header just above the graphic and a mobility row at the
- * foot. Everything shares ONE CSS grid (`132px` label column + one column per
- * tooth), so the tooth graphic (spanning `archCell`, tracks 2..N+1) and every
+ * foot. Everything shares ONE CSS grid (`ROW_LABEL_WIDTH` label column + one
+ * column per tooth), so the tooth graphic (spanning `archCell`, tracks 2..N+1) and every
  * number column line up in the same coordinate space — the columns are widened
  * to the real per-tooth arch-layout widths once the template cache loads
  * (`applyArchColumns`). Reuses the P2 cell wiring via `buildFieldCell`; built
@@ -1307,22 +1242,52 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   return { grid: arch, archCell };
 }
 
+// UI-1 Task 3b: a small allowance subtracted from the measured scroll
+// container width before fitting columns to it, so the fitted columns never
+// sit exactly flush with the container edge (which could otherwise trip a
+// horizontal scrollbar into existing JUST from its own width, oscillating
+// between fitting and not).
+const GRID_SCROLLBAR_ALLOWANCE = 2;
+
 /** Widen an already-built arch grid's tooth columns to the real per-tooth
  *  arch-layout widths (viewBox width + `TOOTH_GAP`, baked in — NO CSS
  *  column-gap — so the cumulative column edges match the arch SVG's per-tooth
- *  x positions exactly, with no progressive drift). Called once the template
- *  cache loads, so a tooth's number columns sit directly under/over that
- *  tooth in the graphic. */
-function applyArchColumns(grid: HTMLElement | null, teeth: readonly number[], cache: TemplateDocCache): void {
+ *  x positions exactly, with no progressive drift), scaled by a DYNAMIC
+ *  fill-scale (UI-1 Task 3b) so the arch fills the available width of
+ *  `scrollContainer` instead of the old fixed `PERIO_DISPLAY_SCALE`. Called
+ *  once the template cache loads AND on every resize of `scrollContainer`
+ *  (see the `ResizeObserver` below), so a tooth's number columns keep sitting
+ *  directly under/over that tooth in the graphic at any width. `scrollContainer`
+ *  is `.perio-fullgrid-scroll` (the `scrollRef` div, NOT the grid itself —
+ *  the grid's own width is a computed OUTPUT of this function, so measuring
+ *  it here would be circular / risk a resize feedback loop); its width is
+ *  driven by the surrounding flex layout, not by this grid's content
+ *  (`overflow: auto` on the scroll container absorbs any column overflow), so
+ *  reading `clientWidth` here never reacts to the change this function itself
+ *  makes. A `null`/unmounted/zero-width container (including jsdom, which
+ *  never lays out `clientWidth`) measures as `0`, which `computeFillScale`
+ *  clamps down to `MIN_FILL_SCALE` — reproducing the exact fixed pre-Task-3b
+ *  layout when width can't be measured. */
+function applyArchColumns(
+  grid: HTMLElement | null,
+  teeth: readonly number[],
+  cache: TemplateDocCache,
+  scrollContainer: HTMLElement | null,
+): void {
   if (!grid) return;
   const layout = archToothLayout(cache, teeth);
   if (layout.teeth.length === 0) return;
-  // Widen each tooth column by `PERIO_DISPLAY_SCALE` (T1 bigger teeth): the arch
-  // SVG fills the graphic cell these columns span (CSS `width:100%`, no fixed
-  // width), so scaling the columns scales the rendered teeth to match — one
-  // shared layout, columns stay locked to the teeth (no divergent geometry).
+  const containerWidth = scrollContainer?.clientWidth ?? 0;
+  const available = containerWidth - ROW_LABEL_WIDTH - GRID_SCROLLBAR_ALLOWANCE;
+  const fillScale = computeFillScale(available, layout.totalWidth);
+  // Scale each tooth column by the fitted `fillScale`: the arch SVG fills the
+  // graphic cell these columns span (CSS `width:100%`, no fixed width), so
+  // scaling the columns scales the rendered teeth to match — one shared
+  // layout (teeth/curve/overlays/mm-grid all derive from the SAME
+  // `archToothLayout` + this one scale), columns stay locked to the teeth
+  // (no divergent geometry).
   const cols = layout.teeth
-    .map((tooth) => `${((tooth.width + TOOTH_GAP) * PERIO_DISPLAY_SCALE).toFixed(3)}px`)
+    .map((tooth) => `${((tooth.width + TOOTH_GAP) * fillScale).toFixed(3)}px`)
     .join(" ");
   grid.style.gridTemplateColumns = `${ROW_LABEL_WIDTH}px ${cols}`;
 }
@@ -1407,18 +1372,6 @@ export default function PerioChart({
   // the real value is read in the `active`-gated effect below (never at module
   // eval), keeping the partial-mock tests unaffected.
   const [overlayLayer, setOverlayLayer] = useState<PerioOverlayLayer>("none");
-  // P4a Task 2: the case/patient-context metadata, mirrored from the shared
-  // module-level object into React state so the panel's controls re-render on
-  // any change (this instance's own edits, or another consumer's). Static
-  // default (see EMPTY_CASE_META) — the real value is read in the
-  // `active`-gated effect below.
-  const [caseMeta, setCaseMetaState] = useState<CaseMetaData>(EMPTY_CASE_META);
-  // P4b Task 4: the FINAL (override-aware) 2017 classification, mirrored the
-  // same way as `caseMeta` immediately above — every override setter
-  // (setDiagnosisOverride etc.) fires notifyStateChange, and the derived
-  // side depends on live tooth perio data too, so ANY state change refreshes
-  // this panel's derived-value display + selects.
-  const [classification, setClassification] = useState<ClassificationData>(EMPTY_CLASSIFICATION);
 
   const fullResync = useCallback(() => {
     const registry = registryRef.current;
@@ -1898,15 +1851,32 @@ export default function PerioChart({
       drawArchOverlay(cache, archUpperRef.current, UPPER_ARCH, layer);
       drawArchOverlay(cache, archLowerRef.current, LOWER_ARCH, layer);
     };
+    // UI-1 Task 3b: (re-)fit both arches' tooth columns to the CURRENT
+    // `scrollRef` width — shared by the initial cache-load path and the
+    // `ResizeObserver` callback below, so there is exactly one place that
+    // reads the container width and calls `applyArchColumns`.
+    const fitColumns = () => {
+      const cache = archCacheRef.current;
+      if (!cache) return;
+      // Guard the debounced ResizeObserver path: an uncaught throw inside the
+      // setTimeout callback would silently stop all future refits (matches the
+      // try/catch shape of setupBridgeOverlayResize in odontogram.ts).
+      try {
+        applyArchColumns(gridUpperRef.current, UPPER_ARCH, cache, scrollRef.current);
+        applyArchColumns(gridLowerRef.current, LOWER_ARCH, cache, scrollRef.current);
+      } catch (e) {
+        console.error("perio fitColumns failed", e);
+      }
+    };
     loadTemplateCache()
       .then((cache) => {
         if (cancelled) return;
         archCacheRef.current = cache;
-        // Align the number-row columns to the real per-tooth arch widths so a
-        // tooth's cells sit directly under/over that tooth (resolves the
-        // T2-deferred "grid doesn't line up column-for-column with the teeth").
-        applyArchColumns(gridUpperRef.current, UPPER_ARCH, cache);
-        applyArchColumns(gridLowerRef.current, LOWER_ARCH, cache);
+        // Align the number-row columns to the real per-tooth arch widths,
+        // scaled to fill the available container width (resolves the
+        // T2-deferred "grid doesn't line up column-for-column with the teeth"
+        // and, later, the T3b "fixed width leaves empty space" gap).
+        fitColumns();
         buildArches(cache);
         drawArchCurves(cache, archUpperRef.current, UPPER_ARCH);
         drawArchCurves(cache, archLowerRef.current, LOWER_ARCH);
@@ -1921,9 +1891,37 @@ export default function PerioChart({
     const unsubscribe = onStateChange(() => {
       if (!cancelled) redraw();
     });
+
+    // UI-1 Task 3b: re-fit the columns whenever the SCROLL CONTAINER's own
+    // width changes (window resize, sidebar collapse/expand, modal/inline
+    // chrome swap, etc.) — mirrors `setupBridgeOverlayResize` in
+    // odontogram.ts (same guard + debounce shape). Observes `scrollRef`
+    // (`.perio-fullgrid-scroll`) deliberately, NOT the grid this resizes: the
+    // scroll container's width is driven by the surrounding flex layout
+    // (`align-items: stretch` cross-axis sizing) and is unaffected by its own
+    // scrollable content (`overflow: auto` absorbs any column overflow), so
+    // widening the grid columns here can never itself retrigger this
+    // observer — no feedback loop. Debounced (like the bridge-overlay
+    // observer) so a drag-resize doesn't recompute on every intermediate
+    // frame.
+    let resizeObserver: ResizeObserver | null = null;
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
+    if (typeof ResizeObserver !== "undefined" && scrollRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          resizeTimer = null;
+          if (!cancelled) fitColumns();
+        }, 100);
+      });
+      resizeObserver.observe(scrollRef.current);
+    }
+
     return () => {
       cancelled = true;
       unsubscribe();
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeObserver?.disconnect();
       archCacheRef.current = null;
     };
   }, [active]);
@@ -1941,25 +1939,8 @@ export default function PerioChart({
     return unsubscribe;
   }, [active]);
 
-  // P4a Task 2: mirror the shared case-metadata object into React state, same
-  // active-gated + onStateChange pattern as the overlay-layer effect above —
-  // every setter (setCaseAge etc.) fires notifyStateChange, so the panel
-  // re-reads getCaseMeta() and re-renders on any edit, from this instance or
-  // another mounted consumer.
-  // P4b Task 4: classification mirrors the same active-gated + onStateChange
-  // pattern, refreshed alongside caseMeta in ONE subscription (both are
-  // cheap module reads that must always be in sync — an override setter
-  // mutates caseMeta AND changes what getPerioClassification() returns).
-  useEffect(() => {
-    if (!active) return;
-    setCaseMetaState(getCaseMeta());
-    setClassification(getPerioClassification());
-    const unsubscribe = onStateChange(() => {
-      setCaseMetaState(getCaseMeta());
-      setClassification(getPerioClassification());
-    });
-    return unsubscribe;
-  }, [active]);
+  // UI-1 Task 1: the case-metadata/classification mirror effect moved to
+  // `PerioSidebar.tsx` along with the panel JSX it fed.
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -1990,17 +1971,6 @@ export default function PerioChart({
   );
 
   if (!active) return null;
-
-  // Read directly (not React state) — safe past the `active` guard above,
-  // same as every other real-module call in this render body. Only gates the
-  // P4a case-metadata panel's inputs (`disabled`); the perio grid's own
-  // read-only lock is applied separately at build/resync time.
-  const readOnly = getReadOnly();
-
-  const worstCalText =
-    summary.worstCal === null
-      ? "–"
-      : `${summary.worstCal}${summary.worstCalTooth !== null ? ` (${formatToothLabel(summary.worstCalTooth)})` : ""}`;
 
   // PG-B Task 2: the Dental Chart index switcher — a radio-style toggle row
   // that drives `setPerioOverlayLayer`, showing the active selection and, when
@@ -2051,323 +2021,22 @@ export default function PerioChart({
     </div>
   );
 
-  // P4a Task 2: a collapsible case/patient-context panel — age, smoking (+
-  // conditional cigarettes/day), diabetes (+ conditional HbA1c), max
-  // radiographic bone loss %, and teeth lost to periodontitis. Each control
-  // writes straight through its Task 1 setter; an emptied number input passes
-  // `null` (the setter's clear signal). The cigarettes/day and HbA1c fields
-  // stay mounted but `disabled` (never removed from the DOM) when their
-  // gating condition (smoking = current / diabetes = present) isn't met, so
-  // a value already charted is never silently hidden away.
-  const cigsDisabled = caseMeta.smokingStatus !== "current";
-  const hba1cDisabled = caseMeta.diabetesStatus !== "present";
-  const caseMetaSection = (
-    <details id="caseMetaPanel" className="case-meta-panel">
-      <summary className="case-meta-panel-title">{t("case.panelTitle")}</summary>
-      <div className="case-meta-panel-body">
-        <div className="odon-settings-row">
-          <div className="odon-settings-row-text">
-            <div className="odon-settings-row-label">{t("case.age")}</div>
-          </div>
-          <div className="odon-settings-row-control">
-            <input
-              id="caseMetaAge"
-              type="number"
-              min={0}
-              max={120}
-              aria-label={t("case.age")}
-              disabled={readOnly}
-              value={caseMeta.age ?? ""}
-              onChange={(e) => {
-                const v = e.target.value;
-                setCaseAge(v === "" ? null : Number(v));
-              }}
-            />
-          </div>
-        </div>
-        <div className="odon-settings-row">
-          <div className="odon-settings-row-text">
-            <div className="odon-settings-row-label">{t("case.smoking.label")}</div>
-          </div>
-          <div className="odon-settings-row-control">
-            <select
-              id="caseMetaSmoking"
-              className="odon-settings-select"
-              aria-label={t("case.smoking.label")}
-              disabled={readOnly}
-              value={caseMeta.smokingStatus}
-              onChange={(e) => setSmokingStatus(e.target.value)}
-            >
-              <option value="unknown">{t("case.smoking.unknown")}</option>
-              <option value="never">{t("case.smoking.never")}</option>
-              <option value="former">{t("case.smoking.former")}</option>
-              <option value="current">{t("case.smoking.current")}</option>
-            </select>
-          </div>
-        </div>
-        <div className={"odon-settings-row" + (cigsDisabled ? " odon-settings-row-disabled" : "")}>
-          <div className="odon-settings-row-text">
-            <div className="odon-settings-row-label">{t("case.cigarettesPerDay")}</div>
-          </div>
-          <div className="odon-settings-row-control">
-            <input
-              id="caseMetaCigarettesPerDay"
-              type="number"
-              min={0}
-              max={99}
-              aria-label={t("case.cigarettesPerDay")}
-              disabled={readOnly || cigsDisabled}
-              value={caseMeta.cigarettesPerDay ?? ""}
-              onChange={(e) => {
-                const v = e.target.value;
-                setCigarettesPerDay(v === "" ? null : Number(v));
-              }}
-            />
-          </div>
-        </div>
-        <div className="odon-settings-row">
-          <div className="odon-settings-row-text">
-            <div className="odon-settings-row-label">{t("case.diabetes.label")}</div>
-          </div>
-          <div className="odon-settings-row-control">
-            <select
-              id="caseMetaDiabetes"
-              className="odon-settings-select"
-              aria-label={t("case.diabetes.label")}
-              disabled={readOnly}
-              value={caseMeta.diabetesStatus}
-              onChange={(e) => setDiabetesStatus(e.target.value)}
-            >
-              <option value="unknown">{t("case.diabetes.unknown")}</option>
-              <option value="none">{t("case.diabetes.none")}</option>
-              <option value="present">{t("case.diabetes.present")}</option>
-            </select>
-          </div>
-        </div>
-        <div className={"odon-settings-row" + (hba1cDisabled ? " odon-settings-row-disabled" : "")}>
-          <div className="odon-settings-row-text">
-            <div className="odon-settings-row-label">{t("case.hba1c")}</div>
-          </div>
-          <div className="odon-settings-row-control">
-            <input
-              id="caseMetaHba1c"
-              type="number"
-              min={3}
-              max={20}
-              step={0.1}
-              aria-label={t("case.hba1c")}
-              disabled={readOnly || hba1cDisabled}
-              value={caseMeta.hba1c ?? ""}
-              onChange={(e) => {
-                const v = e.target.value;
-                setHba1c(v === "" ? null : Number(v));
-              }}
-            />
-          </div>
-        </div>
-        <div className="odon-settings-row">
-          <div className="odon-settings-row-text">
-            <div className="odon-settings-row-label">{t("case.rbl")}</div>
-          </div>
-          <div className="odon-settings-row-control">
-            <input
-              id="caseMetaRbl"
-              type="number"
-              min={0}
-              max={100}
-              aria-label={t("case.rbl")}
-              disabled={readOnly}
-              value={caseMeta.maxRblPercent ?? ""}
-              onChange={(e) => {
-                const v = e.target.value;
-                setMaxRblPercent(v === "" ? null : Number(v));
-              }}
-            />
-          </div>
-        </div>
-        <div className="odon-settings-row">
-          <div className="odon-settings-row-text">
-            <div className="odon-settings-row-label">{t("case.toothLoss")}</div>
-          </div>
-          <div className="odon-settings-row-control">
-            <input
-              id="caseMetaToothLoss"
-              type="number"
-              min={0}
-              max={32}
-              aria-label={t("case.toothLoss")}
-              disabled={readOnly}
-              value={caseMeta.toothLossPerio ?? ""}
-              onChange={(e) => {
-                const v = e.target.value;
-                setToothLossPerio(v === "" ? null : Number(v));
-              }}
-            />
-          </div>
-        </div>
-        {/* P4b Task 4: 2017 classification block — extends this same panel,
-            below the case-metadata inputs above. Per axis: the DERIVED value
-            (read-only, always the untouched `derivePerioClassification`
-            result) + an override <select> wired to that axis's OWN T2
-            setter. The select's first option clears the override (reverts
-            to derived); the rest are that axis's authorable enum values —
-            never the "na"/"indeterminate" derivation-only placeholders,
-            which are display-only (shown via the derived-value line). */}
-        <div className="case-meta-panel-subheading">{t("perio.class.title")}</div>
-        <div className="odon-settings-row">
-          <div className="odon-settings-row-text">
-            <div className="odon-settings-row-label">{t("perio.class.diagnosis")}</div>
-            <div className="perio-class-derived" id="perioClassDiagnosisDerived">
-              {diagnosisLabel(classification.derived.diagnosis)}
-            </div>
-          </div>
-          <div className="odon-settings-row-control">
-            <select
-              id="perioClassDiagnosisOverride"
-              className="odon-settings-select"
-              aria-label={t("perio.class.diagnosis")}
-              disabled={readOnly}
-              value={caseMeta.diagnosisOverride ?? ""}
-              onChange={(e) => setDiagnosisOverride(e.target.value === "" ? null : e.target.value)}
-            >
-              <option value="">{t("perio.class.useDerived", { value: diagnosisLabel(classification.derived.diagnosis) })}</option>
-              <option value="health">{t("perio.class.dx.health")}</option>
-              <option value="gingivitis">{t("perio.class.dx.gingivitis")}</option>
-              <option value="periodontitis">{t("perio.class.dx.periodontitis")}</option>
-            </select>
-          </div>
-        </div>
-        <div className="odon-settings-row">
-          <div className="odon-settings-row-text">
-            <div className="odon-settings-row-label">{t("perio.class.stage")}</div>
-            <div className="perio-class-derived" id="perioClassStageDerived">
-              {stageLabel(classification.derived.stage)}
-            </div>
-          </div>
-          <div className="odon-settings-row-control">
-            <select
-              id="perioClassStageOverride"
-              className="odon-settings-select"
-              aria-label={t("perio.class.stage")}
-              disabled={readOnly}
-              value={caseMeta.stageOverride ?? ""}
-              onChange={(e) => setStageOverride(e.target.value === "" ? null : e.target.value)}
-            >
-              <option value="">{t("perio.class.useDerived", { value: stageLabel(classification.derived.stage) })}</option>
-              <option value="I">{t("perio.class.stage.I")}</option>
-              <option value="II">{t("perio.class.stage.II")}</option>
-              <option value="III">{t("perio.class.stage.III")}</option>
-              <option value="IV">{t("perio.class.stage.IV")}</option>
-            </select>
-          </div>
-        </div>
-        <div className="odon-settings-row">
-          <div className="odon-settings-row-text">
-            <div className="odon-settings-row-label">{t("perio.class.grade")}</div>
-            <div className="perio-class-derived" id="perioClassGradeDerived">
-              {gradeLabel(classification.derived.grade)}
-            </div>
-          </div>
-          <div className="odon-settings-row-control">
-            <select
-              id="perioClassGradeOverride"
-              className="odon-settings-select"
-              aria-label={t("perio.class.grade")}
-              disabled={readOnly}
-              value={caseMeta.gradeOverride ?? ""}
-              onChange={(e) => setGradeOverride(e.target.value === "" ? null : e.target.value)}
-            >
-              <option value="">{t("perio.class.useDerived", { value: gradeLabel(classification.derived.grade) })}</option>
-              <option value="A">{t("perio.class.grade.A")}</option>
-              <option value="B">{t("perio.class.grade.B")}</option>
-              <option value="C">{t("perio.class.grade.C")}</option>
-            </select>
-          </div>
-        </div>
-        <div className="odon-settings-row">
-          <div className="odon-settings-row-text">
-            <div className="odon-settings-row-label">{t("perio.class.extent")}</div>
-            <div className="perio-class-derived" id="perioClassExtentDerived">
-              {extentLabel(classification.derived.extent)}
-            </div>
-          </div>
-          <div className="odon-settings-row-control">
-            <select
-              id="perioClassExtentOverride"
-              className="odon-settings-select"
-              aria-label={t("perio.class.extent")}
-              disabled={readOnly}
-              value={caseMeta.extentOverride ?? ""}
-              onChange={(e) => setExtentOverride(e.target.value === "" ? null : e.target.value)}
-            >
-              <option value="">{t("perio.class.useDerived", { value: extentLabel(classification.derived.extent) })}</option>
-              <option value="localized">{t("perio.class.extent.localized")}</option>
-              <option value="generalized">{t("perio.class.extent.generalized")}</option>
-              <option value="molar-incisor">{t("perio.class.extent.molarIncisor")}</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </details>
-  );
-
-  // Shared body (grid + summary bar) — identical in both chrome variants,
-  // only the wrapping id/class differs (`#perioInlineGrid` vs
+  // UI-1 Task 1: the whole-mouth summary bar + the case-metadata/2017
+  // classification panel ("Páciens adatok") moved out into a standalone
+  // `<PerioSidebar/>` component (`src/PerioSidebar.tsx`) — the shared right
+  // `<aside className="panel">` in `<App/>` now renders it in place of the
+  // odontogram controls whenever the perio (Dental Chart) view is active, so
+  // it no longer belongs in the chart's own body for the INLINE chrome. The
+  // POPUP chrome (this component's `!inline` branch, below) still renders it
+  // directly — the modal overlay must stay a complete surface on its own,
+  // since `<App/>`'s aside is NOT perio-gated while `viewMode === "popup"`.
+  //
+  // `gridBody` is now just the grid itself, shared unchanged by both chrome
+  // variants — only the wrapping id/class differs (`#perioInlineGrid` vs
   // `#perioOverlayGrid`) so the two never collide with each other or with the
   // P1 tooth-panel's always-present `#perioGrid`.
   const gridBody = (
     <div id={inline ? "perioInlineGrid" : "perioOverlayGrid"} className="perio-overlay-body" aria-label={t("perio.chart.title")}>
-      <div className="perio-fullgrid-summary" role="status">
-        <span className="perio-fullgrid-summary-item">
-          <span className="perio-fullgrid-summary-label">{t("perio.summary.avgPd")}</span>
-          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-avgpd">
-            {summary.avgPd === null ? "–" : summary.avgPd}
-          </span>
-        </span>
-        <span className="perio-fullgrid-summary-item">
-          <span className="perio-fullgrid-summary-label">{t("perio.summary.avgCal")}</span>
-          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-avgcal">
-            {summary.avgCal === null ? "–" : summary.avgCal}
-          </span>
-        </span>
-        <span className="perio-fullgrid-summary-item">
-          <span className="perio-fullgrid-summary-label">{t("perio.bopPercent")}</span>
-          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-bop">
-            {summary.bopPercent}%
-          </span>
-        </span>
-        <span className="perio-fullgrid-summary-item">
-          <span className="perio-fullgrid-summary-label">{t("perio.summary.charted")}</span>
-          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-charted">
-            {summary.chartedSites}
-          </span>
-        </span>
-        <span className="perio-fullgrid-summary-item">
-          <span className="perio-fullgrid-summary-label">{t("perio.summary.worstCal")}</span>
-          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-cal">
-            {worstCalText}
-          </span>
-        </span>
-        <span className="perio-fullgrid-summary-item">
-          <span className="perio-fullgrid-summary-label">{t("perio.summary.maxPd")}</span>
-          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-maxpd">
-            {summary.maxPd === null ? "–" : summary.maxPd}
-          </span>
-        </span>
-        <span className="perio-fullgrid-summary-item">
-          <span className="perio-fullgrid-summary-label">{t("perio.summary.maxFurcation")}</span>
-          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-maxfurc">
-            {summary.maxFurcation === null ? "–" : FURCATION_ROMAN[summary.maxFurcation]}
-          </span>
-        </span>
-        <span className="perio-fullgrid-summary-item">
-          <span className="perio-fullgrid-summary-label">{t("plaque.percent")}</span>
-          <span className="perio-fullgrid-summary-value" id="perio-fg-summary-plaque">
-            {summary.plaquePercent}%
-          </span>
-        </span>
-      </div>
-      {caseMetaSection}
       <div className="perio-fullgrid-scroll" ref={scrollRef}></div>
     </div>
   );
@@ -2430,6 +2099,7 @@ export default function PerioChart({
             </svg>
           </button>
         </div>
+        <PerioSidebar />
         {gridBody}
       </div>
     </div>

@@ -11,6 +11,7 @@ export { startIntroTour } from "./tour";
 import { useI18n } from "./i18n/useI18n";
 import SettingsModal, { type SettingsState } from "./SettingsModal";
 import PerioChart from "./PerioChart";
+import PerioSidebar from "./PerioSidebar";
 import DualStateConfirm from "./DualStateConfirm";
 import type { Language } from "./i18n/translations";
 import type { NumberingSystem } from "./utils/numbering";
@@ -232,6 +233,12 @@ export default function App({
   // showing, only meaningful while `viewMode === "toggle"`.
   const [viewMode, setViewMode] = useState<PerioViewMode>(() => getPerioViewMode());
   const [activeView, setActiveView] = useState<"odontogram" | "dentalChart">("odontogram");
+  // UI-1 Task 1: whether the perio (Dental Chart) view is the one currently
+  // showing — ONLY true in toggle-mode dentalChart; popup mode never gates
+  // the shared right panel this way (the popup itself renders <PerioSidebar/>
+  // in its own body, see PerioChart.tsx). Drives which content the shared
+  // right `<aside className="panel">` below renders.
+  const isPerioView = viewMode === "toggle" && activeView === "dentalChart";
   // DS-1 Task 2: mirror the module-level "a status edit on a planned tooth is
   // awaiting confirmation" flag into React state via the existing onStateChange
   // subscription (requestDualStateConfirm / accept / cancel all notify), so the
@@ -654,6 +661,10 @@ export default function App({
           </div>
         )}
         <aside className="panel">
+          {isPerioView ? (
+            <PerioSidebar />
+          ) : (
+            <>
           <div className="panel-header">
             <div>
               <div className="panel-title-row">
@@ -922,6 +933,8 @@ export default function App({
             </section>
 
           </div>
+            </>
+          )}
         </aside>
       </main>
 
