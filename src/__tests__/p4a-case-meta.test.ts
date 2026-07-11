@@ -3,8 +3,11 @@ import {
   getCaseMeta, setCaseAge, setSmokingStatus, setCigarettesPerDay,
   setDiabetesStatus, setHba1c, setToothLossPerio, setMaxRblPercent, resetCaseMeta,
   __resetChartStateForTest, __collectExportPayloadForTest, __hydrateImportedChartsForTest,
-  getOdontogramSummary,
+  getOdontogramSummary, getPerioClassification,
+  setDiagnosisOverride, setStageOverride, setGradeOverride, setExtentOverride,
+  setPerioSite,
 } from "../odontogram";
+import { t } from "../i18n/useI18n";
 
 beforeEach(() => __resetChartStateForTest());
 
@@ -43,7 +46,7 @@ describe("case metadata object", () => {
   });
   it("serializes omit-when-empty and bumps version to 2.17", () => {
     const empty = __collectExportPayloadForTest();
-    expect(empty.version).toBe("2.17");
+    expect(empty.version).toBe("2.18");
     expect(Object.prototype.hasOwnProperty.call(empty, "case")).toBe(false);
     setCaseAge(54); setSmokingStatus("current"); setMaxRblPercent(45);
     const p = __collectExportPayloadForTest();
@@ -61,7 +64,7 @@ describe("case metadata object", () => {
     expect(getCaseMeta().toothLossPerio).toBe(5);
   });
   it("hydrate self-heals bad values", () => {
-    __hydrateImportedChartsForTest({ version: "2.17", teeth: {}, case: { age: 999, smokingStatus: "bogus", hba1c: "x" } });
+    __hydrateImportedChartsForTest({ version: "2.18", teeth: {}, case: { age: 999, smokingStatus: "bogus", hba1c: "x" } });
     expect(getCaseMeta().age).toBe(120);
     expect(getCaseMeta().smokingStatus).toBe("unknown");
     expect(getCaseMeta().hba1c).toBeNull();
@@ -100,5 +103,88 @@ describe("case metadata summary line", () => {
     setCaseAge(30);
     const { periodontalText } = getOdontogramSummary();
     expect(periodontalText).toContain("30");
+  });
+});
+
+// P4b Task 4: the FINAL (override-aware) periodontal classification appended
+// to periodontalText via getPerioClassification(). An untouched case (no
+// perio data charted, no override on any axis) is left byte-identical to the
+// pre-P4b "healthy" text — the classification fragment only appears once
+// there is something to report (a non-health final diagnosis, or an explicit
+// override on any axis).
+describe("P4b Task 4: classification line in periodontalText", () => {
+  it("untouched, healthy case: periodontalText is unchanged (no classification fragment)", () => {
+    const { periodontalText } = getOdontogramSummary();
+    expect(periodontalText).toBe(t("toothInfo.periodontalHealthy"));
+  });
+
+  it("real perio data deriving periodontitis: periodontalText includes Dx + Stage (grade stays indeterminate, omitted)", () => {
+    // Two non-adjacent present teeth with interdental CAL >= 1mm qualifies the
+    // 2017 periodontitis primary case definition (mirrors T1/T2/T3's own
+    // fixtures) — no case-level age/RBL/smoking/diabetes charted, so grade
+    // stays "indeterminate" and must NOT appear in the fragment.
+    setPerioSite(16, "MB", { pd: 3, gm: 2 }); // CAL 5 -> stage III band
+    setPerioSite(36, "MB", { pd: 3, gm: 2 }); // CAL 5, non-adjacent arch
+    const cls = getPerioClassification();
+    expect(cls.diagnosis).toBe("periodontitis");
+    expect(cls.stage).toBe("III");
+    expect(cls.grade).toBe("indeterminate");
+    const { periodontalText } = getOdontogramSummary();
+    expect(periodontalText).toContain(t("perio.class.summary.dx", { dx: t("perio.class.dx.periodontitis") }));
+    expect(periodontalText).toContain(t("perio.class.summary.stage", { stage: "III" }));
+    expect(periodontalText).not.toContain(t("perio.class.summary.grade", { grade: "A" }));
+    expect(periodontalText).not.toContain(t("perio.class.summary.grade", { grade: "B" }));
+    expect(periodontalText).not.toContain(t("perio.class.summary.grade", { grade: "C" }));
+  });
+
+  it("diagnosis override alone (no charted data) is reflected in the FINAL classification", () => {
+    setDiagnosisOverride("periodontitis");
+    const cls = getPerioClassification();
+    expect(cls.derived.diagnosis).toBe("health"); // derived is untouched
+    expect(cls.diagnosis).toBe("periodontitis"); // final reflects override
+    const { periodontalText } = getOdontogramSummary();
+    expect(periodontalText).toContain(t("perio.class.summary.dx", { dx: t("perio.class.dx.periodontitis") }));
+  });
+
+  it("overriding diagnosis back to health (while derived would be non-health) shows the explicit health Dx, not silence", () => {
+    setPerioSite(16, "MB", { pd: 3, gm: 2 });
+    setPerioSite(36, "MB", { pd: 3, gm: 2 });
+    expect(getPerioClassification().derived.diagnosis).toBe("periodontitis");
+    setDiagnosisOverride("health");
+    const cls = getPerioClassification();
+    expect(cls.diagnosis).toBe("health");
+    expect(cls.overridden.diagnosis).toBe(true);
+    const { periodontalText } = getOdontogramSummary();
+    expect(periodontalText).toContain(t("perio.class.dx.health"));
+  });
+
+  it("stage/grade/extent overrides are all reflected together for a periodontitis case", () => {
+    setPerioSite(16, "MB", { pd: 3, gm: 2 });
+    setPerioSite(36, "MB", { pd: 3, gm: 2 });
+    setStageOverride("IV");
+    setGradeOverride("C");
+    setExtentOverride("generalized");
+    const cls = getPerioClassification();
+    expect(cls.stage).toBe("IV");
+    expect(cls.grade).toBe("C");
+    expect(cls.extent).toBe("generalized");
+    const { periodontalText } = getOdontogramSummary();
+    expect(periodontalText).toContain(t("perio.class.summary.stage", { stage: "IV" }));
+    expect(periodontalText).toContain(t("perio.class.summary.grade", { grade: "C" }));
+    expect(periodontalText).toContain(t("perio.class.extent.generalized"));
+  });
+
+  it("an explicit stage override on an otherwise-healthy case is NOT silently dropped from the summary", () => {
+    // No perio data → derived diagnosis "health"; clinician overrides ONLY stage.
+    // The override must surface in the summary even though the diagnosis isn't
+    // periodontitis (independent per-field override model).
+    setStageOverride("III");
+    const cls = getPerioClassification();
+    expect(cls.diagnosis).toBe("health");
+    expect(cls.overridden.diagnosis).toBe(false);
+    expect(cls.stage).toBe("III");
+    expect(cls.overridden.stage).toBe(true);
+    const { periodontalText } = getOdontogramSummary();
+    expect(periodontalText).toContain(t("perio.class.summary.stage", { stage: "III" }));
   });
 });

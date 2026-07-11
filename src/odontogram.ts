@@ -22,6 +22,7 @@ import {
   defaultMaterialColor,
   type BridgeToothState,
 } from "./bridgeOverlay";
+import { derivePerioClassification, type PerioClassification, type PerioDerivationInput, type ToothDerivationInput } from "./perioClassification";
 import tooth11Url from "./assets/teeth-svgs/11.svg";
 import tooth13Url from "./assets/teeth-svgs/13.svg";
 import tooth14Url from "./assets/teeth-svgs/14.svg";
@@ -452,14 +453,33 @@ type CaseMeta = {
   hba1c: number | null;
   toothLossPerio: number | null;
   maxRblPercent: number | null;
+  /** P4b Task 2: per-axis clinician overrides for the 2017 World Workshop
+   *  periodontal classification (`getPerioClassification()`). Each is either
+   *  a valid enum value for that axis or `null` (not overridden — the
+   *  derived value from `derivePerioClassification` wins). Shared caseMeta
+   *  fields exactly like the rest of this object — NOT DS-1 gated. */
+  diagnosisOverride: string | null;
+  stageOverride: string | null;
+  gradeOverride: string | null;
+  extentOverride: string | null;
 };
 function defaultCaseMeta(): CaseMeta {
   return { age: null, smokingStatus: "unknown", cigarettesPerDay: null,
-    diabetesStatus: "unknown", hba1c: null, toothLossPerio: null, maxRblPercent: null };
+    diabetesStatus: "unknown", hba1c: null, toothLossPerio: null, maxRblPercent: null,
+    diagnosisOverride: null, stageOverride: null, gradeOverride: null, extentOverride: null };
 }
 let caseMeta: CaseMeta = defaultCaseMeta();
 const VALID_SMOKING = new Set(["unknown", "never", "former", "current"]);
 const VALID_DIABETES = new Set(["unknown", "none", "present"]);
+/** P4b Task 2: valid enum values for the four classification override axes —
+ *  mirrors `PerioDiagnosis`/`PerioStage`/`PerioGrade`/`PerioExtent` in
+ *  `perioClassification.ts` MINUS their non-authorable derived-only values
+ *  (`"na"`, `"indeterminate"`) — an override always names a concrete clinical
+ *  value, never one of those computed placeholders. */
+const VALID_DIAGNOSIS = new Set(["health", "gingivitis", "periodontitis"]);
+const VALID_STAGE = new Set(["I", "II", "III", "IV"]);
+const VALID_GRADE = new Set(["A", "B", "C"]);
+const VALID_EXTENT = new Set(["localized", "generalized", "molar-incisor"]);
 function clampInt(v: unknown, lo: number, hi: number): number | null {
   const n = Number(v);
   if(!Number.isFinite(n)) return null;
@@ -488,10 +508,33 @@ export function setHba1c(v: number | null): void {
 }
 export function setSmokingStatus(v: string): void { if(VALID_SMOKING.has(v) && v !== caseMeta.smokingStatus){ caseMeta.smokingStatus = v as CaseMeta["smokingStatus"]; notifyStateChange(); } }
 export function setDiabetesStatus(v: string): void { if(VALID_DIABETES.has(v) && v !== caseMeta.diabetesStatus){ caseMeta.diabetesStatus = v as CaseMeta["diabetesStatus"]; notifyStateChange(); } }
+/** P4b Task 2: per-axis classification override setters. Each accepts either
+ *  a valid enum value for that axis (see `VALID_DIAGNOSIS`/`VALID_STAGE`/
+ *  `VALID_GRADE`/`VALID_EXTENT`) OR `null` (clears the override, reverting
+ *  that axis to the derived value). An invalid non-null value is a silent
+ *  no-op — mirrors `setSmokingStatus`/`setDiabetesStatus` above. Shared
+ *  caseMeta fields, NOT DS-1 gated (same as every other caseMeta setter). */
+export function setDiagnosisOverride(v: string | null): void {
+  if(v === null){ if(caseMeta.diagnosisOverride !== null){ caseMeta.diagnosisOverride = null; notifyStateChange(); } return; }
+  if(VALID_DIAGNOSIS.has(v) && v !== caseMeta.diagnosisOverride){ caseMeta.diagnosisOverride = v; notifyStateChange(); }
+}
+export function setStageOverride(v: string | null): void {
+  if(v === null){ if(caseMeta.stageOverride !== null){ caseMeta.stageOverride = null; notifyStateChange(); } return; }
+  if(VALID_STAGE.has(v) && v !== caseMeta.stageOverride){ caseMeta.stageOverride = v; notifyStateChange(); }
+}
+export function setGradeOverride(v: string | null): void {
+  if(v === null){ if(caseMeta.gradeOverride !== null){ caseMeta.gradeOverride = null; notifyStateChange(); } return; }
+  if(VALID_GRADE.has(v) && v !== caseMeta.gradeOverride){ caseMeta.gradeOverride = v; notifyStateChange(); }
+}
+export function setExtentOverride(v: string | null): void {
+  if(v === null){ if(caseMeta.extentOverride !== null){ caseMeta.extentOverride = null; notifyStateChange(); } return; }
+  if(VALID_EXTENT.has(v) && v !== caseMeta.extentOverride){ caseMeta.extentOverride = v; notifyStateChange(); }
+}
 export function resetCaseMeta(): void { caseMeta = defaultCaseMeta(); }
 function caseMetaIsEmpty(c: CaseMeta): boolean {
   return c.age === null && c.smokingStatus === "unknown" && c.cigarettesPerDay === null
-    && c.diabetesStatus === "unknown" && c.hba1c === null && c.toothLossPerio === null && c.maxRblPercent === null;
+    && c.diabetesStatus === "unknown" && c.hba1c === null && c.toothLossPerio === null && c.maxRblPercent === null
+    && c.diagnosisOverride === null && c.stageOverride === null && c.gradeOverride === null && c.extentOverride === null;
 }
 function serializeCaseMeta(c: CaseMeta): Record<string, unknown> {
   const o: Record<string, unknown> = {};
@@ -502,6 +545,10 @@ function serializeCaseMeta(c: CaseMeta): Record<string, unknown> {
   if(c.hba1c !== null) o.hba1c = c.hba1c;
   if(c.toothLossPerio !== null) o.toothLossPerio = c.toothLossPerio;
   if(c.maxRblPercent !== null) o.maxRblPercent = c.maxRblPercent;
+  if(c.diagnosisOverride !== null) o.diagnosisOverride = c.diagnosisOverride;
+  if(c.stageOverride !== null) o.stageOverride = c.stageOverride;
+  if(c.gradeOverride !== null) o.gradeOverride = c.gradeOverride;
+  if(c.extentOverride !== null) o.extentOverride = c.extentOverride;
   return o;
 }
 function hydrateCaseMeta(raw: Any): void {
@@ -514,6 +561,10 @@ function hydrateCaseMeta(raw: Any): void {
   { const n = Number(raw.hba1c); caseMeta.hba1c = Number.isFinite(n) ? Math.max(3, Math.min(20, Math.round(n * 10) / 10)) : null; }
   caseMeta.toothLossPerio = clampInt(raw.toothLossPerio, 0, 32);
   caseMeta.maxRblPercent = clampInt(raw.maxRblPercent, 0, 100);
+  caseMeta.diagnosisOverride = VALID_DIAGNOSIS.has(raw.diagnosisOverride) ? raw.diagnosisOverride : null;
+  caseMeta.stageOverride = VALID_STAGE.has(raw.stageOverride) ? raw.stageOverride : null;
+  caseMeta.gradeOverride = VALID_GRADE.has(raw.gradeOverride) ? raw.gradeOverride : null;
+  caseMeta.extentOverride = VALID_EXTENT.has(raw.extentOverride) ? raw.extentOverride : null;
 }
 /** P4a Task 2: builds the compact, labelled case-context fragment
  *  (e.g. "Age 54 · current smoker (12/day) · diabetic (HbA1c 7.8%) · max
@@ -5813,7 +5864,7 @@ function collectExportPayload(){
   const planTeeth = planInitialized ? collectTeeth(charts.plan) : null;
   const planDiffers = planTeeth !== null && JSON.stringify(planTeeth) !== JSON.stringify(statusTeeth);
   return {
-    version: "2.17",
+    version: "2.18",
     globals: collectGlobals(),
     teeth: statusTeeth,
     ...(caseMetaIsEmpty(caseMeta) ? {} : { case: serializeCaseMeta(caseMeta) }),
@@ -5843,7 +5894,7 @@ export function getStatusChart(): Any {
  */
 export function getPlanChart(): Any {
   return {
-    version: "2.17",
+    version: "2.18",
     globals: collectGlobals(),
     teeth: collectTeeth(charts.plan),
     ...(caseMetaIsEmpty(caseMeta) ? {} : { case: serializeCaseMeta(caseMeta) }),
@@ -6794,6 +6845,149 @@ export function getPerioChart(): Record<string, PlainPerio> {
     };
   }
   return out;
+}
+
+/**
+ * SP-perio P4b Task 1: state adapter for the pure 2017 periodontal
+ * classification derivation core (`derivePerioClassification` in
+ * `perioClassification.ts`). Reduces the active chart's per-tooth CAL/PD +
+ * the P4a case metadata into the pure {@link PerioDerivationInput} struct —
+ * this is the ONLY place engine state is read for classification purposes;
+ * `derivePerioClassification` itself never touches `toothState`/`caseMeta`
+ * directly, so it stays callable from an arbitrary serialized snapshot (the
+ * later FHIR Condition builder feeds it that way, not live module state).
+ *
+ * Per tooth: `interdentalCal` = worst (max) CAL over the 4 approximal sites
+ * (MB/DB/ML/DL); `buccalOralCal` = worst (max) CAL over the 2 mid sites
+ * (B/L); `maxPd` = worst (max) raw PD over any of the 6 sites (from
+ * `s.perio.pd` directly, NOT derived CAL); `present` mirrors
+ * `isToothPresent()`. A tooth never touched at all (no chart entry) reads
+ * as present with all-zero perio fields — the same "never touched -> default
+ * state" convention every other per-tooth read in this file uses.
+ */
+export function buildDerivationInputFromState(): PerioDerivationInput {
+  const INTERDENTAL_SITES = ["MB", "DB", "ML", "DL"] as const;
+  const BUCCAL_ORAL_SITES = ["B", "L"] as const;
+
+  const teeth: ToothDerivationInput[] = ALL_TEETH.map((toothNo) => {
+    const s = toothState.get(toothNo);
+    const present = isToothPresent((s ?? defaultState()).toothSelection);
+
+    const cal = getToothCal(toothNo);
+    let interdentalCal = 0;
+    for (const site of INTERDENTAL_SITES) {
+      const v = cal.get(site);
+      if (v !== undefined && v > interdentalCal) interdentalCal = v;
+    }
+    let buccalOralCal = 0;
+    for (const site of BUCCAL_ORAL_SITES) {
+      const v = cal.get(site);
+      if (v !== undefined && v > buccalOralCal) buccalOralCal = v;
+    }
+
+    let maxPd = 0;
+    if (s && s.perio) {
+      for (const pd of (s.perio.pd as Map<string, number>).values()) {
+        if (pd > maxPd) maxPd = pd;
+      }
+    }
+
+    return { toothNo, interdentalCal, buccalOralCal, maxPd, present };
+  });
+
+  const summary = getPerioSummary();
+  const meta = getCaseMeta();
+
+  return {
+    teeth,
+    bopPercent: summary.bopPercent,
+    maxFurcation: summary.maxFurcation,
+    meta: {
+      age: meta.age,
+      maxRblPercent: meta.maxRblPercent,
+      toothLossPerio: meta.toothLossPerio,
+      smokingStatus: meta.smokingStatus,
+      cigarettesPerDay: meta.cigarettesPerDay,
+      diabetesStatus: meta.diabetesStatus,
+      hba1c: meta.hba1c,
+    },
+  };
+}
+
+/** Final result of {@link getPerioClassification} — one axis result per axis,
+ *  each either the clinician's override (when set) or the pure-derived value,
+ *  plus the raw derivation and an `overridden` flag per axis so callers (T3's
+ *  FHIR evidence, T4's UI) can tell which. */
+export interface PerioClassificationResult {
+  diagnosis: string;
+  stage: string;
+  grade: string;
+  extent: string;
+  derived: PerioClassification;
+  overridden: { diagnosis: boolean; stage: boolean; grade: boolean; extent: boolean };
+}
+
+/**
+ * SP-perio P4b Task 2: the final periodontal classification — per-axis
+ * clinician override (`caseMeta.<axis>Override`) when set, else the pure
+ * `derivePerioClassification` result (fed via `buildDerivationInputFromState`,
+ * the same state adapter T1 built). Overrides never feed back into the
+ * derivation itself — `derived` is always the untouched computed value, so
+ * callers can always see both what the engine computed and what the
+ * clinician actually chose.
+ */
+export function getPerioClassification(): PerioClassificationResult {
+  const derived = derivePerioClassification(buildDerivationInputFromState());
+  return {
+    diagnosis: caseMeta.diagnosisOverride ?? derived.diagnosis,
+    stage: caseMeta.stageOverride ?? derived.stage,
+    grade: caseMeta.gradeOverride ?? derived.grade,
+    extent: caseMeta.extentOverride ?? derived.extent,
+    derived,
+    overridden: {
+      diagnosis: caseMeta.diagnosisOverride !== null,
+      stage: caseMeta.stageOverride !== null,
+      grade: caseMeta.gradeOverride !== null,
+      extent: caseMeta.extentOverride !== null,
+    },
+  };
+}
+
+/** P4b Task 4: `"molar-incisor"` (the derived/override enum value, hyphenated)
+ *  maps to the camelCase `perio.class.extent.molarIncisor` i18n key segment;
+ *  every other extent value is used as-is. */
+function extentI18nSegment(extent: string): string {
+  return extent === "molar-incisor" ? "molarIncisor" : extent;
+}
+
+/**
+ * P4b Task 4: builds the FINAL (override-aware) periodontal classification
+ * fragment appended to `getOdontogramSummary()`'s `periodontalText` — e.g.
+ * "Dx: periodontitis · Stage III · Grade B · generalized" for periodontitis,
+ * "Dx: gingivitis" for gingivitis (2017 stage/grade/extent only apply once
+ * periodontitis is the diagnosis), or "Dx: periodontally healthy" whenever a
+ * clinician has explicitly overridden ANY axis — even to arrive back at
+ * health — so their choice stays visible rather than silently reverting to
+ * the plain base text.
+ *
+ * Returns `""` (nothing appended) for the ordinary untouched case — final
+ * diagnosis health AND no override on any axis — leaving `periodontalText`
+ * byte-identical to its pre-P4b "healthy" wording for every existing
+ * fixture/test that never touches perio data or the classification axes.
+ */
+function classificationSummaryFragment(cls: PerioClassificationResult): string {
+  const anyOverride = cls.overridden.diagnosis || cls.overridden.stage || cls.overridden.grade || cls.overridden.extent;
+  if(cls.diagnosis === "health" && !anyOverride) return "";
+  const parts = [t("perio.class.summary.dx", { dx: t(`perio.class.dx.${cls.diagnosis}`) })];
+  // Stage/grade/extent are periodontitis-staging concepts, so they're normally
+  // shown only for a periodontitis diagnosis. But an EXPLICIT per-axis override
+  // must never be silently dropped from the summary — surface it even when the
+  // diagnosis isn't periodontitis (the clinician deliberately set it).
+  const showStaging = cls.diagnosis === "periodontitis";
+  if((showStaging || cls.overridden.stage) && cls.stage !== "na" && cls.stage !== "indeterminate") parts.push(t("perio.class.summary.stage", { stage: cls.stage }));
+  if((showStaging || cls.overridden.grade) && cls.grade !== "indeterminate") parts.push(t("perio.class.summary.grade", { grade: cls.grade }));
+  if((showStaging || cls.overridden.extent) && cls.extent !== "na") parts.push(t(`perio.class.extent.${extentI18nSegment(cls.extent)}`));
+  return parts.join(" · ");
 }
 
 // ---- Periodontal-arc sub-project P2, Task 3: keyboard charting order ----
@@ -8871,6 +9065,14 @@ export function getOdontogramSummary(): OdontogramSummary {
   if(!caseMetaIsEmpty(caseMeta)){
     const fragment = caseContextSummaryFragment(caseMeta);
     if(fragment) periodontalText = `${periodontalText} – ${fragment}`;
+  }
+  // P4b Task 4: append the FINAL (override-aware) 2017 classification —
+  // separate from the case-context fragment above (that one only fires when
+  // caseMeta itself is non-empty; classification can be non-trivial purely
+  // from charted perio data, with no case metadata set at all).
+  {
+    const classificationFragment = classificationSummaryFragment(getPerioClassification());
+    if(classificationFragment) periodontalText = `${periodontalText} – ${classificationFragment}`;
   }
 
   const implantInfo = implants.length

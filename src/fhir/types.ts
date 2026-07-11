@@ -1,6 +1,6 @@
-import type { Bundle, Observation, Patient, CodeableConcept, Coding } from "fhir/r4";
+import type { Bundle, Observation, Patient, Condition, CodeableConcept, Coding } from "fhir/r4";
 
-export type { Bundle, Observation, Patient, CodeableConcept, Coding };
+export type { Bundle, Observation, Patient, Condition, CodeableConcept, Coding };
 
 /** Per-tooth record as produced by the engine's serializeState(). */
 export interface ToothRecord {
@@ -178,6 +178,14 @@ export interface OdontogramExportPayload {
     hba1c?: number;
     toothLossPerio?: number;
     maxRblPercent?: number;
+    /** P4b Task 2: per-axis clinician overrides for the 2017 World Workshop
+     *  periodontal classification (see `getPerioClassification()` in
+     *  odontogram.ts) — one of the concrete enum values for that axis, or
+     *  omitted when not overridden. */
+    diagnosisOverride?: string;
+    stageOverride?: string;
+    gradeOverride?: string;
+    extentOverride?: string;
   };
 }
 

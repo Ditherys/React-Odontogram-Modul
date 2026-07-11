@@ -136,6 +136,14 @@ vi.mock("../odontogram", async () => {
     setToothLossPerio: actual.setToothLossPerio,
     setMaxRblPercent: actual.setMaxRblPercent,
     resetCaseMeta: actual.resetCaseMeta,
+    // P4b Task 4: classification panel — <PerioChart/> now reads the final
+    // classification + writes the 4 per-axis overrides at mount/render
+    // (the classification block extends this same case-metadata panel).
+    getPerioClassification: actual.getPerioClassification,
+    setDiagnosisOverride: actual.setDiagnosisOverride,
+    setStageOverride: actual.setStageOverride,
+    setGradeOverride: actual.setGradeOverride,
+    setExtentOverride: actual.setExtentOverride,
   };
 });
 

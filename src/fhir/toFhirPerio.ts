@@ -1,6 +1,16 @@
-import type { Bundle, Observation, CodeableConcept, ToothRecord, OdontogramExportPayload, FhirExportOptions } from "./types";
-import { LOCAL_SYSTEM, FDI_SYSTEM } from "./codesystems";
+import type { Bundle, Observation, Condition, CodeableConcept, ToothRecord, OdontogramExportPayload, FhirExportOptions } from "./types";
+import { LOCAL_SYSTEM, FDI_SYSTEM, ICD10_SYSTEM } from "./codesystems";
 import { PLACEHOLDER_PATIENT_FULLURL, baseObservation } from "./primitives";
+import {
+  derivePerioClassification,
+  type PerioDerivationInput,
+  type ToothDerivationInput,
+  type PerioMetaInput,
+  type PerioDiagnosis,
+  type PerioStage,
+  type PerioGrade,
+  type PerioExtent,
+} from "../perioClassification";
 
 /**
  * SP-perio P1 Task 3: per-site periodontal probing (`ToothRecord.perio`, see
@@ -36,6 +46,9 @@ const LOINC = {
   cal: { code: "32912-8", display: "Clinical attachment level (calculated)" },
   // SP-perio P2b Task 2.
   furcation: { code: "34015-8", display: "Furcation involvement" },
+  // SP-perio P4b Task 3: Condition evidence Observations.
+  smokingStatus: { code: "72166-2", display: "Tobacco smoking status" },
+  hba1c: { code: "4548-4", display: "Hemoglobin A1c/Hemoglobin.total in Blood" },
 } as const;
 
 // SP-perio P2b Task 2: furcation entrance labels — the union across every
@@ -99,6 +112,17 @@ function loincConcept(entry: { code: string; display: string }): CodeableConcept
  */
 function localConcept(code: string, display: string): CodeableConcept {
   return { coding: [{ system: LOCAL_SYSTEM, code, display }], text: display };
+}
+
+/**
+ * ICD-10 (WHO) CodeableConcept — SP-perio P4b Task 3's first ICD-coded
+ * export (`http://hl7.org/fhir/sid/icd-10`, see codesystems.ts). BNO-10 (the
+ * Hungarian national ICD-10 clinical modification) mirrors the WHO K05.*
+ * codes used here 1:1, so a separate BNO coding is not emitted. SNOMED CT is
+ * deferred (task-3-brief.md), mirroring every other engine-local finding.
+ */
+function icdConcept(code: string, display: string): CodeableConcept {
+  return { coding: [{ system: ICD10_SYSTEM, code, display }], text: display };
 }
 
 /**
@@ -431,4 +455,349 @@ export function appendPerioObservations(bundle: Bundle, payload: OdontogramExpor
     const obs = buildToothPerioObservation(subjectRef, tooth, rec);
     if (obs) bundle.entry.push({ resource: obs });
   }
+}
+
+// ---------------------------------------------------------------------------
+// SP-perio P4b Task 3 — the engine's FIRST FHIR Condition: 2017 World
+// Workshop periodontitis/gingivitis diagnosis (ICD-10/BNO K05), with
+// type-differentiated stage/grade/extent + evidence Observations.
+//
+// ARCHITECTURE: `derivePerioClassification` (perioClassification.ts, T1) is
+// pure — it takes an already-reduced `PerioDerivationInput`, never engine
+// state. `buildDerivationInputFromPayload` below is the PAYLOAD-side adapter
+// (mirrors `buildDerivationInputFromState` in odontogram.ts, the STATE-side
+// adapter T1/T2 use for the UI/summary path) — this module deliberately
+// never imports odontogram.ts (see the module doc comment at the top of this
+// file), so every constant it needs (the FDI arch sequence, the interdental/
+// buccal-oral site groupings, the override valid-value sets) is duplicated
+// locally, the same policy PERIO_SITES/FURCATION_ENTRANCES above already
+// follow.
+// ---------------------------------------------------------------------------
+
+// Mirrors ALL_TEETH in odontogram.ts (upper 18->28, then lower 48->38).
+const ALL_TEETH_FDI = [
+  18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28,
+  48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38,
+] as const;
+
+// Mirrors the two site groupings `buildDerivationInputFromState` reduces
+// CAL over: the 4 approximal ("interdental") sites and the 2 mid
+// ("buccal/oral") sites.
+const INTERDENTAL_SITES: readonly PerioSite[] = ["MB", "DB", "ML", "DL"];
+const BUCCAL_ORAL_SITES: readonly PerioSite[] = ["B", "L"];
+
+// Mirrors the P4a `VALID_SMOKING`/`VALID_DIABETES` sets in odontogram.ts —
+// duplicated (not imported) for the same dependency-independence reason.
+const VALID_SMOKING_STATUS = new Set(["unknown", "never", "former", "current"]);
+const VALID_DIABETES_STATUS = new Set(["unknown", "none", "present"]);
+
+// Mirrors the P4b Task 2 `VALID_DIAGNOSIS`/`VALID_STAGE`/`VALID_GRADE`/
+// `VALID_EXTENT` override sets in odontogram.ts — deliberately excludes the
+// derivation's non-authorable placeholder values ("na"/"indeterminate"), an
+// override always names a concrete clinical value.
+const VALID_DIAGNOSIS_OVERRIDE = new Set(["health", "gingivitis", "periodontitis"]);
+const VALID_STAGE_OVERRIDE = new Set(["I", "II", "III", "IV"]);
+const VALID_GRADE_OVERRIDE = new Set(["A", "B", "C"]);
+const VALID_EXTENT_OVERRIDE = new Set(["localized", "generalized", "molar-incisor"]);
+
+/** Whether a tooth counts as "present" for classification purposes, from its
+ *  serialized `toothSelection`. An absent/malformed `toothSelection` defaults
+ *  to "tooth-base" (present), mirroring how a tooth never touched at all
+ *  reads on the live-state adapter. */
+function presentFromSelection(sel: unknown): boolean {
+  const s = typeof sel === "string" && sel ? sel : "tooth-base";
+  // mirror isToothPresent() in odontogram.ts — a present natural tooth is anything
+  // that is not missing ("none") and not an implant. (Extraction sockets / under-gum
+  // keep the same treatment isToothPresent gives them, so the FHIR-derived
+  // classification matches the on-screen classification for the same case.)
+  return s !== "none" && s !== "implant";
+}
+
+/**
+ * Payload-side adapter for {@link derivePerioClassification} — reduces a
+ * SERIALIZED `OdontogramExportPayload` (not live module state) into the pure
+ * {@link PerioDerivationInput} struct. Mirrors `buildDerivationInputFromState`
+ * in odontogram.ts field-for-field: per tooth, `interdentalCal`/
+ * `buccalOralCal` are the worst (max) derived CAL (`pd + gm`) over the
+ * approximal/mid site groups; `maxPd` is the worst raw PD over any of the 6
+ * sites; `present` via {@link presentFromSelection}. `bopPercent` is the
+ * whole-payload %BOP over every charted site across every tooth;
+ * `maxFurcation` the highest graded furcation entrance anywhere. `meta`
+ * comes straight from `payload.case` (the SAME shape `CaseMeta` serializes
+ * to), defaulting exactly like `defaultCaseMeta()` when a field is absent.
+ *
+ * Pure; tolerant of malformed/missing `payload`/`payload.teeth`/`payload.case`
+ * (never throws) — unrecognized sites, non-numeric values, and foreign enum
+ * strings are silently treated as "not charted"/"unknown", the same
+ * tolerance policy {@link buildToothPerioObservation} follows.
+ */
+export function buildDerivationInputFromPayload(payload: OdontogramExportPayload): PerioDerivationInput {
+  const teethPayload: Record<string, ToothRecord> =
+    payload && typeof payload === "object" && payload.teeth && typeof payload.teeth === "object"
+      ? (payload.teeth as Record<string, ToothRecord>)
+      : {};
+
+  let chartedSites = 0;
+  let bleedingSites = 0;
+  let maxFurcation: number | null = null;
+
+  const teeth: ToothDerivationInput[] = ALL_TEETH_FDI.map((toothNo) => {
+    const rec = (teethPayload[String(toothNo)] ?? {}) as ToothRecord;
+    const present = presentFromSelection(rec.toothSelection);
+
+    const pd = rec.perio && typeof rec.perio.pd === "object" ? (rec.perio.pd as Record<string, unknown>) : undefined;
+    const gm = rec.perio && typeof rec.perio.gm === "object" ? (rec.perio.gm as Record<string, unknown>) : {};
+    const bop = Array.isArray(rec.perio?.bop) ? (rec.perio!.bop as unknown[]).filter((v): v is string => typeof v === "string") : [];
+
+    let interdentalCal = 0;
+    let buccalOralCal = 0;
+    let maxPd = 0;
+    if (pd) {
+      for (const site of PERIO_SITES) {
+        const pdRaw = pd[site];
+        if (!isFiniteNumber(pdRaw)) continue;
+        chartedSites++;
+        if (bop.includes(site)) bleedingSites++;
+        if (pdRaw > maxPd) maxPd = pdRaw;
+        const gmRaw = gm[site];
+        const cal = pdRaw + (isFiniteNumber(gmRaw) ? gmRaw : 0);
+        if (INTERDENTAL_SITES.includes(site) && cal > interdentalCal) interdentalCal = cal;
+        if (BUCCAL_ORAL_SITES.includes(site) && cal > buccalOralCal) buccalOralCal = cal;
+      }
+    }
+
+    const furcationRaw = rec.furcation && typeof rec.furcation === "object" ? (rec.furcation as Record<string, unknown>) : undefined;
+    if (furcationRaw) {
+      for (const v of Object.values(furcationRaw)) {
+        if (isFiniteNumber(v) && (maxFurcation === null || v > maxFurcation)) maxFurcation = v;
+      }
+    }
+
+    return { toothNo, interdentalCal, buccalOralCal, maxPd, present };
+  });
+
+  const bopPercent = chartedSites > 0 ? Math.round((bleedingSites / chartedSites) * 1000) / 10 : 0;
+
+  const caseRaw = (payload && typeof payload === "object" ? payload.case : undefined) as
+    | Record<string, unknown>
+    | undefined;
+  const meta: PerioMetaInput = {
+    age: isFiniteNumber(caseRaw?.age) ? (caseRaw!.age as number) : null,
+    maxRblPercent: isFiniteNumber(caseRaw?.maxRblPercent) ? (caseRaw!.maxRblPercent as number) : null,
+    toothLossPerio: isFiniteNumber(caseRaw?.toothLossPerio) ? (caseRaw!.toothLossPerio as number) : null,
+    smokingStatus: VALID_SMOKING_STATUS.has(caseRaw?.smokingStatus as string)
+      ? (caseRaw!.smokingStatus as PerioMetaInput["smokingStatus"])
+      : "unknown",
+    cigarettesPerDay: isFiniteNumber(caseRaw?.cigarettesPerDay) ? (caseRaw!.cigarettesPerDay as number) : null,
+    diabetesStatus: VALID_DIABETES_STATUS.has(caseRaw?.diabetesStatus as string)
+      ? (caseRaw!.diabetesStatus as PerioMetaInput["diabetesStatus"])
+      : "unknown",
+    hba1c: isFiniteNumber(caseRaw?.hba1c) ? (caseRaw!.hba1c as number) : null,
+  };
+
+  return { teeth, bopPercent, maxFurcation, meta };
+}
+
+/** The final (override ?? derived) classification for one axis each — see
+ *  `getPerioClassification()` in odontogram.ts for the live-state
+ *  equivalent this mirrors. */
+interface FinalPerioClassification {
+  diagnosis: PerioDiagnosis;
+  stage: PerioStage;
+  grade: PerioGrade;
+  extent: PerioExtent;
+}
+
+/**
+ * Compute the FINAL periodontal classification for a serialized payload:
+ * `derivePerioClassification` (T1, pure) fed by {@link buildDerivationInputFromPayload}
+ * above, then each axis overridden by `payload.case.<axis>Override` when it
+ * is a valid concrete value for that axis (mirrors `getPerioClassification()`'s
+ * override ?? derived rule in odontogram.ts exactly — same valid-value sets,
+ * same "invalid/missing override -> derived wins" fallback).
+ *
+ * CAVEAT (T1 review, binding on every caller): `derived.grade` can read
+ * `"indeterminate"` while `derived.buckets` still reads concrete values
+ * (e.g. smoking "A", diabetes "A", direct null) — `buckets` is provenance
+ * ONLY, never re-derive `grade` from it. This function (and
+ * {@link appendPerioCondition} below) always branches on the final `grade`/
+ * `stage`/`extent` STRING values themselves, never on `buckets`.
+ */
+function computeFinalClassification(payload: OdontogramExportPayload): FinalPerioClassification {
+  const derived = derivePerioClassification(buildDerivationInputFromPayload(payload));
+  const caseRaw = (payload && typeof payload === "object" ? payload.case : undefined) as
+    | Record<string, unknown>
+    | undefined;
+  return {
+    diagnosis: (VALID_DIAGNOSIS_OVERRIDE.has(caseRaw?.diagnosisOverride as string)
+      ? (caseRaw!.diagnosisOverride as PerioDiagnosis)
+      : derived.diagnosis),
+    stage: (VALID_STAGE_OVERRIDE.has(caseRaw?.stageOverride as string)
+      ? (caseRaw!.stageOverride as PerioStage)
+      : derived.stage),
+    grade: (VALID_GRADE_OVERRIDE.has(caseRaw?.gradeOverride as string)
+      ? (caseRaw!.gradeOverride as PerioGrade)
+      : derived.grade),
+    extent: (VALID_EXTENT_OVERRIDE.has(caseRaw?.extentOverride as string)
+      ? (caseRaw!.extentOverride as PerioExtent)
+      : derived.extent),
+  };
+}
+
+// Fixed, deterministic id/fullUrl scheme for the (at most one per bundle)
+// Condition + its two evidence Observations — mirrors the placeholder
+// Patient's own fixed `urn:uuid:odontogram-subject` id/fullUrl convention in
+// primitives.ts (PLACEHOLDER_PATIENT_ID/PLACEHOLDER_PATIENT_FULLURL). No
+// Date/random anywhere — same bundle in, byte-identical bundle out, always.
+const CONDITION_ID = "odontogram-perio-condition";
+const CONDITION_FULLURL = `urn:uuid:${CONDITION_ID}`;
+const SMOKING_OBS_ID = "odontogram-perio-smoking-observation";
+const SMOKING_OBS_FULLURL = `urn:uuid:${SMOKING_OBS_ID}`;
+const HBA1C_OBS_ID = "odontogram-perio-hba1c-observation";
+const HBA1C_OBS_FULLURL = `urn:uuid:${HBA1C_OBS_ID}`;
+
+const SMOKING_STATUS_CONCEPT: Record<"never" | "former" | "current", { code: string; display: string }> = {
+  never: { code: "smoking-never", display: "Never smoker" },
+  former: { code: "smoking-former", display: "Former smoker" },
+  current: { code: "smoking-current", display: "Current smoker" },
+};
+
+/** Whole-case (not tooth-specific) smoking-status evidence Observation,
+ *  LOINC 72166-2. `baseObservation` sets a per-tooth `bodySite` (FDI) that
+ *  doesn't apply to a case-level finding, so it's stripped afterward. */
+function buildSmokingObservation(subjectRef: string, status: "never" | "former" | "current"): Observation {
+  const obs = baseObservation(subjectRef, "", loincConcept(LOINC.smokingStatus));
+  delete obs.bodySite;
+  obs.id = SMOKING_OBS_ID;
+  const entry = SMOKING_STATUS_CONCEPT[status];
+  obs.valueCodeableConcept = localConcept(entry.code, entry.display);
+  return obs;
+}
+
+/** Whole-case HbA1c evidence Observation, LOINC 4548-4, valueQuantity %. See
+ *  {@link buildSmokingObservation} re: the stripped `bodySite`. */
+function buildHba1cObservation(subjectRef: string, hba1c: number): Observation {
+  const obs = baseObservation(subjectRef, "", loincConcept(LOINC.hba1c));
+  delete obs.bodySite;
+  obs.id = HBA1C_OBS_ID;
+  obs.valueQuantity = { value: hba1c, unit: "%", system: "http://unitsofmeasure.org", code: "%" };
+  return obs;
+}
+
+const K05_STAGE_DISPLAY: Record<Exclude<PerioStage, "na" | "indeterminate">, string> = {
+  I: "Stage I", II: "Stage II", III: "Stage III", IV: "Stage IV",
+};
+const K05_GRADE_DISPLAY: Record<Exclude<PerioGrade, "indeterminate">, string> = {
+  A: "Grade A", B: "Grade B", C: "Grade C",
+};
+const K05_EXTENT_DISPLAY: Record<Exclude<PerioExtent, "na">, string> = {
+  localized: "Localized", generalized: "Generalized", "molar-incisor": "Molar-incisor pattern",
+};
+
+/**
+ * Append the engine's FIRST FHIR Condition — the 2017 World Workshop
+ * periodontitis/gingivitis diagnosis (ICD-10/BNO K05) — to `bundle.entry`
+ * when the FINAL classification (override ?? derived, see
+ * {@link computeFinalClassification}) is gingivitis or periodontitis.
+ * Emits NOTHING (no Condition, no evidence Observations) for a "health"
+ * diagnosis. Called from `buildFhirBundle` (toFhir.ts) AFTER
+ * `appendPerioObservations`.
+ *
+ * `code`: K05.3 periodontitis, K05.2 when the final `extent` is
+ * "molar-incisor" (checked BEFORE the generic periodontitis code — mirrors
+ * `derivePerioClassification`'s own molar-incisor-first precedence), K05.1
+ * gingivitis.
+ *
+ * `stage[]`: one type-differentiated entry per APPLICABLE axis only — a
+ * stage entry iff diagnosis is periodontitis AND `stage` is neither "na" nor
+ * "indeterminate"; a grade entry iff `grade` is not "indeterminate"
+ * (evaluated regardless of diagnosis, since `derivePerioClassification`
+ * itself computes grade independently of diagnosis); an extent entry iff
+ * `extent` is not "na". Each entry's `type`/`summary` are engine-local
+ * CodeableConcepts (`periodontal-stage`/`-grade`/`-extent` type codes,
+ * `stage-<I..IV>`/`grade-<A..C>`/`extent-<value>` summary codes) — SNOMED is
+ * deferred per task-3-brief.md.
+ *
+ * `evidence[]`: references the smoking-status Observation (emitted only
+ * when `payload.case.smokingStatus` is a concrete non-"unknown" value) and
+ * the HbA1c Observation (emitted only when `payload.case.hba1c` is set) —
+ * both pushed to `bundle.entry` alongside the Condition, never on their own.
+ *
+ * Pure aside from the `bundle.entry` mutation; tolerant of malformed
+ * `payload` (never throws, via {@link buildDerivationInputFromPayload}'s own
+ * tolerance); deterministic (fixed ids, no Date/random) — the same payload
+ * always produces a byte-identical Condition/evidence block.
+ */
+export function appendPerioCondition(bundle: Bundle, payload: OdontogramExportPayload, options: FhirExportOptions = {}): void {
+  const final = computeFinalClassification(payload);
+  if (final.diagnosis === "health") return;
+
+  const subjectRef = options.subject ?? PLACEHOLDER_PATIENT_FULLURL;
+  if (!bundle.entry) bundle.entry = [];
+
+  const code =
+    final.diagnosis === "gingivitis"
+      ? icdConcept("K05.1", "Chronic gingivitis")
+      : final.extent === "molar-incisor"
+        ? icdConcept("K05.2", "Acute periodontitis")
+        : icdConcept("K05.3", "Chronic periodontitis");
+
+  const condition: Condition = {
+    resourceType: "Condition",
+    id: CONDITION_ID,
+    code: {
+      coding: [
+        ...(code.coding ?? []),
+        { system: LOCAL_SYSTEM, code: `periodontal-diagnosis:${final.diagnosis}`, display: final.diagnosis },
+      ],
+      text: code.text,
+    },
+    subject: { reference: subjectRef },
+  };
+
+  const stage: NonNullable<Condition["stage"]> = [];
+  if (final.diagnosis === "periodontitis" && final.stage !== "na" && final.stage !== "indeterminate") {
+    stage.push({
+      type: localConcept("periodontal-stage", "Periodontal stage"),
+      summary: localConcept(`stage-${final.stage}`, K05_STAGE_DISPLAY[final.stage]),
+    });
+  }
+  if (final.grade !== "indeterminate") {
+    stage.push({
+      type: localConcept("periodontal-grade", "Periodontal grade"),
+      summary: localConcept(`grade-${final.grade}`, K05_GRADE_DISPLAY[final.grade]),
+    });
+  }
+  if (final.extent !== "na") {
+    stage.push({
+      type: localConcept("periodontal-extent", "Periodontal extent"),
+      summary: localConcept(`extent-${final.extent}`, K05_EXTENT_DISPLAY[final.extent]),
+    });
+  }
+  if (stage.length > 0) condition.stage = stage;
+
+  const caseRaw = (payload && typeof payload === "object" ? payload.case : undefined) as
+    | Record<string, unknown>
+    | undefined;
+
+  // Build the evidence Observations (if applicable) BEFORE pushing anything,
+  // so `condition.evidence` can be set before the Condition itself is pushed
+  // — entry order in the bundle is then Condition, smoking, HbA1c (readable,
+  // and stable/deterministic regardless).
+  const smokingEvidence =
+    VALID_SMOKING_STATUS.has(caseRaw?.smokingStatus as string) && caseRaw?.smokingStatus !== "unknown"
+      ? buildSmokingObservation(subjectRef, caseRaw!.smokingStatus as "never" | "former" | "current")
+      : undefined;
+  const hba1cEvidence = isFiniteNumber(caseRaw?.hba1c) ? buildHba1cObservation(subjectRef, caseRaw!.hba1c as number) : undefined;
+
+  const evidenceRefs: string[] = [];
+  if (smokingEvidence) evidenceRefs.push(SMOKING_OBS_FULLURL);
+  if (hba1cEvidence) evidenceRefs.push(HBA1C_OBS_FULLURL);
+  if (evidenceRefs.length > 0) {
+    condition.evidence = [{ detail: evidenceRefs.map((reference) => ({ reference })) }];
+  }
+
+  bundle.entry.push({ fullUrl: CONDITION_FULLURL, resource: condition });
+  if (smokingEvidence) bundle.entry.push({ fullUrl: SMOKING_OBS_FULLURL, resource: smokingEvidence });
+  if (hba1cEvidence) bundle.entry.push({ fullUrl: HBA1C_OBS_FULLURL, resource: hba1cEvidence });
 }

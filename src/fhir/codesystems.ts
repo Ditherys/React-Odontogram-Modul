@@ -21,6 +21,15 @@ export const FDI_SYSTEM = "urn:iso:std:iso:3950";
 export const SNOMED_SYSTEM = "http://snomed.info/sct";
 
 /**
+ * ICD-10 (WHO) system URL, per HL7's registered identifier for it. SP-perio
+ * P4b Task 3: the engine's first ICD-coded resource (the periodontitis/
+ * gingivitis Condition, K05.*) uses this system. BNO-10 (the Hungarian
+ * national ICD-10 clinical modification) mirrors the WHO K05.* codes
+ * 1:1 for this code range, so no separate BNO coding is emitted.
+ */
+export const ICD10_SYSTEM = "http://hl7.org/fhir/sid/icd-10";
+
+/**
  * ICDAS II (International Caries Detection and Assessment System) reference URL.
  * Documentation constant: per-surface caries codes (1–6) are emitted as the
  * caries component's `valueInteger`; this URL identifies the scoring system.

@@ -53,6 +53,11 @@ import {
   setHba1c,
   setToothLossPerio,
   setMaxRblPercent,
+  getPerioClassification,
+  setDiagnosisOverride,
+  setStageOverride,
+  setGradeOverride,
+  setExtentOverride,
   type PerioCellCoord,
   type PerioOverlayLayer,
 } from "./odontogram";
@@ -192,7 +197,59 @@ const EMPTY_CASE_META: CaseMetaData = {
   hba1c: null,
   toothLossPerio: null,
   maxRblPercent: null,
+  // P4b Task 2: classification overrides — same static-default reasoning.
+  diagnosisOverride: null,
+  stageOverride: null,
+  gradeOverride: null,
+  extentOverride: null,
 };
+
+// P4b Task 4: classification panel — static default (NOT getPerioClassification()),
+// same module-eval-safety reason as EMPTY_CASE_META above (this hook runs on
+// every mount regardless of `active`; the real value is read in the
+// `active`-gated effect below). Shape mirrors `PerioClassificationResult`
+// (odontogram.ts) exactly; the concrete values here are never shown (the
+// `active`-gated effect replaces them before first paint of a mounted panel).
+type ClassificationData = ReturnType<typeof getPerioClassification>;
+const EMPTY_CLASSIFICATION: ClassificationData = {
+  diagnosis: "health",
+  stage: "na",
+  grade: "indeterminate",
+  extent: "na",
+  derived: {
+    diagnosis: "health",
+    stage: "na",
+    grade: "indeterminate",
+    extent: "na",
+    buckets: { smoking: "A", diabetes: "A", direct: null },
+  },
+  overridden: { diagnosis: false, stage: false, grade: false, extent: false },
+};
+
+// P4b Task 4: per-axis derived-value label helpers — shared by the
+// "current derived value" display and the override <select>'s first
+// "(use derived: X)" option, so both always show the exact same text.
+// `stage`/`grade` can additionally read the pure-derivation-only
+// "indeterminate" placeholder, and `stage`/`extent` can read "na" — both are
+// DISPLAY-only (never an authorable override value), so they're labelled
+// explicitly here rather than left to fall through to a raw enum key.
+function diagnosisLabel(v: string): string {
+  return t(`perio.class.dx.${v}`);
+}
+function stageLabel(v: string): string {
+  if (v === "na") return t("perio.class.stage.na");
+  if (v === "indeterminate") return t("perio.class.stage.indeterminate");
+  return t(`perio.class.stage.${v}`);
+}
+function gradeLabel(v: string): string {
+  if (v === "indeterminate") return t("perio.class.grade.indeterminate");
+  return t(`perio.class.grade.${v}`);
+}
+function extentLabel(v: string): string {
+  if (v === "na") return t("perio.class.extent.na");
+  if (v === "molar-incisor") return t("perio.class.extent.molarIncisor");
+  return t(`perio.class.extent.${v}`);
+}
 
 type ToothCellRefs = {
   pd: Partial<Record<PerioSite, HTMLInputElement>>;
@@ -1356,6 +1413,12 @@ export default function PerioChart({
   // default (see EMPTY_CASE_META) — the real value is read in the
   // `active`-gated effect below.
   const [caseMeta, setCaseMetaState] = useState<CaseMetaData>(EMPTY_CASE_META);
+  // P4b Task 4: the FINAL (override-aware) 2017 classification, mirrored the
+  // same way as `caseMeta` immediately above — every override setter
+  // (setDiagnosisOverride etc.) fires notifyStateChange, and the derived
+  // side depends on live tooth perio data too, so ANY state change refreshes
+  // this panel's derived-value display + selects.
+  const [classification, setClassification] = useState<ClassificationData>(EMPTY_CLASSIFICATION);
 
   const fullResync = useCallback(() => {
     const registry = registryRef.current;
@@ -1883,10 +1946,18 @@ export default function PerioChart({
   // every setter (setCaseAge etc.) fires notifyStateChange, so the panel
   // re-reads getCaseMeta() and re-renders on any edit, from this instance or
   // another mounted consumer.
+  // P4b Task 4: classification mirrors the same active-gated + onStateChange
+  // pattern, refreshed alongside caseMeta in ONE subscription (both are
+  // cheap module reads that must always be in sync — an override setter
+  // mutates caseMeta AND changes what getPerioClassification() returns).
   useEffect(() => {
     if (!active) return;
     setCaseMetaState(getCaseMeta());
-    const unsubscribe = onStateChange(() => setCaseMetaState(getCaseMeta()));
+    setClassification(getPerioClassification());
+    const unsubscribe = onStateChange(() => {
+      setCaseMetaState(getCaseMeta());
+      setClassification(getPerioClassification());
+    });
     return unsubscribe;
   }, [active]);
 
@@ -2132,6 +2203,108 @@ export default function PerioChart({
                 setToothLossPerio(v === "" ? null : Number(v));
               }}
             />
+          </div>
+        </div>
+        {/* P4b Task 4: 2017 classification block — extends this same panel,
+            below the case-metadata inputs above. Per axis: the DERIVED value
+            (read-only, always the untouched `derivePerioClassification`
+            result) + an override <select> wired to that axis's OWN T2
+            setter. The select's first option clears the override (reverts
+            to derived); the rest are that axis's authorable enum values —
+            never the "na"/"indeterminate" derivation-only placeholders,
+            which are display-only (shown via the derived-value line). */}
+        <div className="case-meta-panel-subheading">{t("perio.class.title")}</div>
+        <div className="odon-settings-row">
+          <div className="odon-settings-row-text">
+            <div className="odon-settings-row-label">{t("perio.class.diagnosis")}</div>
+            <div className="perio-class-derived" id="perioClassDiagnosisDerived">
+              {diagnosisLabel(classification.derived.diagnosis)}
+            </div>
+          </div>
+          <div className="odon-settings-row-control">
+            <select
+              id="perioClassDiagnosisOverride"
+              className="odon-settings-select"
+              aria-label={t("perio.class.diagnosis")}
+              disabled={readOnly}
+              value={caseMeta.diagnosisOverride ?? ""}
+              onChange={(e) => setDiagnosisOverride(e.target.value === "" ? null : e.target.value)}
+            >
+              <option value="">{t("perio.class.useDerived", { value: diagnosisLabel(classification.derived.diagnosis) })}</option>
+              <option value="health">{t("perio.class.dx.health")}</option>
+              <option value="gingivitis">{t("perio.class.dx.gingivitis")}</option>
+              <option value="periodontitis">{t("perio.class.dx.periodontitis")}</option>
+            </select>
+          </div>
+        </div>
+        <div className="odon-settings-row">
+          <div className="odon-settings-row-text">
+            <div className="odon-settings-row-label">{t("perio.class.stage")}</div>
+            <div className="perio-class-derived" id="perioClassStageDerived">
+              {stageLabel(classification.derived.stage)}
+            </div>
+          </div>
+          <div className="odon-settings-row-control">
+            <select
+              id="perioClassStageOverride"
+              className="odon-settings-select"
+              aria-label={t("perio.class.stage")}
+              disabled={readOnly}
+              value={caseMeta.stageOverride ?? ""}
+              onChange={(e) => setStageOverride(e.target.value === "" ? null : e.target.value)}
+            >
+              <option value="">{t("perio.class.useDerived", { value: stageLabel(classification.derived.stage) })}</option>
+              <option value="I">{t("perio.class.stage.I")}</option>
+              <option value="II">{t("perio.class.stage.II")}</option>
+              <option value="III">{t("perio.class.stage.III")}</option>
+              <option value="IV">{t("perio.class.stage.IV")}</option>
+            </select>
+          </div>
+        </div>
+        <div className="odon-settings-row">
+          <div className="odon-settings-row-text">
+            <div className="odon-settings-row-label">{t("perio.class.grade")}</div>
+            <div className="perio-class-derived" id="perioClassGradeDerived">
+              {gradeLabel(classification.derived.grade)}
+            </div>
+          </div>
+          <div className="odon-settings-row-control">
+            <select
+              id="perioClassGradeOverride"
+              className="odon-settings-select"
+              aria-label={t("perio.class.grade")}
+              disabled={readOnly}
+              value={caseMeta.gradeOverride ?? ""}
+              onChange={(e) => setGradeOverride(e.target.value === "" ? null : e.target.value)}
+            >
+              <option value="">{t("perio.class.useDerived", { value: gradeLabel(classification.derived.grade) })}</option>
+              <option value="A">{t("perio.class.grade.A")}</option>
+              <option value="B">{t("perio.class.grade.B")}</option>
+              <option value="C">{t("perio.class.grade.C")}</option>
+            </select>
+          </div>
+        </div>
+        <div className="odon-settings-row">
+          <div className="odon-settings-row-text">
+            <div className="odon-settings-row-label">{t("perio.class.extent")}</div>
+            <div className="perio-class-derived" id="perioClassExtentDerived">
+              {extentLabel(classification.derived.extent)}
+            </div>
+          </div>
+          <div className="odon-settings-row-control">
+            <select
+              id="perioClassExtentOverride"
+              className="odon-settings-select"
+              aria-label={t("perio.class.extent")}
+              disabled={readOnly}
+              value={caseMeta.extentOverride ?? ""}
+              onChange={(e) => setExtentOverride(e.target.value === "" ? null : e.target.value)}
+            >
+              <option value="">{t("perio.class.useDerived", { value: extentLabel(classification.derived.extent) })}</option>
+              <option value="localized">{t("perio.class.extent.localized")}</option>
+              <option value="generalized">{t("perio.class.extent.generalized")}</option>
+              <option value="molar-incisor">{t("perio.class.extent.molarIncisor")}</option>
+            </select>
           </div>
         </div>
       </div>
