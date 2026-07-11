@@ -5268,6 +5268,34 @@ function perioSummaryLabel(s: Any): string {
   return t("planChange.perioSummary", { sites: perio.pd.size, bop: bopPct, cal: worstCal ?? 0 });
 }
 
+/** SP-perio P2b Task 4: SUMMARY-level (never per-entrance) furcation label
+ *  for a SINGLE tooth's state, used only by DIFF_AXES' `furcation` entry
+ *  below — mirrors {@link perioSummaryLabel}'s "one line per tooth, not one
+ *  per site/entrance" shape. Reports only the tooth's HIGHEST Glickman grade
+ *  (reusing the exact same `furcation.grade.N` copy the furcation picker
+ *  itself already shows), not a per-entrance breakdown. "Nothing charted"
+ *  renders the shared `planChange.none` sentinel every other axis uses. */
+function furcationSummaryLabel(s: Any): string {
+  const furcation = s.furcation as Map<string, number> | undefined;
+  if(!furcation || furcation.size === 0) return t("planChange.none");
+  let maxGrade = 0;
+  for(const grade of furcation.values()){
+    if(grade > maxGrade) maxGrade = grade;
+  }
+  return maxGrade > 0 ? t(`furcation.grade.${maxGrade}`) : t("planChange.none");
+}
+
+/** SP-perio P2b Task 4: SUMMARY-level (never per-surface) O'Leary plaque
+ *  label for a SINGLE tooth's state, used only by DIFF_AXES' `plaque` entry
+ *  below — reports a compact "N/4 surfaces" count rather than exploding
+ *  into up to 4 per-surface entries. "Nothing charted" renders the shared
+ *  `planChange.none` sentinel every other axis uses. */
+function plaqueSummaryLabel(s: Any): string {
+  const plaque = s.plaque as Set<string> | undefined;
+  if(!plaque || plaque.size === 0) return t("planChange.none");
+  return `${plaque.size}/4`;
+}
+
 /** Curated, treatment-relevant diff axes for {@link getPlanChanges}. Each
  *  `label(state)` returns a short human string for that axis's value in the
  *  CURRENT UI language — reusing the exact same per-value i18n lookups
@@ -5338,6 +5366,18 @@ const DIFF_AXES: { key: string; labelKey: string; label: (s: Any) => string }[] 
     // perioSummaryLabel above) — never 6 per-site entries.
     key: "perio", labelKey: "planChange.axis.perio",
     label: (s) => perioSummaryLabel(s),
+  },
+  {
+    // SP-perio P2b Task 4: ONE summary-level entry per tooth (see
+    // furcationSummaryLabel above) — never one per entrance.
+    key: "furcation", labelKey: "planChange.axis.furcation",
+    label: (s) => furcationSummaryLabel(s),
+  },
+  {
+    // SP-perio P2b Task 4: ONE summary-level entry per tooth (see
+    // plaqueSummaryLabel above) — never one per surface.
+    key: "plaque", labelKey: "planChange.axis.plaque",
+    label: (s) => plaqueSummaryLabel(s),
   },
 ];
 
@@ -5763,6 +5803,18 @@ export function prevPerioCell(cur: { toothNo: number; site: string; row: "pd" | 
  *  default read here. */
 export function isPerioRowHidden(toothNo: number): boolean {
   return perioRowHidden(toothState.get(toothNo));
+}
+
+/** Whether tooth `toothNo` is an implant on the ACTIVE chart (status/plan
+ *  aware, reading the SAME `toothState` the perio number rows read). The
+ *  graphical Dental Chart (`PerioChart` / `perioGraphic.ts`) uses this to draw
+ *  the implant fixture artwork (`#implant-base`) in place of the natural
+ *  `#tooth-base` for an implant tooth — a read-only presentation concern,
+ *  outside the tooth-info panel, so like `isPerioRowHidden`/`getToothMobility`
+ *  above it needs a small public read since it can't reach `toothState`
+ *  directly. A never-touched tooth defaults to non-implant. */
+export function isToothImplant(toothNo: number): boolean {
+  return toothState.get(toothNo)?.toothSelection === "implant";
 }
 
 /** Read tooth `toothNo`'s Miller mobility grade from the active chart

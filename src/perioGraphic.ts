@@ -69,6 +69,51 @@ export const CEJ_Y: Record<TemplateNo, number> = {
   16: 31.0,
 };
 
+/**
+ * Per-template baseline anchor for an IMPLANT tooth — the implant fixture's
+ * neck/platform (its CEJ-equivalent: the coronal collar where the abutment
+ * emerges, which should sit on the same row baseline as a natural neighbour's
+ * CEJ line). An implant renders the template's `#implant-base` layer (the
+ * greyscale fixture body) instead of `#tooth-base`, and `#implant-base`'s
+ * platform sits at a slightly different y than the natural CEJ, so it needs its
+ * OWN anchor to line up.
+ *
+ * Measured from `#implant-base`'s coronal-most control point (max-Y in the
+ * template's RAW/un-flipped coordinate system — the same one-off control-point
+ * bounding-box technique CEJ_Y above was measured with; a close superset of the
+ * true platform edge), then converted into the final crown-up flipped frame via
+ * `finalY = viewBoxHeight - rawY` (same frame `getToothBaseGroupFromCache`
+ * renders in — see that function's flip comment):
+ *   11: platform raw 37.8, viewBox h 70.8 -> 33.0
+ *   13: platform raw 35.6, viewBox h 71.0 -> 35.4
+ *   14: platform raw 36.6, viewBox h 71.2 -> 34.6
+ *   16: platform raw 36.6, viewBox h 70.9 -> 34.3
+ * As with CEJ_Y, row-baseline alignment only needs these mutually consistent
+ * (they place every implant platform on ROW_BASELINE_Y); exact anatomical
+ * placement should still be confirmed in a browser (see task-3-implant-report.md).
+ */
+export const IMPLANT_CEJ_Y: Record<TemplateNo, number> = {
+  11: 33.0,
+  13: 35.4,
+  14: 34.6,
+  16: 34.3,
+};
+
+/** Predicate telling the arch builders whether a given tooth is an implant on
+ *  the active chart, so its graphic uses the implant fixture artwork
+ *  (`#implant-base`) instead of the natural `#tooth-base`. Injected by the
+ *  caller (`PerioChart` passes `isToothImplant` from odontogram.ts, reading the
+ *  SAME active-chart state the number rows read) rather than imported here, so
+ *  this module stays DOM-free / state-free and unit-testable from a plain
+ *  template cache. Defaults to "no implants" for every existing caller/test. */
+export type IsImplantFn = (toothNo: number) => boolean;
+
+/** The baseline anchor a tooth's graphic aligns on: the implant platform anchor
+ *  for an implant, else the natural CEJ. */
+function anchorFor(tplNo: TemplateNo, implant: boolean): number {
+  return implant ? IMPLANT_CEJ_Y[tplNo] : CEJ_Y[tplNo];
+}
+
 /** Canine (FDI position 3) root-elongation factor — position 3 renders
  *  `scale(1, CANINE_ROOT_SCALE)` anchored at `CEJ_Y`, so the CEJ itself
  *  (the transform's fixed point) never moves — only the crown/root
@@ -212,27 +257,43 @@ function stripExcludedLayers(root: Element): void {
  * fixed, uniform flip applied to every tooth alike (never the per-tooth
  * conditional `.rot`), which is what step 1 below is.
  */
-export function getToothBaseGroupFromCache(cache: TemplateDocCache, toothNo: number): SVGGElement {
+export function getToothBaseGroupFromCache(
+  cache: TemplateDocCache,
+  toothNo: number,
+  opts: { implant?: boolean } = {},
+): SVGGElement {
   const map = TOOTH_TEMPLATE.get(toothNo);
   if (!map) throw new Error(`perioGraphic: no TOOTH_TEMPLATE entry for tooth ${toothNo}`);
   const tplNo = map.tpl as TemplateNo;
   const doc = cache.get(tplNo);
   if (!doc) throw new Error(`perioGraphic: template ${tplNo} not loaded in the given cache (tooth ${toothNo})`);
 
-  const toothBase = doc.querySelector("#tooth-base");
-  if (!toothBase) throw new Error(`perioGraphic: #tooth-base not found in template ${tplNo}`);
-  const baseClone = toothBase.cloneNode(true) as SVGElement;
+  // An implant tooth renders the fixture body (`#implant-base`) instead of the
+  // natural crown/root outline (`#tooth-base`) — the SAME layer the live
+  // odontogram activates for a plain implant (see odontogram.ts's
+  // `applyStateToSvgSingle`: `#implant` container un-hidden + `#implant-base`
+  // active; the attachment sub-layers — locator/bar/healing-abutment — and the
+  // peri-implant overlays stay inactive, so `#implant-base` alone is the visible
+  // plain-implant body). Everything downstream (clone-referenced-defs, uniform
+  // flip, horizontal mirror, per-position size, baseline align) is identical for
+  // both — only the source layer id and the baseline anchor differ.
+  const implant = opts.implant === true;
+  const layerId = implant ? "implant-base" : "tooth-base";
+  const baseLayer = doc.querySelector(`#${layerId}`);
+  if (!baseLayer) throw new Error(`perioGraphic: #${layerId} not found in template ${tplNo}`);
+  const baseClone = baseLayer.cloneNode(true) as SVGElement;
   stripExcludedLayers(baseClone);
 
   const referenced = collectReferencedGradientIds(baseClone);
   const defsClone = cloneReferencedDefs(doc, referenced);
 
   const { w, h } = viewBoxOf(doc);
-  const cejY = CEJ_Y[tplNo];
+  const cejY = anchorFor(tplNo, implant);
 
   const outer = document.createElementNS(SVG_NS, "g") as unknown as SVGGElement;
   outer.setAttribute("data-tooth", String(toothNo));
   outer.setAttribute("data-tpl", String(tplNo));
+  if (implant) outer.setAttribute("data-implant", "1");
 
   if (defsClone) outer.appendChild(defsClone);
 
@@ -311,11 +372,36 @@ export const MIRROR_AXIS_Y = 100;
  *  is confirmed in a browser (see task-3-report.md). */
 export const PERIO_MM_PX = 3;
 
+/** How many 1-mm guide lines the background mm grid draws below the CEJ
+ *  baseline toward the root (n = 1..PERIO_MM_GRID_MAX). 15 mm covers the full
+ *  clinical probing-depth range (PD is clamped to 1–15 in the P1 API), so a
+ *  charted pocket's curve point always has a numbered guide line to read
+ *  against; every 5th line (5/10/15) is emphasized + labelled. */
+export const PERIO_MM_GRID_MAX = 15;
+
+/** Row-local x the mm-grid numeric labels ("5"/"10"/"15") are anchored at — a
+ *  small left inset so the digits sit at the arch's leading edge rather than
+ *  under the teeth. */
+const MM_LABEL_X = 2;
+
 /** Fixed horizontal footprint (template viewBox width + gap) reused as the
  *  per-tooth cursor advance — approximate, uniform spacing (this task draws
  *  the row graphic only; T3/T4 own the curve overlay / number-row layout
- *  that would react to real per-tooth widths). */
-export const TOOTH_GAP = 4;
+ *  that would react to real per-tooth widths). Tightened from 4 to 2 so the
+ *  teeth sit denser (T1 polish). */
+export const TOOTH_GAP = 2;
+
+/** Display magnification (px per row-local viewBox unit) the perio chart
+ *  renders the teeth at. The arch <svg> itself carries NO intrinsic pixel
+ *  size (it fills its container via CSS `width:100%`, see `buildArchGraphic`);
+ *  the number-row grid columns are widened by this factor
+ *  (`applyArchColumns` in `PerioChart.tsx`), and since the SVG fills the
+ *  cell those columns span, every viewBox unit ends up rendered at
+ *  `PERIO_DISPLAY_SCALE` px — so the teeth read larger while the columns stay
+ *  locked to them (one shared `archToothLayout`, never two divergent
+ *  geometries). `> 1` bumps the base scale so the teeth read larger (T1
+ *  polish); visual size is confirmed in a browser (see task-1-report.md). */
+export const PERIO_DISPLAY_SCALE = 1.5;
 
 /** One tooth's horizontal footprint within an arch row (row-local x). */
 export interface ArchToothLayout {
@@ -371,58 +457,140 @@ export function archToothLayout(cache: TemplateDocCache, teeth: readonly number[
  * overlay), translated vertically so every tooth's `CEJ_Y` sits on the SAME
  * `ROW_BASELINE_Y`.
  */
-function buildBuccalRowGroup(cache: TemplateDocCache, teeth: readonly number[]): { group: SVGGElement; width: number } {
+function buildBuccalRowGroup(
+  cache: TemplateDocCache,
+  teeth: readonly number[],
+  isImplant: IsImplantFn = () => false,
+): { group: SVGGElement; width: number } {
   const row = document.createElementNS(SVG_NS, "g") as unknown as SVGGElement;
   row.setAttribute("class", "perio-tooth-row-buccal");
   const layout = archToothLayout(cache, teeth);
   for (const { toothNo, x } of layout.teeth) {
     const tplNo = TOOTH_TEMPLATE.get(toothNo)!.tpl as TemplateNo;
-    const toothGroup = getToothBaseGroupFromCache(cache, toothNo);
-    const translateY = ROW_BASELINE_Y - CEJ_Y[tplNo];
+    const implant = isImplant(toothNo);
+    const toothGroup = getToothBaseGroupFromCache(cache, toothNo, { implant });
+    // Align each tooth's baseline anchor (natural CEJ, or the implant platform
+    // for an implant) onto the SAME shared ROW_BASELINE_Y, so an implant's
+    // neck sits on the CEJ line right alongside its natural neighbours.
+    const translateY = ROW_BASELINE_Y - anchorFor(tplNo, implant);
     toothGroup.setAttribute("transform", `translate(${fmt(x)} ${fmt(translateY)})`);
     row.appendChild(toothGroup);
   }
   return { group: row, width: layout.totalWidth };
 }
 
+/** True when `teeth[0]` belongs to an upper quadrant (FDI 1x/2x). Kept as a
+ *  tiny local helper (rather than importing `isUpperTooth`) so this module's
+ *  arch-orientation decision is self-contained and testable from the sync
+ *  core alone. */
+function isUpperArch(teeth: readonly number[]): boolean {
+  if (teeth.length === 0) return false;
+  const quadrant = Math.floor(teeth[0] / 10);
+  return quadrant === 1 || quadrant === 2;
+}
+
+/**
+ * Per-arch buccal-row orientation transform (T1 occlusal-to-occlusal):
+ *  - LOWER arch → `""` (identity): the buccal row stays crown-UP, so the lower
+ *    arch's occlusal/incisal edges point UP toward the mid-line between the
+ *    two arches, matching the odontogram.
+ *  - UPPER arch → a vertical flip about the CEJ baseline `ROW_BASELINE_Y`
+ *    (`matrix(1 0 0 -1 0 2*ROW_BASELINE_Y)`): the buccal row renders crown-
+ *    DOWN (occlusal edges point DOWN toward the mid-line), roots pointing up
+ *    and away — again matching the odontogram's upper arch.
+ * The flip is about the CEJ itself, so the CEJ baseline (and the red CEJ
+ * curve line drawn at `ROW_BASELINE_Y`) is the transform's fixed point and
+ * never moves; only the crown/root swap sides of it. Deeper pockets (larger
+ * buccal-space y = further from the CEJ toward the root) therefore keep
+ * extending toward the ROOT after the flip — away from the mid-line — because
+ * the curve is flipped by this SAME transform (see `drawArchCurves`).
+ */
+export function archOrientTransform(teeth: readonly number[]): string {
+  return isUpperArch(teeth) ? `matrix(1 0 0 -1 0 ${fmt(2 * ROW_BASELINE_Y)})` : "";
+}
+
+/** Vertical padding (row-local units) added above/below the two stacked rows
+ *  in the arch viewBox, so the deepest crown/root tips (the elongated canine
+ *  root, which after the upper-arch flip reaches the very edge of the band)
+ *  are never clipped. */
+const ARCH_VIEWBOX_PAD = 14;
+
 /**
  * Build the composite arch graphic for one arch (`teeth` = an
  * `UPPER_ARCH`/`LOWER_ARCH`-shaped list, e.g. `[18,17,...,11,21,...,28]`):
- * a buccal row (crown-up, per `getToothBaseGroupFromCache`) plus a
- * palatal/lingual row that is the SAME buccal row wrapped in a single
- * container-level vertical-mirror transform about `MIRROR_AXIS_Y` (not
- * rebuilt tooth-by-tooth) — the palatal/lingual row stacks BELOW the
- * buccal row (crown-up on top, crown-down beneath, roots meeting toward
- * the middle) rather than overlapping it.
+ * a buccal row plus a palatal/lingual row that is the SAME buccal row wrapped
+ * in a single container-level vertical-mirror transform about `MIRROR_AXIS_Y`
+ * (not rebuilt tooth-by-tooth) — the palatal/lingual row stacks below the
+ * buccal row rather than overlapping it.
+ *
+ * Occlusal-to-occlusal orientation (T1): the buccal row carries an arch-aware
+ * orientation transform (`archOrientTransform`) — the UPPER arch flips its
+ * buccal row crown-DOWN about the CEJ baseline while the LOWER arch stays
+ * crown-UP, so the two arches' occlusal edges face the horizontal mid-line
+ * between them (matching the odontogram). The palatal row is the mirror of the
+ * ALREADY-oriented buccal row (the clone keeps the orientation transform, and
+ * the palatal container adds only the `MIRROR_AXIS_Y` reflection on top), so
+ * both rows stay locked together. The T3 curve overlay is appended by
+ * `drawArchCurves` (see PerioChart.tsx) INTO these SAME oriented groups — the
+ * buccal curve into `.perio-tooth-row-buccal`, the palatal curve into
+ * `.perio-tooth-row-palatal-inner` — so the curve is flipped by the exact same
+ * transforms as the teeth (one coordinate space), keeping deeper pockets
+ * extending toward the ROOT (away from the mid-line) after the flip.
  */
-export function buildArchGraphic(cache: TemplateDocCache, teeth: readonly number[]): SVGSVGElement {
-  const { group: buccal, width } = buildBuccalRowGroup(cache, teeth);
+export function buildArchGraphic(
+  cache: TemplateDocCache,
+  teeth: readonly number[],
+  isImplant: IsImplantFn = () => false,
+): SVGSVGElement {
+  const { group: buccal, width } = buildBuccalRowGroup(cache, teeth, isImplant);
+  const orient = archOrientTransform(teeth);
+  if (orient) buccal.setAttribute("transform", orient);
+  const upper = isUpperArch(teeth);
 
-  const palatal = buccal.cloneNode(true) as SVGGElement;
+  // Palatal row = the ALREADY-oriented buccal row (clone keeps its orientation
+  // transform), wrapped in one container-level vertical mirror about
+  // MIRROR_AXIS_Y. So palatal teeth = mirror ∘ orient(buccal teeth). Cloned
+  // BEFORE the mm grid is inserted, so the clone carries teeth only — each row
+  // gets its OWN grid built with the flip parameter matching that row's net
+  // orientation (below).
+  const palatalInner = buccal.cloneNode(true) as SVGGElement;
+  palatalInner.setAttribute("class", "perio-tooth-row-palatal-inner");
+
+  // Background mm guide grid (perio polish T2): inserted as the FIRST child of
+  // each row so it renders BEHIND the teeth (and behind the T3 curve, which is
+  // appended after by `drawArchCurves`). Riding the SAME oriented/mirrored row
+  // group as the teeth keeps every mm line aligned with the CEJ + curve. The
+  // `flip` per row is chosen so the numeric labels read upright:
+  //   - buccal  is net-flipped on the UPPER arch (archOrientTransform flip).
+  //   - palatal is net-flipped on the LOWER arch (single mirror); on the UPPER
+  //     arch its mirror ∘ orient cancels back to upright.
+  const gridOpts = { cejY: ROW_BASELINE_Y, mmPx: PERIO_MM_PX, width };
+  buccal.insertBefore(buildMmGridLayer({ ...gridOpts, flip: upper }), buccal.firstChild);
+  palatalInner.insertBefore(buildMmGridLayer({ ...gridOpts, flip: !upper }), palatalInner.firstChild);
+
+  const palatal = document.createElementNS(SVG_NS, "g") as unknown as SVGGElement;
   palatal.setAttribute("class", "perio-tooth-row-palatal");
   // Mirror about y = MIRROR_AXIS_Y: y' = -y + 2*MIRROR_AXIS_Y.
   palatal.setAttribute("transform", `matrix(1 0 0 -1 0 ${fmt(2 * MIRROR_AXIS_Y)})`);
+  palatal.appendChild(palatalInner);
 
   const svg = document.createElementNS(SVG_NS, "svg") as unknown as SVGSVGElement;
   svg.setAttribute("class", "perio-tooth-arch");
   const totalWidth = Math.max(width, 1);
-  const totalHeight = MIRROR_AXIS_Y * 2 + 20; // covers both stacked rows + margin
-  svg.setAttribute("viewBox", `0 -10 ${fmt(totalWidth)} ${fmt(totalHeight)}`);
+  const totalHeight = MIRROR_AXIS_Y * 2 + ARCH_VIEWBOX_PAD * 2; // both stacked rows + margin
+  svg.setAttribute("viewBox", `0 ${fmt(-ARCH_VIEWBOX_PAD)} ${fmt(totalWidth)} ${fmt(totalHeight)}`);
   svg.setAttribute("preserveAspectRatio", "xMinYMid meet");
-  // Explicit intrinsic pixel size (1 viewBox unit ~= 1px, matching the
-  // template's own authored scale) so the row renders at a legible, fixed
-  // size and the container scrolls horizontally instead of the browser
-  // silently shrinking the whole arch to fit — an SVG with no width/height
-  // attribute otherwise stretches to fill its container (CSS default
-  // 300x150 intrinsic size + `width:100%`-like block behavior), which
-  // defeats `.perio-fullgrid-scroll`'s `overflow: auto`.
-  svg.setAttribute("width", fmt(totalWidth));
-  svg.setAttribute("height", fmt(totalHeight));
+  // NO explicit width/height (T1 responsive): the SVG fills its container via
+  // CSS (`.perio-tooth-arch { width:100% }`, see index.css) and derives its
+  // height from the viewBox aspect ratio, so it scales when the browser window
+  // is resized. The number-row grid columns are widened by `PERIO_DISPLAY_SCALE`
+  // (`applyArchColumns` in PerioChart.tsx) so the teeth still line up
+  // column-for-column with the number cells at the larger display scale.
   // Purely decorative artwork — the accessible data lives in the number
   // cells/summary this graphic sits alongside (`.perio-fullgrid-*`), never
   // in the arch drawing itself. Hide the whole subtree (including the T3
-  // curve overlay `<g class="perio-curve">` appended into this SAME <svg>
-  // by `drawArchCurves`, see PerioChart.tsx) from assistive tech, so a
+  // curve overlay `<g class="perio-curve">` appended into the oriented row
+  // groups by `drawArchCurves`, see PerioChart.tsx) from assistive tech, so a
   // screen reader never announces a nameless image between the number
   // rows (axe-core: "role=img requires an accessible name").
   svg.setAttribute("aria-hidden", "true");
@@ -576,6 +744,83 @@ export function buildPerioCurveLayer(
     pl.setAttribute("class", "perio-curve-pocket");
     pl.setAttribute("points", polylinePoints(run));
     g.appendChild(pl);
+  }
+
+  return g;
+}
+
+// ---------------------------------------------------------------------------
+// Perio polish T2: the background millimetre guide grid.
+// ---------------------------------------------------------------------------
+
+/**
+ * Build the background mm-grid layer for ONE row: faint horizontal guide lines
+ * every 1 mm below the CEJ baseline toward the root (`y = cejY + n*mmPx`, n =
+ * 1..maxMm), with every 5th line emphasized (`perio-mm-line-major`) and given a
+ * small numeric label ("5"/"10"/"15"). Pure DOM (jsdom in tests / the browser
+ * at runtime) — no perio-module call, so it is trivially unit-testable and
+ * parity-irrelevant (brand-new DOM, never near the live odontogram).
+ *
+ * The grid is drawn in the SAME row-local coordinate space as the teeth and the
+ * curve (crown up = smaller y, root down = larger y; shared CEJ baseline at
+ * `cejY`), so a line at "n mm from the CEJ" lands EXACTLY where an n-mm (gm=0)
+ * pocket's curve point lands (`perioCurve` → `pocketY = cejY + n*mmPx`). The
+ * caller appends it INTO the SAME oriented/mirrored row group as the teeth
+ * (`.perio-tooth-row-buccal` / `.perio-tooth-row-palatal-inner`), so the T1
+ * per-arch flip carries the grid along with the teeth — the mm lines stay on the
+ * ROOT side of the CEJ (away from the occlusal mid-line) on both arches.
+ *
+ * `flip`: when the containing row group is NET vertically flipped on screen
+ * (the upper arch's crown-down buccal row, or the lower arch's mirrored palatal
+ * row), the numeric labels would render upside-down. Passing `flip: true`
+ * counter-flips each label about its own baseline (`matrix(1 0 0 -1 0 2y)`) so
+ * the digits read upright regardless of the row's orientation — the LINES,
+ * being horizontal, are unaffected either way.
+ *
+ * The whole `<g>` is `aria-hidden` — a decorative measurement guide; the
+ * accessible data lives in the number cells/summary alongside the graphic.
+ */
+export function buildMmGridLayer(opts: {
+  cejY: number;
+  mmPx: number;
+  width: number;
+  maxMm?: number;
+  flip?: boolean;
+}): SVGGElement {
+  const { cejY, mmPx, width } = opts;
+  const maxMm = opts.maxMm ?? PERIO_MM_GRID_MAX;
+  const flip = opts.flip ?? false;
+
+  const g = document.createElementNS(SVG_NS, "g") as unknown as SVGGElement;
+  g.setAttribute("class", "perio-mm-grid");
+  g.setAttribute("aria-hidden", "true");
+
+  for (let n = 1; n <= maxMm; n++) {
+    const y = cejY + n * mmPx;
+    const major = n % 5 === 0;
+
+    const line = document.createElementNS(SVG_NS, "line");
+    line.setAttribute("class", major ? "perio-mm-line perio-mm-line-major" : "perio-mm-line perio-mm-line-minor");
+    line.setAttribute("data-mm", String(n));
+    line.setAttribute("x1", "0");
+    line.setAttribute("y1", fmt(y));
+    line.setAttribute("x2", fmt(width));
+    line.setAttribute("y2", fmt(y));
+    g.appendChild(line);
+
+    if (major) {
+      const label = document.createElementNS(SVG_NS, "text");
+      label.setAttribute("class", "perio-mm-label");
+      label.setAttribute("data-mm", String(n));
+      label.setAttribute("x", fmt(MM_LABEL_X));
+      label.setAttribute("y", fmt(y));
+      // Counter-flip about the label's own baseline so the digits read upright
+      // inside a net-flipped row group (see the doc comment). Horizontal lines
+      // need no such correction.
+      if (flip) label.setAttribute("transform", `matrix(1 0 0 -1 0 ${fmt(2 * y)})`);
+      label.textContent = String(n);
+      g.appendChild(label);
+    }
   }
 
   return g;

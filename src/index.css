@@ -1402,13 +1402,16 @@ select:focus{
    `buildArchGraphic` (perioGraphic.ts). Purely decorative (`aria-hidden` is
    set directly on the SVG itself by `buildArchGraphic` — the accessible
    data lives in the `.perio-fullgrid-*` grid it sits inside, unaffected).
-   The SVG carries its own explicit `width`/`height` (perioGraphic.ts) so it
-   renders at a fixed, legible intrinsic size — the graphic lives inside
-   `.perio-fullgrid-graphic-cell`, which scrolls horizontally together with
-   the rest of the grid via `.perio-fullgrid-scroll` (Task 4) rather than
-   shrinking the whole arch to fit a narrow panel. */
+   T1 polish: the SVG carries NO fixed width/height — it fills the graphic
+   cell (which spans all tooth columns) via `width:100%` and derives its
+   height from the viewBox aspect ratio, so it scales when the browser window
+   is resized instead of being pinned to a fixed intrinsic size. The tooth
+   columns are widened by `PERIO_DISPLAY_SCALE` (applyArchColumns) so the teeth
+   read larger while staying column-aligned with the number cells. */
 .perio-tooth-arch{
   display: block;
+  width: 100%;
+  height: auto;
 }
 
 /* T3 curve overlay: CEJ baseline + gingival-margin line + pocket-base line +
@@ -1440,6 +1443,36 @@ select:focus{
 .dark .perio-curve-band{ fill-opacity: 0.24; }
 .dark .perio-curve-pocket{ stroke: #60a5fa; }
 .dark .perio-curve-margin{ stroke: #f9a8d4; }
+
+/* Perio polish T2: background millimetre guide grid — faint 1-mm horizontal
+   lines below the CEJ toward the root, every 5th emphasized + numbered. Drawn
+   BEHIND the teeth + curve, so it reads as a subtle backdrop the curve/teeth
+   sit on top of. Decorative (aria-hidden). */
+.perio-mm-line{
+  stroke: #94a3b8;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.perio-mm-line-minor{
+  stroke-width: 0.35;
+  opacity: 0.28;
+}
+.perio-mm-line-major{
+  stroke-width: 0.6;
+  opacity: 0.5;
+}
+.perio-mm-label{
+  fill: #64748b;
+  font-size: 5px;
+  font-weight: 600;
+  opacity: 0.7;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+.dark .perio-mm-line{ stroke: #64748b; }
+.dark .perio-mm-line-minor{ opacity: 0.35; }
+.dark .perio-mm-line-major{ opacity: 0.55; }
+.dark .perio-mm-label{ fill: #94a3b8; opacity: 0.8; }
 
 .perio-fullgrid-scroll{
   flex: 1 1 auto;

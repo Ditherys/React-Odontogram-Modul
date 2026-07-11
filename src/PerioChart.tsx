@@ -19,6 +19,7 @@ import {
   setPlaque,
   getToothPlaque,
   isPerioRowHidden,
+  isToothImplant,
   getReadOnly,
   onStateChange,
   nextPerioCell,
@@ -33,6 +34,7 @@ import {
   buildPerioCurveLayer,
   PERIO_MM_PX,
   TOOTH_GAP,
+  PERIO_DISPLAY_SCALE,
   type TemplateDocCache,
   type ArchLayout,
   type PerioCurveSite,
@@ -157,7 +159,20 @@ function drawArchCurves(cache: TemplateDocCache, container: HTMLElement | null, 
   if (!container) return;
   const svg = container.querySelector("svg.perio-tooth-arch");
   if (!svg) return;
+  // Remove any stale curve layers first (safe to call on every state change).
   svg.querySelectorAll(".perio-curve").forEach((el) => el.remove());
+
+  // Append each curve INTO the SAME oriented row group as its teeth, so the
+  // arch-aware occlusal-to-occlusal orientation (crown-down on the upper arch,
+  // via `archOrientTransform`) AND the palatal mirror flip the curve together
+  // with the teeth — one coordinate space, so deep pockets always extend toward
+  // the ROOT. The buccal curve rides `.perio-tooth-row-buccal`'s orientation
+  // transform; the palatal curve rides `.perio-tooth-row-palatal-inner`'s
+  // orientation transform PLUS the `.perio-tooth-row-palatal` mirror wrapping
+  // it — so, unlike before, the palatal curve layer needs NO transform of its
+  // own. Fall back to the <svg> itself if a group is ever absent.
+  const buccalParent = (svg.querySelector(".perio-tooth-row-buccal") as SVGGElement | null) ?? svg;
+  const palatalParent = (svg.querySelector(".perio-tooth-row-palatal-inner") as SVGGElement | null) ?? svg;
 
   const layout = archToothLayout(cache, teeth);
   const opts = { cejY: layout.cejY, mmPx: PERIO_MM_PX };
@@ -165,13 +180,12 @@ function drawArchCurves(cache: TemplateDocCache, container: HTMLElement | null, 
   const buccalIn = collectCurveInput(layout, BUCCAL_SITES);
   const buccalCurve = perioCurve(buccalIn.sites, { ...opts, siteX: (i) => buccalIn.xs[i] });
   const buccalLayer = buildPerioCurveLayer(buccalCurve, { width: layout.totalWidth, className: "perio-curve perio-curve-buccal" });
-  svg.appendChild(buccalLayer);
+  buccalParent.appendChild(buccalLayer);
 
   const lingualIn = collectCurveInput(layout, LINGUAL_SITES);
   const lingualCurve = perioCurve(lingualIn.sites, { ...opts, siteX: (i) => lingualIn.xs[i] });
   const lingualLayer = buildPerioCurveLayer(lingualCurve, { width: layout.totalWidth, className: "perio-curve perio-curve-palatal" });
-  lingualLayer.setAttribute("transform", `matrix(1 0 0 -1 0 ${2 * layout.mirrorAxisY})`);
-  svg.appendChild(lingualLayer);
+  palatalParent.appendChild(lingualLayer);
 }
 
 function mkEl<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string): HTMLElementTagNameMap[K] {
@@ -500,7 +514,13 @@ function applyArchColumns(grid: HTMLElement | null, teeth: readonly number[], ca
   if (!grid) return;
   const layout = archToothLayout(cache, teeth);
   if (layout.teeth.length === 0) return;
-  const cols = layout.teeth.map((tooth) => `${(tooth.width + TOOTH_GAP).toFixed(3)}px`).join(" ");
+  // Widen each tooth column by `PERIO_DISPLAY_SCALE` (T1 bigger teeth): the arch
+  // SVG fills the graphic cell these columns span (CSS `width:100%`, no fixed
+  // width), so scaling the columns scales the rendered teeth to match — one
+  // shared layout, columns stay locked to the teeth (no divergent geometry).
+  const cols = layout.teeth
+    .map((tooth) => `${((tooth.width + TOOTH_GAP) * PERIO_DISPLAY_SCALE).toFixed(3)}px`)
+    .join(" ");
   grid.style.gridTemplateColumns = `${ROW_LABEL_WIDTH}px ${cols}`;
 }
 
@@ -914,9 +934,39 @@ export default function PerioChart({
   useEffect(() => {
     if (!active) return;
     let cancelled = false;
+    // A tooth's graphic uses the implant fixture artwork when it's an implant on
+    // the ACTIVE chart (`isToothImplant`, status/plan aware). The teeth are laid
+    // out once when the template cache loads (below); a change to WHICH teeth are
+    // implants (a dual-state chart switch, or an external edit while the chart is
+    // open) is detected by this compact signature so the arch is rebuilt only
+    // then — never on every perio keystroke, which merely redraws the curves.
+    const implantSig = () =>
+      [...UPPER_ARCH, ...LOWER_ARCH].filter((n) => isToothImplant(n)).join(",");
+    let lastImplantSig: string | null = null;
+
+    // Rebuild both arch tooth-row graphics from the cache, reading the current
+    // implant selection. Wipes each container (removing any curve layers), so
+    // the caller must redraw the curves afterwards.
+    const buildArches = (cache: TemplateDocCache) => {
+      const upperContainer = archUpperRef.current;
+      const lowerContainer = archLowerRef.current;
+      if (upperContainer) {
+        upperContainer.innerHTML = "";
+        upperContainer.appendChild(buildArchGraphic(cache, UPPER_ARCH, isToothImplant));
+      }
+      if (lowerContainer) {
+        lowerContainer.innerHTML = "";
+        lowerContainer.appendChild(buildArchGraphic(cache, LOWER_ARCH, isToothImplant));
+      }
+      lastImplantSig = implantSig();
+    };
+
     const redraw = () => {
       const cache = archCacheRef.current;
       if (!cache) return;
+      // Rebuild the teeth first if the implant set changed (cheap 32-tooth check),
+      // then (re)draw the curves into the fresh/existing arch SVGs.
+      if (implantSig() !== lastImplantSig) buildArches(cache);
       drawArchCurves(cache, archUpperRef.current, UPPER_ARCH);
       drawArchCurves(cache, archLowerRef.current, LOWER_ARCH);
     };
@@ -929,17 +979,9 @@ export default function PerioChart({
         // T2-deferred "grid doesn't line up column-for-column with the teeth").
         applyArchColumns(gridUpperRef.current, UPPER_ARCH, cache);
         applyArchColumns(gridLowerRef.current, LOWER_ARCH, cache);
-        const upperContainer = archUpperRef.current;
-        const lowerContainer = archLowerRef.current;
-        if (upperContainer) {
-          upperContainer.innerHTML = "";
-          upperContainer.appendChild(buildArchGraphic(cache, UPPER_ARCH));
-        }
-        if (lowerContainer) {
-          lowerContainer.innerHTML = "";
-          lowerContainer.appendChild(buildArchGraphic(cache, LOWER_ARCH));
-        }
-        redraw();
+        buildArches(cache);
+        drawArchCurves(cache, archUpperRef.current, UPPER_ARCH);
+        drawArchCurves(cache, archLowerRef.current, LOWER_ARCH);
       })
       .catch((err) => {
         // eslint-disable-next-line no-console

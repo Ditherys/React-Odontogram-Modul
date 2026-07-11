@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.38.0] - 2026-07-11
+### Changed
+- **Graphical Dental Chart polish.** The tooth arches now face **occlusal-to-occlusal** (upper crowns down, lower crowns up, like the odontogram); a **numbered millimeter guide grid** is drawn behind the teeth (a pocket's depth reads directly against the mm lines); the diagram is **larger and scales with the window**, with tighter tooth spacing; and an **implant graphic** is shown for implant teeth (instead of the natural tooth shape). No payload/FHIR change (the graphic reads template artwork into its own DOM — SVG-fingerprint parity byte-identical).
+### Added
+- Furcation and plaque status→plan changes now surface in the **"What changes"** box.
+
 ## [1.37.0] - 2026-07-11
 ### Added
 - **Furcation** charting (Glickman I–IV, per entrance) on the teeth that have furcations — maxillary molars (3 entrances), mandibular molars (2), maxillary first premolars (2) — and **plaque** charting (O'Leary, per-surface presence → whole-mouth **plaque index PI%**), both as rows in the periodontal grid and the graphical Dental Chart, with a summary showing max furcation + PI%. Furcation is exported to FHIR (LOINC `34015-8`, per entrance). Public API: `setFurcation`/`getToothFurcation`/`furcationEntrances`, `setPlaque`/`getToothPlaque`. Payload version **2.13** (additive).
