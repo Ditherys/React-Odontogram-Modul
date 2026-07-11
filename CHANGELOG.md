@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.32.0] - 2026-07-11
+### Added
+- Status → Plan **diff** and a **"What changes"** box under the Tooth-information panel. When a plan differs from the current status, the box lists every difference per tooth and per treatment axis (presence, tooth substrate, restoration, prosthesis, planned crown, orthodontics, pulp/endo, apical) as a `tooth: axis  from → to` line, reusing the same human-readable labels the tooltip and whole-mouth summary already use. The box is hidden whenever no plan exists or the plan is identical to the status, and refreshes live as either chart is edited.
+- New `getPlanChanges()` public API returning the structured status→plan diff (`{ toothNo, axis, from, to }[]`); the same list is now exposed on `getOdontogramSummary()` as `plannedChanges`. Render is byte-identical — the diff is a pure read-only comparison of the two charts. Second sub-project of the Status/Plan split (after 1.31.0's dual-state core).
+
 ## [1.31.0] - 2026-07-11
 ### Added
 - Status ↔ Plan chart split: the chart now holds a separate current-**status** and a **plan** (intended post-treatment) state, switched by a `Status | Plan` toggle in the chart header (`#chartModeToggle`, with a `.plan-mode` visual cue on the chart card). The plan chart is lazily initialized as a deep copy of the status chart the first time plan mode is entered; later switches reuse whatever is already in the plan chart. Render is byte-identical to the single-chart render — the toggle only changes which chart is drawn.

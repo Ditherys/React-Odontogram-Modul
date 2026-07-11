@@ -4806,6 +4806,123 @@ export function setPlanChart(payload: Any): void {
   }
 }
 
+// R2-B Task 1: pure, read-only status->plan diff engine. Reuses the SAME
+// summary-label helpers the tooltip (getStateSummary) and whole-mouth panel
+// (getOdontogramSummary) already use for these axes, so a diff entry never
+// invents new copy — it just reports "the same label the UI would already
+// show changed from X to Y". Adds no render/state mutation whatsoever; a
+// treatment-oriented axis list (not a raw field-by-field diff), curated to
+// the clinically relevant axes a "what changed" review would care about.
+export type PlanChange = { toothNo: number; axis: string; from: string; to: string };
+
+/** toothSelection value -> its i18n label key, mirrored from
+ *  optionsFor("toothSelection") (see registry/axes.ts / ui-options.test.ts)
+ *  so the "presence" diff axis names a value exactly the way the #toothSelect
+ *  picker itself does. A value outside this set (e.g. the legacy/import-only
+ *  "no-tooth-after-extraction") falls back to the "missing" label — closest
+ *  existing semantics ("no tooth present") without inventing new copy. */
+const TOOTH_SELECT_LABEL_KEY: Record<string, string> = Object.fromEntries(
+  optionsFor("toothSelection").map((o) => [o.value, o.labelKey])
+);
+
+/** Curated, treatment-relevant diff axes for {@link getPlanChanges}. Each
+ *  `label(state)` returns a short human string for that axis's value in the
+ *  CURRENT UI language — reusing the exact same per-value i18n lookups
+ *  getStateSummary()/getOdontogramSummary() already use for that axis, so the
+ *  diff never renders text the rest of the app wouldn't also show. An
+ *  axis at its "nothing recorded" value renders the shared
+ *  `t("planChange.none")` sentinel so a from->to reads cleanly (e.g.
+ *  "— → korona (cirkónium)") instead of an empty string. */
+const DIFF_AXES: { key: string; labelKey: string; label: (s: Any) => string }[] = [
+  {
+    key: "presence", labelKey: "planChange.axis.presence",
+    label: (s) => {
+      const base = t(TOOTH_SELECT_LABEL_KEY[s.toothSelection] ?? "toothSelect.none");
+      return s.extractionPlan ? `${base} (${t("tooth.extractionPlan")})` : base;
+    },
+  },
+  {
+    key: "substrate", labelKey: "planChange.axis.substrate",
+    label: (s) => t(`substrate.${s.toothSubstrate}`),
+  },
+  {
+    key: "restoration", labelKey: "planChange.axis.restoration",
+    label: (s) => s.restorationType === "none" ? t("planChange.none") : restorationSummaryLabel(s.restorationType, s.restorationMaterial),
+  },
+  {
+    key: "prosthesis", labelKey: "planChange.axis.prosthesis",
+    label: (s) => {
+      const prosthesisKey = PROSTHESIS_SUMMARY_KEY[s.prosthesis];
+      return prosthesisKey ? t(prosthesisKey) : t("planChange.none");
+    },
+  },
+  {
+    key: "crownAction", labelKey: "planChange.axis.crownAction",
+    label: (s) => {
+      const parts: string[] = [];
+      if(s.crownNeeded) parts.push(t("tooth.crownNeeded"));
+      if(s.crownReplace) parts.push(t("tooth.crownReplace"));
+      return parts.length > 0 ? parts.join(", ") : t("planChange.none");
+    },
+  },
+  {
+    key: "ortho", labelKey: "planChange.axis.ortho",
+    label: (s) => {
+      const parts: string[] = [];
+      if(s.orthoAppliance && s.orthoAppliance !== "none") parts.push(t("ortho.appliance." + s.orthoAppliance));
+      if(s.orthoDrift && s.orthoDrift !== "none") parts.push(t("ortho.drift." + s.orthoDrift));
+      if(s.orthoVertical && s.orthoVertical !== "none") parts.push(t("ortho.vertical." + s.orthoVertical));
+      if(s.orthoRotation === true) parts.push(t("ortho.rotation.label"));
+      return parts.length > 0 ? parts.join(", ") : t("planChange.none");
+    },
+  },
+  {
+    key: "pulpEndo", labelKey: "planChange.axis.pulpEndo",
+    label: (s) => {
+      if(s.endo && s.endo !== "none"){
+        const endoKey = SUMMARY_ENDO_KEY[s.endo];
+        return endoKey ? t(endoKey) : t("planChange.none");
+      }
+      return pulpDiagnosisLabel(s) ?? t("planChange.none");
+    },
+  },
+  {
+    key: "apical", labelKey: "planChange.axis.apical",
+    label: (s) => apicalDiagnosisLabel(s) ?? t("planChange.none"),
+  },
+];
+
+/**
+ * Compare the "status" chart against the "plan" chart, tooth by tooth and
+ * axis by axis (see {@link DIFF_AXES}), and report every axis whose label
+ * differs. Pure and read-only: never mutates either chart, never touches the
+ * DOM, never renders — a `parity.test.ts`-safe addition.
+ *
+ * Returns `[]` whenever the plan chart hasn't been initialized yet (no plan
+ * exists to diff against). A tooth absent from either chart resolves via
+ * `defaultState()`, so a status-only or plan-only tooth still diffs correctly
+ * against the clinical default rather than throwing.
+ *
+ * Iterates the fixed `ALL_TEETH` list (not chart key insertion order), so
+ * results are always grouped by tooth in the same stable clinical order the
+ * rest of the app already uses (quadrant-by-quadrant); within a tooth,
+ * entries follow `DIFF_AXES` order.
+ */
+export function getPlanChanges(): PlanChange[] {
+  if(!planInitialized) return [];
+  const out: PlanChange[] = [];
+  for(const toothNo of ALL_TEETH){
+    const st = charts.status.get(toothNo) ?? defaultState();
+    const pl = charts.plan.get(toothNo) ?? defaultState();
+    for(const axis of DIFF_AXES){
+      const from = axis.label(st);
+      const to = axis.label(pl);
+      if(from !== to) out.push({ toothNo, axis: axis.key, from, to });
+    }
+  }
+  return out;
+}
+
 function downloadJson(payload: Any, filenamePrefix: string){
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -6353,6 +6470,12 @@ export type OdontogramSummary = {
   implants: { heading: string; text: string } | null;
   periodontalTitle: string;
   periodontalText: string;
+  /** R2-B Task 2: the status->plan diff (see {@link getPlanChanges}), verbatim.
+   *  `[]` whenever the plan chart hasn't been initialized or plan === status —
+   *  a distinct field, not a section, since it's a diff rather than a status
+   *  list. The "What changes" box in App.tsx renders from this field only
+   *  when it's non-empty. */
+  plannedChanges: PlanChange[];
 };
 
 const SUMMARY_SURFACE_ORDER = ["buccal", "mesial", "occlusal", "distal", "lingual", "subcrown"];
@@ -6380,6 +6503,16 @@ const SUMMARY_ROOT_CARIES_KEY: Record<string, string> = {
   arrested: "rootCaries.arrested",
   "active-cavitated": "rootCaries.activeCavitated",
 };
+/** Formats a tooth number for display using the active numbering system AND
+ *  the milktooth display-remap ({@link getDisplayedToothNumber}) — the exact
+ *  same formatting {@link getOdontogramSummary} uses for every tooth number
+ *  it prints (permanent/missing lists, per-section entries, implants). Exported
+ *  so the "What changes" box in App.tsx can label a {@link PlanChange.toothNo}
+ *  identically, without duplicating the numbering/milktooth logic. */
+export function formatToothLabel(toothNo: number): string {
+  return toLabel(getDisplayedToothNumber(toothNo), numberingSystem);
+}
+
 /**
  * Build a human-readable, localized summary of the current odontogram state:
  * tooth counts, present/missing lists, and caries / fillings / endo /
@@ -6388,7 +6521,7 @@ const SUMMARY_ROOT_CARIES_KEY: Record<string, string> = {
  * {@link onStateChange} to refresh it on edits.
  */
 export function getOdontogramSummary(): OdontogramSummary {
-  const lbl = (toothNo: number) => toLabel(getDisplayedToothNumber(toothNo), numberingSystem);
+  const lbl = formatToothLabel;
 
   const permanent: number[] = [];
   const missing: number[] = [];
@@ -6605,6 +6738,7 @@ export function getOdontogramSummary(): OdontogramSummary {
     implants: implantInfo,
     periodontalTitle: t("toothInfo.periodontalTitle"),
     periodontalText,
+    plannedChanges: getPlanChanges(),
   };
 }
 
