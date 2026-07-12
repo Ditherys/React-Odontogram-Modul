@@ -109,7 +109,10 @@ function toothColumnsPx(grid: HTMLElement): number[] {
 
 async function waitForArchLoaded(): Promise<void> {
   await waitFor(() => {
-    expect(document.querySelectorAll("[data-perio-arch] svg.perio-tooth-arch").length).toBe(2);
+    // UI-3a Task 2: each arch now has TWO graphic cells (`buccalCell`/
+    // `palatalCell`), each holding its own standalone SVG — so "both arches
+    // loaded" is 2 arches x 2 cells x 1 SVG each = 4.
+    expect(document.querySelectorAll("[data-perio-arch] svg.perio-tooth-arch").length).toBe(4);
   });
 }
 

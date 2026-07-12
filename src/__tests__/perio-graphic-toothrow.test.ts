@@ -4,7 +4,7 @@
 // .superpowers/sdd/task-2-report.md).
 //
 // These tests exercise the SYNC core (`getToothBaseGroupFromCache` /
-// `buildArchGraphic`) directly against a hand-built template-doc cache
+// `buildBuccalArchSvg`/`buildPalatalArchSvg`) directly against a hand-built template-doc cache
 // parsed from the real SVG asset text via DOMParser — the exact same
 // `readFileSync` + `DOMParser().parseFromString(..., "image/svg+xml")`
 // technique `parity.test.ts` already uses (see its `svgText` helper) — so no
@@ -17,7 +17,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   getToothBaseGroupFromCache,
-  buildArchGraphic,
+  buildBuccalArchSvg,
+  buildPalatalArchSvg,
   CEJ_Y,
   EXCLUDED_TOOTH_BASE_IDS,
   type TemplateDocCache,
@@ -135,55 +136,59 @@ describe("CEJ_Y anchors", () => {
   });
 });
 
-describe("buildArchGraphic", () => {
+// UI-3a Task 2: `buildArchGraphic` (the legacy combined single-SVG builder)
+// has been removed — `buildBuccalArchSvg`/`buildPalatalArchSvg` are now the
+// only arch-artwork API (each independently viewBoxed, uniformly oriented
+// across both arches). Full coverage of the uniform-orientation contract
+// lives in `ui3a-arch-split.test.ts`; this suite keeps a few targeted
+// regression checks migrated from the old `buildArchGraphic` describe block.
+describe("buildBuccalArchSvg / buildPalatalArchSvg", () => {
   const cache = buildCache();
 
   it("renders all 16 upper teeth, in FDI order 18->11,21->28, in the buccal row", () => {
-    const svg = buildArchGraphic(cache, UPPER_ARCH);
+    const svg = buildBuccalArchSvg(cache, UPPER_ARCH);
     const buccal = svg.querySelector(".perio-tooth-row-buccal");
     expect(buccal).toBeTruthy();
     const toothEls = Array.from(buccal!.querySelectorAll("[data-tooth]"));
     expect(toothEls.map((el) => el.getAttribute("data-tooth"))).toEqual(UPPER_ARCH.map(String));
   });
 
-  it("every rendered tooth carries the tooth-base geometry", () => {
-    const svg = buildArchGraphic(cache, UPPER_ARCH);
-    const buccal = svg.querySelector(".perio-tooth-row-buccal")!;
-    for (const toothNo of UPPER_ARCH) {
-      const toothEl = buccal.querySelector(`[data-tooth="${toothNo}"]`);
-      expect(toothEl, `tooth ${toothNo}`).toBeTruthy();
-      const ids = Array.from(toothEl!.querySelectorAll("[id]")).map((el) => el.getAttribute("id"));
-      expect(ids, `tooth ${toothNo}`).toContain("tooth-base");
+  it("every rendered tooth carries the tooth-base geometry (buccal + palatal)", () => {
+    const buccalSvg = buildBuccalArchSvg(cache, UPPER_ARCH);
+    const buccal = buccalSvg.querySelector(".perio-tooth-row-buccal")!;
+    const palatalSvg = buildPalatalArchSvg(cache, UPPER_ARCH);
+    const palatal = palatalSvg.querySelector(".perio-tooth-row-palatal-inner")!;
+    for (const row of [buccal, palatal]) {
+      for (const toothNo of UPPER_ARCH) {
+        const toothEl = row.querySelector(`[data-tooth="${toothNo}"]`);
+        expect(toothEl, `tooth ${toothNo}`).toBeTruthy();
+        const ids = Array.from(toothEl!.querySelectorAll("[id]")).map((el) => el.getAttribute("id"));
+        expect(ids, `tooth ${toothNo}`).toContain("tooth-base");
+      }
     }
   });
 
-  it("the palatal row is the buccal row wrapped in one container-level vertical-mirror transform", () => {
-    const svg = buildArchGraphic(cache, UPPER_ARCH);
-    const buccal = svg.querySelector(".perio-tooth-row-buccal")!;
-    const palatal = svg.querySelector(".perio-tooth-row-palatal");
-    expect(palatal).toBeTruthy();
-    // A single mirror transform on the row container itself (not re-derived
-    // per tooth) — matrix(1 0 0 -1 ...) is the matrix form of scale(1,-1).
-    expect(palatal!.getAttribute("transform") || "").toMatch(/matrix\(1 0 0 -1 0 -?[0-9.]+\)/);
-    // Same teeth, same order, same per-tooth structure as the buccal row —
-    // it's a wrapped mirror of the row, not an independently rebuilt one.
+  it("the palatal SVG's teeth are the SAME teeth, same order, as the buccal SVG's (independent bands, same tooth set)", () => {
+    const buccal = buildBuccalArchSvg(cache, UPPER_ARCH).querySelector(".perio-tooth-row-buccal")!;
+    const palatal = buildPalatalArchSvg(cache, UPPER_ARCH).querySelector(".perio-tooth-row-palatal-inner")!;
     const buccalTeeth = Array.from(buccal.querySelectorAll("[data-tooth]")).map((el) => el.getAttribute("data-tooth"));
-    const palatalTeeth = Array.from(palatal!.querySelectorAll("[data-tooth]")).map((el) => el.getAttribute("data-tooth"));
+    const palatalTeeth = Array.from(palatal.querySelectorAll("[data-tooth]")).map((el) => el.getAttribute("data-tooth"));
     expect(palatalTeeth).toEqual(buccalTeeth);
   });
 
   it("also renders the lower arch buccal row in FDI order 48->41,31->38", () => {
     const LOWER_ARCH = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
-    const svg = buildArchGraphic(cache, LOWER_ARCH);
+    const svg = buildBuccalArchSvg(cache, LOWER_ARCH);
     const buccal = svg.querySelector(".perio-tooth-row-buccal")!;
     const toothEls = Array.from(buccal.querySelectorAll("[data-tooth]"));
     expect(toothEls.map((el) => el.getAttribute("data-tooth"))).toEqual(LOWER_ARCH.map(String));
   });
 
-  it("is marked aria-hidden — purely decorative, the accessible data lives in the number cells/summary", () => {
-    const svg = buildArchGraphic(cache, UPPER_ARCH);
-    expect(svg.getAttribute("aria-hidden")).toBe("true");
-    // No nameless role="img" left for axe-core to flag either.
-    expect(svg.getAttribute("role")).toBeNull();
+  it("both SVGs are marked aria-hidden — purely decorative, the accessible data lives in the number cells/summary", () => {
+    for (const svg of [buildBuccalArchSvg(cache, UPPER_ARCH), buildPalatalArchSvg(cache, UPPER_ARCH)]) {
+      expect(svg.getAttribute("aria-hidden")).toBe("true");
+      // No nameless role="img" left for axe-core to flag either.
+      expect(svg.getAttribute("role")).toBeNull();
+    }
   });
 });

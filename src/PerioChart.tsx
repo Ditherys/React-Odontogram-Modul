@@ -55,7 +55,8 @@ import { indexName, CANONICAL_INDEX_NAMES } from "./perioIndexNames";
 import PerioSidebar from "./PerioSidebar";
 import {
   loadTemplateCache,
-  buildArchGraphic,
+  buildBuccalArchSvg,
+  buildPalatalArchSvg,
   archToothLayout,
   perioCurve,
   buildPerioCurveLayer,
@@ -125,6 +126,33 @@ const LINGUAL_SITES: readonly PerioSite[] = ["ML", "L", "DL"];
 // module-eval-safety reason as BUCCAL_SITES above). Order = the clockwise
 // M/D + B/L quadrant order the 4-quadrant plaque mark reads in.
 const PLAQUE_SURFACES: readonly string[] = ["mesial", "distal", "buccal", "lingual"];
+
+// UI-3a Task 3: does SURFACE "mesial" sit in the LEFT column of a tooth's
+// diamond plaque/grade cell (`.perio-fullgrid-plaque-quad`'s `"mes dis"`
+// middle row)? Mesial always points toward the arch midline. UPPER_ARCH/
+// LOWER_ARCH (above) lay FDI quadrant 1/4 teeth on the screen-LEFT half of
+// their arch (the midline sits at the 11|21 / 41|31 boundary, to their
+// right) and quadrant 2/3 teeth on the screen-RIGHT half (midline to their
+// left) — so mesial is visually on the LEFT for quadrants 2/3 and on the
+// RIGHT for quadrants 1/4.
+function mesialOnLeft(toothNo: number): boolean {
+  const quadrant = Math.floor(toothNo / 10);
+  return quadrant === 2 || quadrant === 3;
+}
+
+// UI-3a Task 3: the diamond `grid-area` a plaque/grade surface button gets
+// on a given tooth. Buccal/lingual are always the top-/bottom-centered tips;
+// mesial/distal swap the "mes"/"dis" middle-row columns per `mesialOnLeft`
+// so mesial stays toward the midline on both sides of the arch. This only
+// decides visual placement — the button's `surface`/`data-*` wiring (set by
+// the caller) is unaffected.
+function diamondGridArea(surface: string, toothNo: number): "buc" | "mes" | "dis" | "lin" {
+  if (surface === "buccal") return "buc";
+  if (surface === "lingual") return "lin";
+  const onLeft = mesialOnLeft(toothNo);
+  if (surface === "mesial") return onLeft ? "mes" : "dis";
+  return onLeft ? "dis" : "mes"; // distal
+}
 
 // Glickman furcation grade -> Roman-numeral face on the cycle control.
 // Index 0 (no involvement) shows the em-dash placeholder, 1-4 show I-IV.
@@ -267,43 +295,55 @@ function collectCurveInput(
   return { sites, xs };
 }
 
-// Draw (or redraw) both curve rows of ONE arch band into the arch SVG the T2
-// `buildArchGraphic` produced. Stale curve layers are removed first, so this
-// is safe to call on every state change. The palatal curve is computed in the
-// SAME buccal-space (cejY at the shared baseline) then wrapped in the SAME
-// vertical-mirror transform T2 mirrors the palatal teeth with (matrix
-// 1 0 0 -1 0 2*mirrorAxisY), keeping the curve locked to the palatal teeth.
+// UI-3a Task 2: `buildBuccalArchSvg`/`buildPalatalArchSvg` render as two
+// independent `<svg class="perio-tooth-arch perio-tooth-arch-buccal|palatal">`
+// elements, each mounted into its OWN grid cell (`buccalCell`/`palatalCell`,
+// see `buildArch` below) with the central perio index band between them —
+// the legacy combined single-SVG builder (`buildArchGraphic`) and its
+// generic-fallback mount shape are retired; `resolveAspectSvg` only ever
+// needs to find the dedicated per-aspect SVG (it still takes `container`
+// rather than the SVG directly because `drawArchCurves`/`drawArchOverlay`
+// are called with the whole arch grid element — which contains BOTH
+// `buccalCell` and `palatalCell` as descendants regardless of the rows
+// sitting between them in the DOM — so one `container.querySelector` reaches
+// either aspect's SVG from anywhere in the arch).
+function resolveAspectSvg(container: Element, aspectClass: string): Element | null {
+  return container.querySelector(`svg.${aspectClass}`);
+}
+
+// Draw (or redraw) each aspect's curve into its arch SVG (see
+// `resolveAspectSvg` above). Stale curve
+// layers are removed first (scoped to `container`, i.e. every arch SVG it
+// holds), so this is safe to call on every state change. The palatal curve
+// is computed in the SAME buccal-space (cejY at the shared baseline); since
+// the palatal SVG's row group carries NO net orientation transform (see
+// `buildPalatalArchSvg`), the curve needs no transform of its own either —
+// it lands directly on the palatal teeth.
 function drawArchCurves(cache: TemplateDocCache, container: HTMLElement | null, teeth: readonly number[]): void {
   if (!container) return;
-  const svg = container.querySelector("svg.perio-tooth-arch");
-  if (!svg) return;
   // Remove any stale curve layers first (safe to call on every state change).
-  svg.querySelectorAll(".perio-curve").forEach((el) => el.remove());
-
-  // Append each curve INTO the SAME oriented row group as its teeth, so the
-  // arch-aware occlusal-to-occlusal orientation (crown-down on the upper arch,
-  // via `archOrientTransform`) AND the palatal mirror flip the curve together
-  // with the teeth — one coordinate space, so deep pockets always extend toward
-  // the ROOT. The buccal curve rides `.perio-tooth-row-buccal`'s orientation
-  // transform; the palatal curve rides `.perio-tooth-row-palatal-inner`'s
-  // orientation transform PLUS the `.perio-tooth-row-palatal` mirror wrapping
-  // it — so, unlike before, the palatal curve layer needs NO transform of its
-  // own. Fall back to the <svg> itself if a group is ever absent.
-  const buccalParent = (svg.querySelector(".perio-tooth-row-buccal") as SVGGElement | null) ?? svg;
-  const palatalParent = (svg.querySelector(".perio-tooth-row-palatal-inner") as SVGGElement | null) ?? svg;
+  container.querySelectorAll(".perio-curve").forEach((el) => el.remove());
 
   const layout = archToothLayout(cache, teeth);
   const opts = { cejY: layout.cejY, mmPx: PERIO_MM_PX };
 
-  const buccalIn = collectCurveInput(layout, BUCCAL_SITES);
-  const buccalCurve = perioCurve(buccalIn.sites, { ...opts, siteX: (i) => buccalIn.xs[i] });
-  const buccalLayer = buildPerioCurveLayer(buccalCurve, { width: layout.totalWidth, className: "perio-curve perio-curve-buccal" });
-  buccalParent.appendChild(buccalLayer);
+  const buccalSvg = resolveAspectSvg(container, "perio-tooth-arch-buccal");
+  if (buccalSvg) {
+    const buccalParent = (buccalSvg.querySelector(".perio-tooth-row-buccal") as SVGGElement | null) ?? buccalSvg;
+    const buccalIn = collectCurveInput(layout, BUCCAL_SITES);
+    const buccalCurve = perioCurve(buccalIn.sites, { ...opts, siteX: (i) => buccalIn.xs[i] });
+    const buccalLayer = buildPerioCurveLayer(buccalCurve, { width: layout.totalWidth, className: "perio-curve perio-curve-buccal" });
+    buccalParent.appendChild(buccalLayer);
+  }
 
-  const lingualIn = collectCurveInput(layout, LINGUAL_SITES);
-  const lingualCurve = perioCurve(lingualIn.sites, { ...opts, siteX: (i) => lingualIn.xs[i] });
-  const lingualLayer = buildPerioCurveLayer(lingualCurve, { width: layout.totalWidth, className: "perio-curve perio-curve-palatal" });
-  palatalParent.appendChild(lingualLayer);
+  const palatalSvg = resolveAspectSvg(container, "perio-tooth-arch-palatal");
+  if (palatalSvg) {
+    const palatalParent = (palatalSvg.querySelector(".perio-tooth-row-palatal-inner") as SVGGElement | null) ?? palatalSvg;
+    const lingualIn = collectCurveInput(layout, LINGUAL_SITES);
+    const lingualCurve = perioCurve(lingualIn.sites, { ...opts, siteX: (i) => lingualIn.xs[i] });
+    const lingualLayer = buildPerioCurveLayer(lingualCurve, { width: layout.totalWidth, className: "perio-curve perio-curve-palatal" });
+    palatalParent.appendChild(lingualLayer);
+  }
 }
 
 // PG-B Task 2/3 switcher: the overlay layers offered by the switch row, in
@@ -401,12 +441,17 @@ function collectMmHeatInput(layout: ArchLayout, siteKeys: readonly PerioSite[]):
 }
 
 /**
- * PG-B Task 2/3: draw (or clear) the overlay for ONE arch band into the arch
- * SVG `buildArchGraphic` produced. Stale overlay layers are removed first, so
- * this is safe to call on every state / layer change. The overlay `<g>` is
- * appended INTO the SAME oriented row groups the teeth + curve ride
- * (`.perio-tooth-row-buccal` / `.perio-tooth-row-palatal-inner`), so the T1
- * occlusal-to-occlusal flip + the palatal mirror carry the marks along with
+ * PG-B Task 2/3: draw (or clear) the overlay for ONE arch band. UI-3a Task 2:
+ * each aspect has its OWN standalone arch SVG (`buildBuccalArchSvg`/
+ * `buildPalatalArchSvg`), each mounted into its own grid cell
+ * (`buccalCell`/`palatalCell` — see `buildArch`), so a buccal-aspect mark is
+ * appended into `svg.perio-tooth-arch-buccal` and a palatal-aspect mark into
+ * `svg.perio-tooth-arch-palatal`.
+ * Stale overlay layers are removed first (scoped to `container`, i.e. both
+ * SVGs), so this is safe to call on every state / layer change. The overlay
+ * `<g>` is appended INTO the SAME oriented row group the teeth + curve ride
+ * in its OWN svg (`.perio-tooth-row-buccal` / `.perio-tooth-row-palatal-
+ * inner`), so the T1 occlusal-to-occlusal flip carries the marks along with
  * the teeth — one coordinate space, no divergent geometry (it reuses
  * `archToothLayout` + `PERIO_MM_PX`, exactly like `drawArchCurves`).
  *
@@ -422,14 +467,18 @@ export function drawArchOverlay(
   layer: PerioOverlayLayer,
 ): void {
   if (!container) return;
-  const svg = container.querySelector("svg.perio-tooth-arch");
-  if (!svg) return;
   // Remove any stale overlay first (safe to call on every state/layer change).
-  svg.querySelectorAll(".perio-overlay-layer").forEach((el) => el.remove());
+  container.querySelectorAll(".perio-overlay-layer").forEach((el) => el.remove());
   if (layer === "none") return;
 
-  const buccalParent = (svg.querySelector(".perio-tooth-row-buccal") as SVGGElement | null) ?? svg;
-  const palatalParent = (svg.querySelector(".perio-tooth-row-palatal-inner") as SVGGElement | null) ?? svg;
+  const buccalSvg = resolveAspectSvg(container, "perio-tooth-arch-buccal");
+  const palatalSvg = resolveAspectSvg(container, "perio-tooth-arch-palatal");
+  const buccalParent = ((buccalSvg?.querySelector(".perio-tooth-row-buccal") as SVGGElement | null) ?? buccalSvg) as
+    | SVGGElement
+    | Element
+    | null;
+  const palatalParent = ((palatalSvg?.querySelector(".perio-tooth-row-palatal-inner") as SVGGElement | null) ??
+    palatalSvg) as SVGGElement | Element | null;
 
   const layout = archToothLayout(cache, teeth);
   const opts = { cejY: layout.cejY, mmPx: PERIO_MM_PX };
@@ -441,10 +490,10 @@ export function drawArchOverlay(
       width: tooth.width,
       surfaces: getToothPlaque(tooth.toothNo),
     }));
-    buccalParent.appendChild(
+    buccalParent?.appendChild(
       buildPerioOverlayLayer(perioPlaqueMarks(plaqueTeeth, "buccal", opts), { width: layout.totalWidth, className }),
     );
-    palatalParent.appendChild(
+    palatalParent?.appendChild(
       buildPerioOverlayLayer(perioPlaqueMarks(plaqueTeeth, "palatal", opts), { width: layout.totalWidth, className }),
     );
     return;
@@ -461,7 +510,7 @@ export function drawArchOverlay(
       width: tooth.width,
       rt: getToothRecessionType(tooth.toothNo),
     }));
-    buccalParent.appendChild(
+    buccalParent?.appendChild(
       buildPerioOverlayLayer(perioCairoMarks(cairoTeeth, opts), { width: layout.totalWidth, className }),
     );
     return;
@@ -477,7 +526,7 @@ export function drawArchOverlay(
       width: tooth.width,
       kg: getKeratinizedWidth(tooth.toothNo),
     }));
-    buccalParent.appendChild(
+    buccalParent?.appendChild(
       buildPerioOverlayLayer(perioKgMarks(kgTeeth, opts), { width: layout.totalWidth, className }),
     );
     return;
@@ -506,10 +555,10 @@ export function drawArchOverlay(
         lingual: getGrade(tooth.toothNo, "lingual"),
       },
     }));
-    buccalParent.appendChild(
+    buccalParent?.appendChild(
       buildPerioOverlayLayer(perioGradeMarks(gradeTeeth, "buccal", opts), { width: layout.totalWidth, className }),
     );
-    palatalParent.appendChild(
+    palatalParent?.appendChild(
       buildPerioOverlayLayer(perioGradeMarks(gradeTeeth, "palatal", opts), { width: layout.totalWidth, className }),
     );
     return;
@@ -522,18 +571,18 @@ export function drawArchOverlay(
   if (layer === "pd" || layer === "cal" || layer === "gr") {
     const mmHeatLayer = layer as MmHeatOverlayLayer;
     const buccalMarks = perioMmHeatMarks(mmHeatLayer, collectMmHeatInput(layout, BUCCAL_SITES), opts);
-    buccalParent.appendChild(buildPerioOverlayLayer(buccalMarks, { width: layout.totalWidth, className }));
+    buccalParent?.appendChild(buildPerioOverlayLayer(buccalMarks, { width: layout.totalWidth, className }));
     const lingualMarks = perioMmHeatMarks(mmHeatLayer, collectMmHeatInput(layout, LINGUAL_SITES), opts);
-    palatalParent.appendChild(buildPerioOverlayLayer(lingualMarks, { width: layout.totalWidth, className }));
+    palatalParent?.appendChild(buildPerioOverlayLayer(lingualMarks, { width: layout.totalWidth, className }));
     return;
   }
 
   // Site-based discrete overlays (bop / pd5 / pd6).
   const siteLayer = layer as SiteOverlayLayer;
   const buccalMarks = perioOverlayMarks(siteLayer, collectOverlayInput(layout, BUCCAL_SITES), opts);
-  buccalParent.appendChild(buildPerioOverlayLayer(buccalMarks, { width: layout.totalWidth, className }));
+  buccalParent?.appendChild(buildPerioOverlayLayer(buccalMarks, { width: layout.totalWidth, className }));
   const lingualMarks = perioOverlayMarks(siteLayer, collectOverlayInput(layout, LINGUAL_SITES), opts);
-  palatalParent.appendChild(buildPerioOverlayLayer(lingualMarks, { width: layout.totalWidth, className }));
+  palatalParent?.appendChild(buildPerioOverlayLayer(lingualMarks, { width: layout.totalWidth, className }));
 }
 
 function mkEl<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string): HTMLElementTagNameMap[K] {
@@ -817,10 +866,11 @@ function syncToothCells(
   }
 }
 
-/** One arch band's built grid plus the placeholder cell the tooth-row graphic
- *  SVG is injected into (spans all tooth columns, between the buccal and
- *  palatal number rows). */
-type BuiltArch = { grid: HTMLDivElement; archCell: HTMLDivElement };
+/** One arch band's built grid plus the two placeholder cells the buccal/
+ *  palatal tooth-row graphic SVGs are injected into (UI-3a Task 2 — each
+ *  spans all tooth columns; `buccalCell` sits above the central perio index
+ *  band (Plaque/PI/GI/mPI/mBI), `palatalCell` below it). */
+type BuiltArch = { grid: HTMLDivElement; buccalCell: HTMLDivElement; palatalCell: HTMLDivElement };
 
 /** Build ONE tooth's field cell for a given field/site-set — the SAME cell +
  *  `data-perio` locator + `change`-listener wiring P2 shipped, just factored
@@ -937,6 +987,7 @@ function buildPlaqueCell(
     btn.type = "button";
     btn.id = `perio-fg-plaque-${toothNo}-${surface}`;
     btn.dataset.plaqueSurface = surface;
+    btn.style.gridArea = diamondGridArea(surface, toothNo);
     btn.title = t(`surface.${surface}`);
     btn.setAttribute("aria-label", t(`surface.${surface}`));
     btn.addEventListener("click", () => handlers.onPlaque(toothNo, surface));
@@ -1030,6 +1081,7 @@ function buildGradeCell(
     btn.type = "button";
     btn.id = `perio-fg-${mapKey}-${toothNo}-${surface}`;
     btn.dataset.gradeSurface = surface;
+    btn.style.gridArea = diamondGridArea(surface, toothNo);
     btn.title = t(`surface.${surface}`);
     btn.setAttribute("aria-label", t(`surface.${surface}`));
     btn.addEventListener("click", () => onSurface(toothNo, surface));
@@ -1109,16 +1161,21 @@ function buildMillerClassCell(
 }
 
 /**
- * Build ONE arch band, re-laid into the reference (periodontalchart-online.com)
- * structure: the buccal-aspect number rows sit ABOVE the tooth graphic and the
- * palatal-aspect rows BELOW it, PD innermost on each side (nearest the teeth),
- * with the tooth-number header just above the graphic and a mobility row at the
- * foot. Everything shares ONE CSS grid (`ROW_LABEL_WIDTH` label column + one
- * column per tooth), so the tooth graphic (spanning `archCell`, tracks 2..N+1) and every
- * number column line up in the same coordinate space — the columns are widened
- * to the real per-tooth arch-layout widths once the template cache loads
- * (`applyArchColumns`). Reuses the P2 cell wiring via `buildFieldCell`; built
- * ONCE per active session (not React-controlled) — see the calling `useEffect`.
+ * Build ONE arch band, laid out buccal-graphic-top → central perio index
+ * band → palatal-graphic-bottom (UI-3a Task 2): the tooth-number header and
+ * the Miller-class row sit at the very top (near the buccal aspect), then
+ * the buccal-aspect number rows (PD innermost / nearest the teeth), the
+ * furcation row, the BUCCAL tooth graphic (`buccalCell`), a band-orientation
+ * legend, the central index band (Plaque → PI → GI → mPI → mBI), the
+ * PALATAL tooth graphic (`palatalCell`), the palatal-aspect number rows,
+ * mobility, and the remaining mucogingival/support rows (CEJ visibility,
+ * root concavity, KG, GT) at the foot. Everything shares ONE CSS grid
+ * (`ROW_LABEL_WIDTH` label column + one column per tooth), so both tooth
+ * graphics (each spanning tracks 2..N+1) and every number column line up in
+ * the same coordinate space — the columns are widened to the real per-tooth
+ * arch-layout widths once the template cache loads (`applyArchColumns`).
+ * Reuses the P2 cell wiring via `buildFieldCell`; built ONCE per active
+ * session (not React-controlled) — see the calling `useEffect`.
  */
 function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs>, handlers: GridHandlers): BuiltArch {
   const arch = mkEl("div", "perio-fullgrid-arch");
@@ -1169,11 +1226,22 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
     }
   };
 
-  // --- Plaque row (whole-tooth O'Leary index), at the very top ---
-  if (visible.plaque) {
-    arch.appendChild(mkRowLabelCell(indexName("plaque"), "perio.info.plaque"));
+  // --- Tooth-number header row, at the very top of the arch ---
+  arch.appendChild(mkRowLabelCell(""));
+  for (const toothNo of teeth) {
+    const header = mkEl("div", "perio-fullgrid-header-cell");
+    header.setAttribute("data-perio-tooth-header", String(toothNo));
+    header.textContent = formatToothLabel(toothNo);
+    arch.appendChild(header);
+  }
+
+  // --- Miller-class row (single per-tooth cycle button) — UI-3a Task 2 moves
+  //     this to the top buccal area (recession classification reads next to
+  //     the tooth numbers, closest to the buccal aspect it's measured on). ---
+  if (visible.miller) {
+    arch.appendChild(mkRowLabelCell(indexName("miller"), "perio.info.miller"));
     for (const toothNo of teeth) {
-      arch.appendChild(buildPlaqueCell(toothNo, registry.get(toothNo)!, handlers));
+      arch.appendChild(buildMillerClassCell(toothNo, registry.get(toothNo)!, handlers));
     }
   }
 
@@ -1186,7 +1254,7 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   if (visible.gm) appendFieldRow("gm", BUCCAL_SITES, "buccal", `${buccalLabel} ${indexName("gm")}`);
   if (visible.pd) appendFieldRow("pd", BUCCAL_SITES, "buccal", `${buccalLabel} ${indexName("pd")}`);
 
-  // --- Furcation row, nearest the teeth (just above the graphic) ---
+  // --- Furcation row, nearest the teeth (just above the buccal graphic) ---
   if (visible.furcation) {
     arch.appendChild(mkRowLabelCell(indexName("furcation"), "perio.info.furcation"));
     for (const toothNo of teeth) {
@@ -1194,24 +1262,88 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
     }
   }
 
-  // --- Tooth-number header row, just above the tooth graphic ---
+  // --- BUCCAL tooth-row graphic cell: spans all tooth columns, crown-DOWN,
+  //     filled by the graphic effect once the template cache loads. An empty
+  //     sticky label cell keeps the label column continuous. ---
   arch.appendChild(mkRowLabelCell(""));
-  for (const toothNo of teeth) {
-    const header = mkEl("div", "perio-fullgrid-header-cell");
-    header.setAttribute("data-perio-tooth-header", String(toothNo));
-    header.textContent = formatToothLabel(toothNo);
-    arch.appendChild(header);
+  const buccalCell = mkEl("div", "perio-fullgrid-graphic-cell");
+  buccalCell.dataset.perioArch = isUpper ? "upper" : "lower";
+  buccalCell.dataset.perioAspect = "buccal";
+  buccalCell.style.gridColumn = "2 / -1";
+  arch.appendChild(buccalCell);
+
+  // --- Band-orientation legend: a larger-font row marking the central
+  //     index band's buccal (top, adjacent to the graphic above) / lingual-
+  //     palatal (bottom, adjacent to the graphic below) anatomy. Chrome only
+  //     (like the header/graphic placeholder rows above) — its row-label
+  //     cell stays EMPTY and carries no info button, so it is never gated by
+  //     `getPerioRowVisibility()` and never shows up in a row-label-text
+  //     collection alongside the real index rows. ---
+  arch.appendChild(mkRowLabelCell(""));
+  const bandLabel = mkEl("div", "perio-fullgrid-band-label");
+  bandLabel.style.gridColumn = "2 / -1";
+  bandLabel.setAttribute("role", "note");
+  bandLabel.setAttribute("aria-label", t("perio.band.title"));
+  const bandBuccal = mkEl("span", "perio-fullgrid-band-label-buccal");
+  bandBuccal.textContent = `▲ ${t("perio.band.buccal")}`;
+  const bandLingual = mkEl("span", "perio-fullgrid-band-label-lingual");
+  bandLingual.textContent = `${t("perio.band.lingual")} ▼`;
+  bandLabel.appendChild(bandBuccal);
+  bandLabel.appendChild(bandLingual);
+  arch.appendChild(bandLabel);
+
+  // --- Central perio index band: Plaque -> PI -> GI -> mPI -> mBI, between
+  //     the buccal and palatal graphics (UI-3a Task 2). ---
+  if (visible.plaque) {
+    arch.appendChild(mkRowLabelCell(indexName("plaque"), "perio.info.plaque"));
+    for (const toothNo of teeth) {
+      arch.appendChild(buildPlaqueCell(toothNo, registry.get(toothNo)!, handlers));
+    }
   }
 
-  // --- Tooth-row graphic cell: spans all tooth columns (buccal teeth on top,
-  //     palatal teeth mirrored below), filled by the graphic effect once the
-  //     template cache loads. An empty sticky label cell keeps the label
-  //     column continuous. ---
+  // --- PI row (Silness-Löe Plaque Index, per-surface graded 0-3) — mirrors
+  //     the O'Leary plaque row's 4-quadrant shape (SP-perio PG-D Task 4). ---
+  if (visible.pi) {
+    arch.appendChild(mkRowLabelCell(indexName("pi"), "perio.info.pi"));
+    for (const toothNo of teeth) {
+      arch.appendChild(buildGradeCell(toothNo, "pi", registry.get(toothNo)!, handlers));
+    }
+  }
+
+  // --- GI row (Löe-Silness Gingival Index, per-surface graded 0-3). ---
+  if (visible.gi) {
+    arch.appendChild(mkRowLabelCell(indexName("gi"), "perio.info.gi"));
+    for (const toothNo of teeth) {
+      arch.appendChild(buildGradeCell(toothNo, "gi", registry.get(toothNo)!, handlers));
+    }
+  }
+
+  // --- mPI row (Mombelli modified Plaque Index, implant-only, per-surface
+  //     graded 0-3 — SP-perio PG-E Task 2). Built for EVERY tooth like PI/GI,
+  //     but the cells are only ACTIVE on an implant tooth (see syncToothCells). ---
+  if (visible.mpi) {
+    arch.appendChild(mkRowLabelCell(indexName("mpi"), "perio.info.mpi"));
+    for (const toothNo of teeth) {
+      arch.appendChild(buildGradeCell(toothNo, "mpi", registry.get(toothNo)!, handlers));
+    }
+  }
+
+  // --- mBI row (Mombelli modified sulcus Bleeding Index, implant-only). ---
+  if (visible.mbi) {
+    arch.appendChild(mkRowLabelCell(indexName("mbi"), "perio.info.mbi"));
+    for (const toothNo of teeth) {
+      arch.appendChild(buildGradeCell(toothNo, "mbi", registry.get(toothNo)!, handlers));
+    }
+  }
+
+  // --- PALATAL tooth-row graphic cell: spans all tooth columns, crown-UP,
+  //     filled by the graphic effect once the template cache loads. ---
   arch.appendChild(mkRowLabelCell(""));
-  const archCell = mkEl("div", "perio-fullgrid-graphic-cell");
-  archCell.dataset.perioArch = isUpper ? "upper" : "lower";
-  archCell.style.gridColumn = "2 / -1";
-  arch.appendChild(archCell);
+  const palatalCell = mkEl("div", "perio-fullgrid-graphic-cell");
+  palatalCell.dataset.perioArch = isUpper ? "upper" : "lower";
+  palatalCell.dataset.perioAspect = "palatal";
+  palatalCell.style.gridColumn = "2 / -1";
+  arch.appendChild(palatalCell);
 
   // --- Palatal-aspect rows, BELOW the graphic (PD innermost / nearest teeth) ---
   if (visible.pd) appendFieldRow("pd", LINGUAL_SITES, "palatal", `${lingualLabel} ${indexName("pd")}`);
@@ -1257,41 +1389,6 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
     }
   }
 
-  // --- PI row (Silness-Löe Plaque Index, per-surface graded 0-3) — mirrors
-  //     the O'Leary plaque row's 4-quadrant shape (SP-perio PG-D Task 4). ---
-  if (visible.pi) {
-    arch.appendChild(mkRowLabelCell(indexName("pi"), "perio.info.pi"));
-    for (const toothNo of teeth) {
-      arch.appendChild(buildGradeCell(toothNo, "pi", registry.get(toothNo)!, handlers));
-    }
-  }
-
-  // --- GI row (Löe-Silness Gingival Index, per-surface graded 0-3). ---
-  if (visible.gi) {
-    arch.appendChild(mkRowLabelCell(indexName("gi"), "perio.info.gi"));
-    for (const toothNo of teeth) {
-      arch.appendChild(buildGradeCell(toothNo, "gi", registry.get(toothNo)!, handlers));
-    }
-  }
-
-  // --- mPI row (Mombelli modified Plaque Index, implant-only, per-surface
-  //     graded 0-3 — SP-perio PG-E Task 2). Built for EVERY tooth like PI/GI,
-  //     but the cells are only ACTIVE on an implant tooth (see syncToothCells). ---
-  if (visible.mpi) {
-    arch.appendChild(mkRowLabelCell(indexName("mpi"), "perio.info.mpi"));
-    for (const toothNo of teeth) {
-      arch.appendChild(buildGradeCell(toothNo, "mpi", registry.get(toothNo)!, handlers));
-    }
-  }
-
-  // --- mBI row (Mombelli modified sulcus Bleeding Index, implant-only). ---
-  if (visible.mbi) {
-    arch.appendChild(mkRowLabelCell(indexName("mbi"), "perio.info.mbi"));
-    for (const toothNo of teeth) {
-      arch.appendChild(buildGradeCell(toothNo, "mbi", registry.get(toothNo)!, handlers));
-    }
-  }
-
   // --- KG row (keratinized gingiva width, single per-tooth mm cell). ---
   if (visible.kg) {
     arch.appendChild(mkRowLabelCell(indexName("kg"), "perio.info.kg"));
@@ -1308,15 +1405,7 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
     }
   }
 
-  // --- Miller-class row (single per-tooth cycle button). ---
-  if (visible.miller) {
-    arch.appendChild(mkRowLabelCell(indexName("miller"), "perio.info.miller"));
-    for (const toothNo of teeth) {
-      arch.appendChild(buildMillerClassCell(toothNo, registry.get(toothNo)!, handlers));
-    }
-  }
-
-  return { grid: arch, archCell };
+  return { grid: arch, buccalCell, palatalCell };
 }
 
 // UI-1 Task 3b: a small allowance subtracted from the measured scroll
@@ -1423,13 +1512,21 @@ export default function PerioChart({
   const titleId = useId();
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  // The tooth-row graphic containers (`archCell`s) and the grid elements are
-  // created inside the plain-DOM grid build (`buildArch`), NOT rendered as JSX
-  // — the graphic sits INSIDE the number-row grid now (buccal rows above it,
-  // palatal below), so these refs are assigned by the grid-building effect and
-  // read by the graphic effect (which runs after it on the same commit).
-  const archUpperRef = useRef<HTMLDivElement | null>(null);
-  const archLowerRef = useRef<HTMLDivElement | null>(null);
+  // The tooth-row graphic containers (`buccalCell`/`palatalCell`) and the grid
+  // elements are created inside the plain-DOM grid build (`buildArch`), NOT
+  // rendered as JSX — the two graphics sit INSIDE the number-row grid now
+  // (buccal graphic above the central index band, palatal below it — UI-3a
+  // Task 2), so these refs are assigned by the grid-building effect and read
+  // by the graphic effect (which runs after it on the same commit).
+  // `drawArchCurves`/`drawArchOverlay` take the whole arch GRID (not either
+  // cell individually) as their "container" argument — both `buccalCell` and
+  // `palatalCell` are descendants of it regardless of the rows sitting
+  // between them, and `resolveAspectSvg` finds each aspect's SVG by class
+  // from anywhere within it.
+  const buccalUpperRef = useRef<HTMLDivElement | null>(null);
+  const palatalUpperRef = useRef<HTMLDivElement | null>(null);
+  const buccalLowerRef = useRef<HTMLDivElement | null>(null);
+  const palatalLowerRef = useRef<HTMLDivElement | null>(null);
   const gridUpperRef = useRef<HTMLDivElement | null>(null);
   const gridLowerRef = useRef<HTMLDivElement | null>(null);
   const archCacheRef = useRef<TemplateDocCache | null>(null);
@@ -1841,11 +1938,12 @@ export default function PerioChart({
     // gated inside `buildArch` itself on the CURRENT `getPerioRowVisibility()`
     // snapshot, so re-running this after a Settings toggle is what actually
     // hides/shows a row. Also used for the initial mount build. Clearing the
-    // grid discards the tooth-row graphic containers (`archCell`s) too, so on
-    // a REBUILD (not the initial mount, when the template cache hasn't loaded
-    // yet) this repopulates them from the already-loaded cache — cheap, no
-    // network — so a row toggle never blanks the always-visible tooth
-    // graphic/curves/overlay while the grid rows above/below it change.
+    // grid discards the tooth-row graphic containers (`buccalCell`/
+    // `palatalCell`) too, so on a REBUILD (not the initial mount, when the
+    // template cache hasn't loaded yet) this repopulates them from the
+    // already-loaded cache — cheap, no network — so a row toggle never blanks
+    // the always-visible tooth graphics/curves/overlay while the grid rows
+    // around them change.
     const buildGrid = () => {
       const registry = new Map<number, ToothCellRefs>();
       container.innerHTML = "";
@@ -1856,21 +1954,28 @@ export default function PerioChart({
       registryRef.current = registry;
       gridUpperRef.current = upper.grid;
       gridLowerRef.current = lower.grid;
-      archUpperRef.current = upper.archCell;
-      archLowerRef.current = lower.archCell;
+      buccalUpperRef.current = upper.buccalCell;
+      palatalUpperRef.current = upper.palatalCell;
+      buccalLowerRef.current = lower.buccalCell;
+      palatalLowerRef.current = lower.palatalCell;
       lastVisibilitySig = visibilitySig();
 
       const cache = archCacheRef.current;
       if (cache) {
         applyArchColumns(gridUpperRef.current, UPPER_ARCH, cache, scrollRef.current);
         applyArchColumns(gridLowerRef.current, LOWER_ARCH, cache, scrollRef.current);
-        archUpperRef.current.appendChild(buildArchGraphic(cache, UPPER_ARCH, isToothImplant));
-        archLowerRef.current.appendChild(buildArchGraphic(cache, LOWER_ARCH, isToothImplant));
-        drawArchCurves(cache, archUpperRef.current, UPPER_ARCH);
-        drawArchCurves(cache, archLowerRef.current, LOWER_ARCH);
+        // UI-3a Task 2: each aspect gets its OWN grid cell — buccal into
+        // `buccalCell`, palatal into `palatalCell` — instead of T1's temporary
+        // stacked-into-one-cell mount.
+        buccalUpperRef.current.appendChild(buildBuccalArchSvg(cache, UPPER_ARCH, isToothImplant));
+        palatalUpperRef.current.appendChild(buildPalatalArchSvg(cache, UPPER_ARCH, isToothImplant));
+        buccalLowerRef.current.appendChild(buildBuccalArchSvg(cache, LOWER_ARCH, isToothImplant));
+        palatalLowerRef.current.appendChild(buildPalatalArchSvg(cache, LOWER_ARCH, isToothImplant));
+        drawArchCurves(cache, gridUpperRef.current, UPPER_ARCH);
+        drawArchCurves(cache, gridLowerRef.current, LOWER_ARCH);
         const layer = getPerioOverlayLayer();
-        drawArchOverlay(cache, archUpperRef.current, UPPER_ARCH, layer);
-        drawArchOverlay(cache, archLowerRef.current, LOWER_ARCH, layer);
+        drawArchOverlay(cache, gridUpperRef.current, UPPER_ARCH, layer);
+        drawArchOverlay(cache, gridLowerRef.current, LOWER_ARCH, layer);
       }
     };
 
@@ -1895,8 +2000,10 @@ export default function PerioChart({
       registryRef.current = null;
       gridUpperRef.current = null;
       gridLowerRef.current = null;
-      archUpperRef.current = null;
-      archLowerRef.current = null;
+      buccalUpperRef.current = null;
+      palatalUpperRef.current = null;
+      buccalLowerRef.current = null;
+      palatalLowerRef.current = null;
     };
   }, [active, fullResync, syncOneTooth, handleGridKeyDown, handleGridFocusOut]);
 
@@ -1915,8 +2022,8 @@ export default function PerioChart({
   // gingival-margin + pocket-base line + a filled band) is drawn OVER each
   // arch SVG here, driven by the per-site PD/GM data via `perioCurve` /
   // `buildPerioCurveLayer` (see `drawArchCurves`). It reuses the SAME layout
-  // constants (`archToothLayout` / `ROW_BASELINE_Y` / `MIRROR_AXIS_Y`) T2 laid
-  // the teeth out with, so it can never drift out of alignment. A dedicated
+  // constants (`archToothLayout` / `ROW_BASELINE_Y`) the teeth are laid out
+  // with, so it can never drift out of alignment. A dedicated
   // `onStateChange` subscription (NOT gated by `suppressResyncRef` — the grid
   // suppress flag only exists to skip a redundant *grid* fullResync on the
   // grid's own edit; the curve genuinely must redraw on every edit, grid or
@@ -1940,15 +2047,25 @@ export default function PerioChart({
     // implant selection. Wipes each container (removing any curve layers), so
     // the caller must redraw the curves afterwards.
     const buildArches = (cache: TemplateDocCache) => {
-      const upperContainer = archUpperRef.current;
-      const lowerContainer = archLowerRef.current;
-      if (upperContainer) {
-        upperContainer.innerHTML = "";
-        upperContainer.appendChild(buildArchGraphic(cache, UPPER_ARCH, isToothImplant));
+      const buccalUpper = buccalUpperRef.current;
+      const palatalUpper = palatalUpperRef.current;
+      const buccalLower = buccalLowerRef.current;
+      const palatalLower = palatalLowerRef.current;
+      if (buccalUpper) {
+        buccalUpper.innerHTML = "";
+        buccalUpper.appendChild(buildBuccalArchSvg(cache, UPPER_ARCH, isToothImplant));
       }
-      if (lowerContainer) {
-        lowerContainer.innerHTML = "";
-        lowerContainer.appendChild(buildArchGraphic(cache, LOWER_ARCH, isToothImplant));
+      if (palatalUpper) {
+        palatalUpper.innerHTML = "";
+        palatalUpper.appendChild(buildPalatalArchSvg(cache, UPPER_ARCH, isToothImplant));
+      }
+      if (buccalLower) {
+        buccalLower.innerHTML = "";
+        buccalLower.appendChild(buildBuccalArchSvg(cache, LOWER_ARCH, isToothImplant));
+      }
+      if (palatalLower) {
+        palatalLower.innerHTML = "";
+        palatalLower.appendChild(buildPalatalArchSvg(cache, LOWER_ARCH, isToothImplant));
       }
       lastImplantSig = implantSig();
     };
@@ -1962,11 +2079,11 @@ export default function PerioChart({
       // module flag (getPerioOverlayLayer), so switching layers — which fires
       // notifyStateChange -> this redraw — repaints it.
       if (implantSig() !== lastImplantSig) buildArches(cache);
-      drawArchCurves(cache, archUpperRef.current, UPPER_ARCH);
-      drawArchCurves(cache, archLowerRef.current, LOWER_ARCH);
+      drawArchCurves(cache, gridUpperRef.current, UPPER_ARCH);
+      drawArchCurves(cache, gridLowerRef.current, LOWER_ARCH);
       const layer = getPerioOverlayLayer();
-      drawArchOverlay(cache, archUpperRef.current, UPPER_ARCH, layer);
-      drawArchOverlay(cache, archLowerRef.current, LOWER_ARCH, layer);
+      drawArchOverlay(cache, gridUpperRef.current, UPPER_ARCH, layer);
+      drawArchOverlay(cache, gridLowerRef.current, LOWER_ARCH, layer);
     };
     // UI-1 Task 3b: (re-)fit both arches' tooth columns to the CURRENT
     // `scrollRef` width — shared by the initial cache-load path and the
@@ -1995,11 +2112,11 @@ export default function PerioChart({
         // and, later, the T3b "fixed width leaves empty space" gap).
         fitColumns();
         buildArches(cache);
-        drawArchCurves(cache, archUpperRef.current, UPPER_ARCH);
-        drawArchCurves(cache, archLowerRef.current, LOWER_ARCH);
+        drawArchCurves(cache, gridUpperRef.current, UPPER_ARCH);
+        drawArchCurves(cache, gridLowerRef.current, LOWER_ARCH);
         const layer = getPerioOverlayLayer();
-        drawArchOverlay(cache, archUpperRef.current, UPPER_ARCH, layer);
-        drawArchOverlay(cache, archLowerRef.current, LOWER_ARCH, layer);
+        drawArchOverlay(cache, gridUpperRef.current, UPPER_ARCH, layer);
+        drawArchOverlay(cache, gridLowerRef.current, LOWER_ARCH, layer);
       })
       .catch((err) => {
         // eslint-disable-next-line no-console

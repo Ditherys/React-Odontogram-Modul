@@ -14,7 +14,7 @@
 //   - `loadTemplateCache()` — the REAL app's async entry point: fetches +
 //     parses each of the 4 templates ONCE (never re-fetched per tooth) and
 //     memoizes the resulting `Document`s.
-//   - `getToothBaseGroupFromCache()` / `buildArchGraphic()` — pure, sync,
+//   - `getToothBaseGroupFromCache()` / `buildBuccalArchSvg()` / `buildPalatalArchSvg()` — pure, sync,
 //     operate on an already-built `TemplateDocCache`. Tests build their own
 //     cache directly from the SVG asset text (`readFileSync` + `DOMParser`,
 //     exactly like `parity.test.ts`'s `svgText()` helper) — no `fetch()`
@@ -344,24 +344,9 @@ function fmt(n: number): string {
 /** Row-local y-coordinate the shared CEJ baseline is placed at, for every
  *  tooth in a buccal row (arbitrary but fixed — just needs to leave enough
  *  margin above for the tallest crown and below for the longest root; see
- *  `buildArchGraphic`'s viewBox sizing). Exported so the T3 curve overlay
+ *  `bandViewBox`'s viewBox sizing). Exported so the T3 curve overlay
  *  (`PerioChart`) uses the SAME baseline the arch teeth are laid out on. */
 export const ROW_BASELINE_Y = 40;
-
-/** Mirror axis the palatal/lingual row is reflected about (row-local y,
- *  same coordinate space as `ROW_BASELINE_Y`). Deliberately NOT the CEJ
- *  baseline itself — mirroring in place about `ROW_BASELINE_Y` would make
- *  the palatal row's reflected crown/root span nearly the SAME row-y range
- *  as the buccal row's (both bands cover roughly y=[-2, 90], the canine's
- *  elongated root being the deepest point — see the task-2-report.md
- *  derivation), so the two rows would render on top of one another instead
- *  of as two visually distinct bands. Placed comfortably below the deepest
- *  buccal-row point (the position-3 canine's `CANINE_ROOT_SCALE`-elongated
- *  root tip, row-y ~90.2) so the mirrored palatal row stacks BELOW the
- *  buccal row with a clear gap instead of overlapping it. Exported so the T3
- *  curve overlay mirrors the palatal curve about the SAME axis the palatal
- *  tooth row is mirrored about. */
-export const MIRROR_AXIS_Y = 100;
 
 /** mm -> pixel (row-local unit) scale for the T3 curve overlay: how far one
  *  millimetre of probing depth / gingival recession moves the curve away from
@@ -393,7 +378,7 @@ export const TOOTH_GAP = 2;
 
 /** Display magnification (px per row-local viewBox unit) the perio chart
  *  renders the teeth at. The arch <svg> itself carries NO intrinsic pixel
- *  size (it fills its container via CSS `width:100%`, see `buildArchGraphic`);
+ *  size (it fills its container via CSS `width:100%`, see `buildBandSvg`);
  *  the number-row grid columns are widened by this factor
  *  (`applyArchColumns` in `PerioChart.tsx`), and since the SVG fills the
  *  cell those columns span, every viewBox unit ends up rendered at
@@ -463,8 +448,6 @@ export interface ArchToothLayout {
 export interface ArchLayout {
   /** Shared CEJ baseline (buccal-row coordinate space). */
   cejY: number;
-  /** Axis the palatal row (and palatal curve) is mirrored about. */
-  mirrorAxisY: number;
   /** Total horizontal footprint (last cursor position, incl. trailing gap). */
   totalWidth: number;
   teeth: ArchToothLayout[];
@@ -491,7 +474,7 @@ export function archToothLayout(cache: TemplateDocCache, teeth: readonly number[
     out.push({ toothNo, x: cursorX, width: w });
     cursorX += w + TOOTH_GAP;
   }
-  return { cejY: ROW_BASELINE_Y, mirrorAxisY: MIRROR_AXIS_Y, totalWidth: cursorX, teeth: out };
+  return { cejY: ROW_BASELINE_Y, totalWidth: cursorX, teeth: out };
 }
 
 /**
@@ -522,125 +505,128 @@ function buildBuccalRowGroup(
   return { group: row, width: layout.totalWidth };
 }
 
-/** True when `teeth[0]` belongs to an upper quadrant (FDI 1x/2x). Kept as a
- *  tiny local helper (rather than importing `isUpperTooth`) so this module's
- *  arch-orientation decision is self-contained and testable from the sync
- *  core alone. */
-function isUpperArch(teeth: readonly number[]): boolean {
-  if (teeth.length === 0) return false;
-  const quadrant = Math.floor(teeth[0] / 10);
-  return quadrant === 1 || quadrant === 2;
-}
-
-/**
- * Per-arch buccal-row orientation transform (T1 occlusal-to-occlusal):
- *  - LOWER arch → `""` (identity): the buccal row stays crown-UP, so the lower
- *    arch's occlusal/incisal edges point UP toward the mid-line between the
- *    two arches, matching the odontogram.
- *  - UPPER arch → a vertical flip about the CEJ baseline `ROW_BASELINE_Y`
- *    (`matrix(1 0 0 -1 0 2*ROW_BASELINE_Y)`): the buccal row renders crown-
- *    DOWN (occlusal edges point DOWN toward the mid-line), roots pointing up
- *    and away — again matching the odontogram's upper arch.
- * The flip is about the CEJ itself, so the CEJ baseline (and the red CEJ
- * curve line drawn at `ROW_BASELINE_Y`) is the transform's fixed point and
- * never moves; only the crown/root swap sides of it. Deeper pockets (larger
- * buccal-space y = further from the CEJ toward the root) therefore keep
- * extending toward the ROOT after the flip — away from the mid-line — because
- * the curve is flipped by this SAME transform (see `drawArchCurves`).
- */
-export function archOrientTransform(teeth: readonly number[]): string {
-  return isUpperArch(teeth) ? `matrix(1 0 0 -1 0 ${fmt(2 * ROW_BASELINE_Y)})` : "";
-}
-
-/** Vertical padding (row-local units) added above/below the two stacked rows
- *  in the arch viewBox, so the deepest crown/root tips (the elongated canine
- *  root, which after the upper-arch flip reaches the very edge of the band)
- *  are never clipped. */
+/** Vertical padding (row-local units) added above/below a band's own content
+ *  in its viewBox, so the deepest crown/root tips (the elongated canine root)
+ *  are never clipped. Shared by both `bandViewBox` (the current per-band
+ *  builders) and its retired predecessor. */
 const ARCH_VIEWBOX_PAD = 14;
 
+// ---------------------------------------------------------------------------
+// UI-3a Task 2: the legacy composite single-SVG builder (`buildArchGraphic`,
+// its `archOrientTransform` per-arch-conditional orientation, and the
+// `isUpperArch` helper it used) has been REMOVED — `buildBuccalArchSvg`/
+// `buildPalatalArchSvg` below are now the ONLY arch-artwork API, each
+// uniformly oriented across BOTH arches (buccal always crown-down, palatal
+// always crown-up — the #1 fix over the old per-arch-conditional flip) and
+// each mounted into its OWN grid cell by `PerioChart.tsx` (`buildArch`),
+// with the central perio index band (Plaque/PI/GI/mPI/mBI) between them.
+// `buildArchGraphic`'s old direct callers (perio-graphic-toothrow.test.ts,
+// perio-polish-layout/-mmgrid/-implant.test.ts, pgb-*/pgc-*/pgd-*/pge-*
+// integration tests) were migrated to `buildBuccalArchSvg`/
+// `buildPalatalArchSvg` in this task — there is only ONE arch-geometry API
+// now, never two parallel ones.
+//
+// Both builders share `buildBuccalRowGroup` (the per-tooth CEJ-aligned row
+// cursor walk) and `archToothLayout` — so the buccal and palatal SVGs'
+// per-tooth x-columns are identical to each other AND to the teeth/curve/
+// overlay/mm-grid/number-grid columns everywhere else in the chart (one
+// shared layout, never a divergent geometry).
+// ---------------------------------------------------------------------------
+
 /**
- * Build the composite arch graphic for one arch (`teeth` = an
- * `UPPER_ARCH`/`LOWER_ARCH`-shaped list, e.g. `[18,17,...,11,21,...,28]`):
- * a buccal row plus a palatal/lingual row that is the SAME buccal row wrapped
- * in a single container-level vertical-mirror transform about `MIRROR_AXIS_Y`
- * (not rebuilt tooth-by-tooth) — the palatal/lingual row stacks below the
- * buccal row rather than overlapping it.
- *
- * Occlusal-to-occlusal orientation (T1): the buccal row carries an arch-aware
- * orientation transform (`archOrientTransform`) — the UPPER arch flips its
- * buccal row crown-DOWN about the CEJ baseline while the LOWER arch stays
- * crown-UP, so the two arches' occlusal edges face the horizontal mid-line
- * between them (matching the odontogram). The palatal row is the mirror of the
- * ALREADY-oriented buccal row (the clone keeps the orientation transform, and
- * the palatal container adds only the `MIRROR_AXIS_Y` reflection on top), so
- * both rows stay locked together. The T3 curve overlay is appended by
- * `drawArchCurves` (see PerioChart.tsx) INTO these SAME oriented groups — the
- * buccal curve into `.perio-tooth-row-buccal`, the palatal curve into
- * `.perio-tooth-row-palatal-inner` — so the curve is flipped by the exact same
- * transforms as the teeth (one coordinate space), keeping deeper pockets
- * extending toward the ROOT (away from the mid-line) after the flip.
+ * Half-height (row-local units) reserved above/below the shared CEJ baseline
+ * for ONE independently-viewBoxed band's own content — TIGHTENED (UI-3a
+ * Task 2) from T1's placeholder value of 60, which reused the budget the old
+ * COMBINED two-band SVG needed to keep its stacked buccal + palatal rows from
+ * overlapping — a concern that no longer applies now that each band renders in
+ * its OWN grid cell/SVG (T2). The real
+ * worst-case single-band content span is the position-3 canine's
+ * `CANINE_ROOT_SCALE`-elongated root: `CANINE_ROOT_SCALE * (tpl-13 root
+ * length)` = `1.3 * (71.0 - CEJ_Y[13])` = `1.3 * 38.6` ≈ 50.2 — comfortably
+ * bigger than the tallest crown (`max(CEJ_Y)` ≈ 32.4) and the mm-grid's
+ * 15-line reach (`PERIO_MM_GRID_MAX * PERIO_MM_PX` = 45), so a single
+ * symmetric half-span safely bounds either band (buccal-flipped or palatal
+ * raw — the two are mirror images of one another about `ROW_BASELINE_Y`)
+ * without clipping. Rounded up slightly for a small margin of safety.
  */
-export function buildArchGraphic(
+const BAND_CONTENT_HALF_SPAN = 51;
+
+/** Shared viewBox math for either single-band arch SVG: `y` spans
+ *  `[ROW_BASELINE_Y - BAND_CONTENT_HALF_SPAN - ARCH_VIEWBOX_PAD, ROW_BASELINE_Y +
+ *  BAND_CONTENT_HALF_SPAN + ARCH_VIEWBOX_PAD]`. */
+function bandViewBox(width: number): { y: number; w: number; h: number } {
+  const top = ROW_BASELINE_Y - BAND_CONTENT_HALF_SPAN - ARCH_VIEWBOX_PAD;
+  const h = 2 * (BAND_CONTENT_HALF_SPAN + ARCH_VIEWBOX_PAD);
+  return { y: top, w: Math.max(width, 1), h };
+}
+
+/** Wrap one already-oriented row `<g>` into a standalone, responsive
+ *  `<svg class="perio-tooth-arch ...">` — no fixed width/height, just
+ *  `preserveAspectRatio` + `aria-hidden` (CSS `width:100%` fill + a purely
+ *  decorative, screen-reader-hidden subtree). Shared by both
+ *  `buildBuccalArchSvg`/`buildPalatalArchSvg` below, so the two bands' SVG
+ *  contract is identical. */
+function buildBandSvg(className: string, row: SVGGElement, width: number): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, "svg") as unknown as SVGSVGElement;
+  svg.setAttribute("class", className);
+  const vb = bandViewBox(width);
+  svg.setAttribute("viewBox", `0 ${fmt(vb.y)} ${fmt(vb.w)} ${fmt(vb.h)}`);
+  svg.setAttribute("preserveAspectRatio", "xMinYMid meet");
+  svg.setAttribute("aria-hidden", "true");
+  svg.appendChild(row);
+  return svg;
+}
+
+/**
+ * Build the BUCCAL-aspect arch as a standalone `<svg>`, oriented crown-DOWN
+ * for BOTH arches (uniform — see the section doc comment above): the row
+ * builder's raw output is crown-up (per `getToothBaseGroupFromCache`'s own
+ * uniform per-tooth flip), so this applies ONE unconditional vertical flip
+ * about the CEJ baseline (`matrix(1 0 0 -1 0 2*ROW_BASELINE_Y)` — the exact
+ * transform the retired legacy builder used ONLY for the upper arch, now
+ * applied to every arch alike) — the baseline itself is the transform's
+ * fixed point, so it never moves. Own mm-grid, counter-flipped (`flip:
+ * true`) so its numeric labels read upright inside this net-flipped row.
+ */
+export function buildBuccalArchSvg(
   cache: TemplateDocCache,
   teeth: readonly number[],
   isImplant: IsImplantFn = () => false,
 ): SVGSVGElement {
-  const { group: buccal, width } = buildBuccalRowGroup(cache, teeth, isImplant);
-  const orient = archOrientTransform(teeth);
-  if (orient) buccal.setAttribute("transform", orient);
-  const upper = isUpperArch(teeth);
+  const { group: row, width } = buildBuccalRowGroup(cache, teeth, isImplant);
+  row.setAttribute("class", "perio-tooth-row-buccal");
+  row.setAttribute("transform", `matrix(1 0 0 -1 0 ${fmt(2 * ROW_BASELINE_Y)})`);
+  row.insertBefore(
+    buildMmGridLayer({ cejY: ROW_BASELINE_Y, mmPx: PERIO_MM_PX, width, flip: true }),
+    row.firstChild,
+  );
+  return buildBandSvg("perio-tooth-arch perio-tooth-arch-buccal", row, width);
+}
 
-  // Palatal row = the ALREADY-oriented buccal row (clone keeps its orientation
-  // transform), wrapped in one container-level vertical mirror about
-  // MIRROR_AXIS_Y. So palatal teeth = mirror ∘ orient(buccal teeth). Cloned
-  // BEFORE the mm grid is inserted, so the clone carries teeth only — each row
-  // gets its OWN grid built with the flip parameter matching that row's net
-  // orientation (below).
-  const palatalInner = buccal.cloneNode(true) as SVGGElement;
-  palatalInner.setAttribute("class", "perio-tooth-row-palatal-inner");
-
-  // Background mm guide grid (perio polish T2): inserted as the FIRST child of
-  // each row so it renders BEHIND the teeth (and behind the T3 curve, which is
-  // appended after by `drawArchCurves`). Riding the SAME oriented/mirrored row
-  // group as the teeth keeps every mm line aligned with the CEJ + curve. The
-  // `flip` per row is chosen so the numeric labels read upright:
-  //   - buccal  is net-flipped on the UPPER arch (archOrientTransform flip).
-  //   - palatal is net-flipped on the LOWER arch (single mirror); on the UPPER
-  //     arch its mirror ∘ orient cancels back to upright.
-  const gridOpts = { cejY: ROW_BASELINE_Y, mmPx: PERIO_MM_PX, width };
-  buccal.insertBefore(buildMmGridLayer({ ...gridOpts, flip: upper }), buccal.firstChild);
-  palatalInner.insertBefore(buildMmGridLayer({ ...gridOpts, flip: !upper }), palatalInner.firstChild);
-
-  const palatal = document.createElementNS(SVG_NS, "g") as unknown as SVGGElement;
-  palatal.setAttribute("class", "perio-tooth-row-palatal");
-  // Mirror about y = MIRROR_AXIS_Y: y' = -y + 2*MIRROR_AXIS_Y.
-  palatal.setAttribute("transform", `matrix(1 0 0 -1 0 ${fmt(2 * MIRROR_AXIS_Y)})`);
-  palatal.appendChild(palatalInner);
-
-  const svg = document.createElementNS(SVG_NS, "svg") as unknown as SVGSVGElement;
-  svg.setAttribute("class", "perio-tooth-arch");
-  const totalWidth = Math.max(width, 1);
-  const totalHeight = MIRROR_AXIS_Y * 2 + ARCH_VIEWBOX_PAD * 2; // both stacked rows + margin
-  svg.setAttribute("viewBox", `0 ${fmt(-ARCH_VIEWBOX_PAD)} ${fmt(totalWidth)} ${fmt(totalHeight)}`);
-  svg.setAttribute("preserveAspectRatio", "xMinYMid meet");
-  // NO explicit width/height (T1 responsive): the SVG fills its container via
-  // CSS (`.perio-tooth-arch { width:100% }`, see index.css) and derives its
-  // height from the viewBox aspect ratio, so it scales when the browser window
-  // is resized. The number-row grid columns are widened by `PERIO_DISPLAY_SCALE`
-  // (`applyArchColumns` in PerioChart.tsx) so the teeth still line up
-  // column-for-column with the number cells at the larger display scale.
-  // Purely decorative artwork — the accessible data lives in the number
-  // cells/summary this graphic sits alongside (`.perio-fullgrid-*`), never
-  // in the arch drawing itself. Hide the whole subtree (including the T3
-  // curve overlay `<g class="perio-curve">` appended into the oriented row
-  // groups by `drawArchCurves`, see PerioChart.tsx) from assistive tech, so a
-  // screen reader never announces a nameless image between the number
-  // rows (axe-core: "role=img requires an accessible name").
-  svg.setAttribute("aria-hidden", "true");
-
-  svg.appendChild(buccal);
-  svg.appendChild(palatal);
-  return svg;
+/**
+ * Build the PALATAL/LINGUAL-aspect arch as a standalone `<svg>`, oriented
+ * crown-UP for BOTH arches — the vertical mirror of `buildBuccalArchSvg`'s
+ * uniform crown-down flip, about the SAME `ROW_BASELINE_Y` fixed point.
+ * Mirroring the SAME axis twice cancels back to the identity transform, so
+ * "mirror of buccal" here is exactly the row builder's own un-flipped
+ * (crown-up) output — i.e. no orientation transform is applied at all; only
+ * the horizontal per-tooth mesial/distal mirror (already baked into each
+ * tooth group by `getToothBaseGroupFromCache`) and the uniform per-tooth
+ * crown-up flip remain. Own mm-grid, NOT counter-flipped (`flip: false`) —
+ * this row is never net-flipped, so its labels already read upright.
+ */
+export function buildPalatalArchSvg(
+  cache: TemplateDocCache,
+  teeth: readonly number[],
+  isImplant: IsImplantFn = () => false,
+): SVGSVGElement {
+  const { group: row, width } = buildBuccalRowGroup(cache, teeth, isImplant);
+  row.setAttribute("class", "perio-tooth-row-palatal-inner");
+  row.insertBefore(
+    buildMmGridLayer({ cejY: ROW_BASELINE_Y, mmPx: PERIO_MM_PX, width, flip: false }),
+    row.firstChild,
+  );
+  return buildBandSvg("perio-tooth-arch perio-tooth-arch-palatal", row, width);
 }
 
 // ---------------------------------------------------------------------------
@@ -684,9 +670,10 @@ export interface PerioCurveResult {
  *                                        margin (gm<0) lifts it above the CEJ.
  *   pocketY = marginY + pd*mmPx       → a deeper pocket dips the pocket line
  *                                        FURTHER from the CEJ toward the root.
- * The palatal row reuses this same buccal-space result and is mirrored about
- * `MIRROR_AXIS_Y` by the caller (same transform T2 mirrors the palatal teeth
- * with), so "toward the root" stays anatomically consistent on both rows.
+ * The palatal row reuses this same buccal-space result; since UI-3a the
+ * palatal band renders in its OWN independent SVG (crown-up, identity
+ * transform — no net mirror), so "toward the root" stays anatomically
+ * consistent on both rows.
  *
  * An uncharted site (`pd` undefined/null) yields `null` at that index in BOTH
  * arrays, so the caller can break the polyline/band there (line gaps).

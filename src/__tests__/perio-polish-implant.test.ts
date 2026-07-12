@@ -13,7 +13,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   getToothBaseGroupFromCache,
-  buildArchGraphic,
+  buildBuccalArchSvg,
+  buildPalatalArchSvg,
   CEJ_Y,
   IMPLANT_CEJ_Y,
   ROW_BASELINE_Y,
@@ -115,14 +116,16 @@ function translateOf(group: Element): { x: number; y: number } {
   return { x: Number(m[1]), y: Number(m[2]) };
 }
 
-describe("buildArchGraphic — implant teeth align on the common CEJ baseline", () => {
+// UI-3a Task 2: `buildArchGraphic` (the legacy combined single-SVG builder)
+// has been removed — migrated to `buildBuccalArchSvg`/`buildPalatalArchSvg`.
+describe("buildBuccalArchSvg / buildPalatalArchSvg — implant teeth align on the common CEJ baseline", () => {
   const cache = buildCache();
   // Make tooth 16 (upper) and 46 (lower) implants; everything else natural.
   const implantSet = new Set([16, 46]);
   const isImplant = (n: number) => implantSet.has(n);
 
   it("marks only the implant teeth with #implant-base; natural neighbours keep #tooth-base", () => {
-    const svg = buildArchGraphic(cache, UPPER_ARCH, isImplant);
+    const svg = buildBuccalArchSvg(cache, UPPER_ARCH, isImplant);
     const buccal = svg.querySelector(".perio-tooth-row-buccal")!;
     const implant16 = buccal.querySelector('[data-tooth="16"]')!;
     const natural15 = buccal.querySelector('[data-tooth="15"]')!;
@@ -134,8 +137,8 @@ describe("buildArchGraphic — implant teeth align on the common CEJ baseline", 
     expect(natural15.getAttribute("data-implant")).toBeNull();
   });
 
-  it("the palatal (mirrored) row carries the implant fixture too (cloned from the buccal row)", () => {
-    const svg = buildArchGraphic(cache, UPPER_ARCH, isImplant);
+  it("the palatal SVG carries the implant fixture too (independently built, same implant predicate)", () => {
+    const svg = buildPalatalArchSvg(cache, UPPER_ARCH, isImplant);
     const palatal = svg.querySelector(".perio-tooth-row-palatal-inner")!;
     const implant16 = palatal.querySelector('[data-tooth="16"]')!;
     expect(ids(implant16)).toContain("implant-base");
@@ -147,7 +150,7 @@ describe("buildArchGraphic — implant teeth align on the common CEJ baseline", 
       [UPPER_ARCH, 16, 15],
       [LOWER_ARCH, 46, 45],
     ] as const) {
-      const svg = buildArchGraphic(cache, arch, isImplant);
+      const svg = buildBuccalArchSvg(cache, arch, isImplant);
       const buccal = svg.querySelector(".perio-tooth-row-buccal")!;
 
       const implantGroup = buccal.querySelector(`[data-tooth="${implantTooth}"]`)!;
@@ -169,7 +172,7 @@ describe("buildArchGraphic — implant teeth align on the common CEJ baseline", 
   });
 
   it("with the default predicate (no implants) the arch is byte-identical to the pre-implant build (no #implant-base, no data-implant)", () => {
-    const svg = buildArchGraphic(cache, UPPER_ARCH);
+    const svg = buildBuccalArchSvg(cache, UPPER_ARCH);
     expect(svg.querySelectorAll("[data-implant]").length).toBe(0);
     expect(ids(svg)).not.toContain("implant-base");
     // every tooth group carries the natural tooth-base

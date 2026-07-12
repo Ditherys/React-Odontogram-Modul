@@ -17,7 +17,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   buildMmGridLayer,
-  buildArchGraphic,
+  buildBuccalArchSvg,
+  buildPalatalArchSvg,
   perioCurve,
   PERIO_MM_PX,
   PERIO_MM_GRID_MAX,
@@ -120,13 +121,21 @@ describe("buildMmGridLayer (pure DOM guide grid)", () => {
   });
 });
 
-describe("buildArchGraphic: the mm grid rides the T1 oriented coordinate space", () => {
+// UI-3a Task 2: `buildArchGraphic` (the legacy combined single-SVG builder)
+// has been removed — migrated to `buildBuccalArchSvg`/`buildPalatalArchSvg`,
+// asserting the new UNIFORM orientation contract (buccal always net-flipped,
+// palatal never net-flipped, for BOTH arches) instead of the retired
+// per-arch-conditional one.
+describe("buildBuccalArchSvg / buildPalatalArchSvg: the mm grid rides the T1 oriented coordinate space", () => {
   const cache = buildCache();
 
-  it("appends an mm grid BEHIND the teeth in BOTH the buccal and palatal rows", () => {
+  it("appends an mm grid BEHIND the teeth in BOTH the buccal and palatal SVGs", () => {
     for (const arch of [UPPER_ARCH, LOWER_ARCH]) {
-      const svg = buildArchGraphic(cache, arch);
-      for (const rowClass of [".perio-tooth-row-buccal", ".perio-tooth-row-palatal-inner"]) {
+      const cases: Array<[SVGSVGElement, string]> = [
+        [buildBuccalArchSvg(cache, arch), ".perio-tooth-row-buccal"],
+        [buildPalatalArchSvg(cache, arch), ".perio-tooth-row-palatal-inner"],
+      ];
+      for (const [svg, rowClass] of cases) {
         const row = svg.querySelector(rowClass)!;
         const grid = row.querySelector(":scope > .perio-mm-grid");
         expect(grid, `${rowClass} mm grid`).toBeTruthy();
@@ -140,23 +149,21 @@ describe("buildArchGraphic: the mm grid rides the T1 oriented coordinate space",
   });
 
   it("uses the shared layout baseline (ROW_BASELINE_Y) + PERIO_MM_PX, so it aligns with teeth/curve", () => {
-    const svg = buildArchGraphic(cache, UPPER_ARCH);
+    const svg = buildBuccalArchSvg(cache, UPPER_ARCH);
     const grid = svg.querySelector(".perio-tooth-row-buccal > .perio-mm-grid")!;
     const line5 = grid.querySelector(`line[data-mm="5"]`)!;
     expect(cejForLine(line5)).toBeCloseTo(ROW_BASELINE_Y + 5 * PERIO_MM_PX, 5);
   });
 
-  it("flips the buccal-row labels on the UPPER arch (crown-down) but not on the LOWER arch (crown-up)", () => {
-    const upperBuccalGrid = buildArchGraphic(cache, UPPER_ARCH).querySelector(
-      ".perio-tooth-row-buccal > .perio-mm-grid",
-    )!;
-    const lowerBuccalGrid = buildArchGraphic(cache, LOWER_ARCH).querySelector(
-      ".perio-tooth-row-buccal > .perio-mm-grid",
-    )!;
-    // Upper buccal row carries the crown-down flip -> its labels are counter-flipped.
-    expect(upperBuccalGrid.querySelector("text.perio-mm-label[transform]")).toBeTruthy();
-    // Lower buccal row is un-flipped -> labels carry no counter-flip.
-    expect(lowerBuccalGrid.querySelector("text.perio-mm-label[transform]")).toBeNull();
+  it("flips the buccal-row labels for BOTH arches (uniform crown-down); never flips the palatal-row labels (uniform crown-up)", () => {
+    for (const arch of [UPPER_ARCH, LOWER_ARCH]) {
+      const buccalGrid = buildBuccalArchSvg(cache, arch).querySelector(".perio-tooth-row-buccal > .perio-mm-grid")!;
+      expect(buccalGrid.querySelector("text.perio-mm-label[transform]"), `buccal ${arch === UPPER_ARCH ? "upper" : "lower"}`).toBeTruthy();
+      const palatalGrid = buildPalatalArchSvg(cache, arch).querySelector(
+        ".perio-tooth-row-palatal-inner > .perio-mm-grid",
+      )!;
+      expect(palatalGrid.querySelector("text.perio-mm-label[transform]"), `palatal ${arch === UPPER_ARCH ? "upper" : "lower"}`).toBeNull();
+    }
   });
 });
 

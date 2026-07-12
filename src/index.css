@@ -1583,11 +1583,12 @@ select:focus{
   .case-meta-input-narrow{ width: 100%; }
 }
 
-/* "Dental Chart" graphical redesign, Task 2: the tooth-row graphic — one
-   composite arch SVG per arch band (upper/lower), each built by
-   `buildArchGraphic` (perioGraphic.ts). Purely decorative (`aria-hidden` is
-   set directly on the SVG itself by `buildArchGraphic` — the accessible
-   data lives in the `.perio-fullgrid-*` grid it sits inside, unaffected).
+/* "Dental Chart" graphical redesign, Task 2 (UI-3a Task 2 update): the
+   tooth-row graphic — TWO standalone arch SVGs per arch band (buccal,
+   palatal), each built by `buildBuccalArchSvg`/`buildPalatalArchSvg`
+   (perioGraphic.ts). Purely decorative (`aria-hidden` is set directly on
+   each SVG by its builder — the accessible data lives in the
+   `.perio-fullgrid-*` grid it sits inside, unaffected).
    T1 polish: the SVG carries NO fixed width/height — it fills the graphic
    cell (which spans all tooth columns) via `width:100%` and derives its
    height from the viewBox aspect ratio, so it scales when the browser window
@@ -1830,17 +1831,40 @@ select:focus{
 .perio-fullgrid-header-cell + .perio-fullgrid-header-cell:first-of-type{
   z-index: 4;
 }
-/* Task 4: the tooth-row graphic now lives INSIDE the number-row grid (buccal
-   rows above, palatal below), spanning all tooth columns. The archCell holds
-   the composite arch SVG (fixed width == sum of the tooth columns) so the
-   teeth line up column-for-column with the number cells; the whole grid
-   scrolls horizontally in `.perio-fullgrid-scroll`. */
+/* UI-3a Task 2: the tooth-row graphic is now TWO cells inside the number-row
+   grid — `buccalCell` (crown-down) above the central perio index band
+   (Plaque/PI/GI/mPI/mBI), `palatalCell` (crown-up) below it — each spanning
+   all tooth columns and each holding its OWN standalone arch SVG (own
+   viewBox, tightly cropped to just that band's content), so the teeth line
+   up column-for-column with the number cells on both sides of the band; the
+   whole grid scrolls horizontally in `.perio-fullgrid-scroll`. */
 .perio-fullgrid-graphic-cell{
   display: block; overflow: hidden; line-height: 0;
   border-bottom: 1px solid var(--line);
   border-left: 1px solid var(--line);
 }
 .perio-fullgrid-graphic-cell .perio-tooth-arch{ display: block; }
+/* UI-3a Task 2: the band-orientation legend row sitting between the buccal
+   graphic and the central index band — a larger-font, chrome-only label
+   (never a data row, never gated by row visibility) marking which edge of
+   the band is buccal vs. lingual/palatal. */
+.perio-fullgrid-band-label{
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px;
+  font-size: 13px; font-weight: 700; letter-spacing: .01em;
+  color: var(--text);
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+.perio-fullgrid-band-label-buccal,
+.perio-fullgrid-band-label-lingual{
+  white-space: nowrap;
+}
+.perio-fullgrid-band-label-lingual{
+  margin-left: auto;
+}
 .perio-fullgrid-cell{
   display: flex; align-items: center; justify-content: center;
   /* UI-1 Task 3: vertical padding only bumped (2px -> 3px) for a taller tap
@@ -1939,18 +1963,40 @@ select:focus{
 }
 .perio-fullgrid-furc:disabled{ opacity: .45; cursor: not-allowed; }
 
-/* SP-perio P2b Task 4: plaque control — a 2x2 quadrant of toggle buttons
-   (mesial/distal/buccal/lingual). An active surface (data-present="1") fills
-   with the plaque colour; an inactive one is a hollow outline.
-   UI-1 Task 3: tiles doubled (8px -> 16px) — only 2 tiles sit side-by-side
-   (mesial/distal above buccal/lingual), well within even the narrowest tooth
-   column's budget. The SAME quad container is reused (unstyled) for the
-   PI/GI/mPI/mBI per-surface grade buttons, so they grow to match too. */
+/* SP-perio P2b Task 4: plaque control — an anatomical DIAMOND of toggle
+   buttons (mesial/distal/buccal/lingual). An active surface
+   (data-present="1") fills with the plaque colour; an inactive one is a
+   hollow outline.
+   UI-1 Task 3: tiles doubled (8px -> 16px) — well within even the narrowest
+   tooth column's budget. The SAME quad container is reused (unstyled) for
+   the PI/GI/mPI/mBI per-surface grade buttons, so they grow to match too.
+   UI-3a Task 3: 2x2 grid replaced by a 3-row `grid-template-areas` diamond
+   (buccal top-centered, mesial+distal middle, lingual bottom-centered) — the
+   caller (`buildPlaqueCell`/`buildGradeCell`) assigns each button's
+   `style.gridArea` per {@link diamondGridArea}/`mesialOnLeft`, swapping the
+   mesial/distal columns per tooth so mesial always points toward the arch
+   midline. The `> button` rule gives every tile (plaque AND the unstyled
+   PI/GI/mPI/mBI grade buttons) a fixed square size so the buccal/lingual
+   tips — spanning both columns via their area — don't stretch to fill it. */
 .perio-fullgrid-plaque-quad{
   display: grid;
+  grid-template-areas:
+    "buc buc"
+    "mes dis"
+    "lin lin";
   grid-template-columns: repeat(2, 16px);
-  grid-template-rows: repeat(2, 16px);
+  grid-template-rows: repeat(3, 16px);
   gap: 2px;
+}
+.perio-fullgrid-plaque-quad > button{
+  width: 16px; height: 16px;
+}
+.perio-fullgrid-plaque-buccal, .perio-fullgrid-plaque-lingual,
+.perio-fullgrid-pi-buccal, .perio-fullgrid-pi-lingual,
+.perio-fullgrid-gi-buccal, .perio-fullgrid-gi-lingual,
+.perio-fullgrid-mpi-buccal, .perio-fullgrid-mpi-lingual,
+.perio-fullgrid-mbi-buccal, .perio-fullgrid-mbi-lingual{
+  justify-self: center;
 }
 .perio-fullgrid-plaque{
   width: 16px; height: 16px; padding: 0;
@@ -2028,9 +2074,10 @@ select:focus{
   .perio-fullgrid-bop{ width: 12px; height: 12px; }
   .perio-fullgrid-plaque-quad{
     grid-template-columns: repeat(2, 13px);
-    grid-template-rows: repeat(2, 13px);
+    grid-template-rows: repeat(3, 13px);
     gap: 1px;
   }
+  .perio-fullgrid-plaque-quad > button{ width: 13px; height: 13px; }
   .perio-fullgrid-plaque{ width: 13px; height: 13px; }
   .perio-fullgrid-furc{ width: 17px; height: 17px; }
   .perio-fullgrid-cej,
@@ -2043,9 +2090,10 @@ select:focus{
   .perio-fullgrid-bop{ width: 11px; height: 11px; }
   .perio-fullgrid-plaque-quad{
     grid-template-columns: repeat(2, 10px);
-    grid-template-rows: repeat(2, 10px);
+    grid-template-rows: repeat(3, 10px);
     gap: 1px;
   }
+  .perio-fullgrid-plaque-quad > button{ width: 10px; height: 10px; }
   .perio-fullgrid-plaque{ width: 10px; height: 10px; }
   .perio-fullgrid-furc{ width: 15px; height: 15px; font-size: 9px; }
   .perio-fullgrid-cej,
@@ -2058,8 +2106,9 @@ select:focus{
 @media (max-width: 520px){
   .perio-fullgrid-plaque-quad{
     grid-template-columns: repeat(2, 8px);
-    grid-template-rows: repeat(2, 8px);
+    grid-template-rows: repeat(3, 8px);
   }
+  .perio-fullgrid-plaque-quad > button{ width: 8px; height: 8px; }
   .perio-fullgrid-plaque{ width: 8px; height: 8px; }
   .perio-fullgrid-cej,
   .perio-fullgrid-rootconcavity,

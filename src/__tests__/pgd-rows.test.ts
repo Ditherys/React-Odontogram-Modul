@@ -38,7 +38,7 @@ import {
   getPerioOverlayLayer,
   setPerioOverlayLayer,
 } from "../odontogram";
-import { buildArchGraphic, type TemplateDocCache, type TemplateNo } from "../perioGraphic";
+import { buildBuccalArchSvg, buildPalatalArchSvg, type TemplateDocCache, type TemplateNo } from "../perioGraphic";
 import { setI18nLanguage, t } from "../i18n/useI18n";
 
 const testFileUrl = import.meta.url;
@@ -296,7 +296,8 @@ describe("PG-D Task 4: drawArchOverlay integration (real templates)", () => {
 
   function mountArch(): HTMLDivElement {
     const container = document.createElement("div");
-    container.appendChild(buildArchGraphic(cache, UPPER_ARCH));
+    container.appendChild(buildBuccalArchSvg(cache, UPPER_ARCH));
+    container.appendChild(buildPalatalArchSvg(cache, UPPER_ARCH));
     return container;
   }
 

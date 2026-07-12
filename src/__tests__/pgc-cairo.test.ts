@@ -29,7 +29,8 @@ import {
   getOdontogramSummary,
 } from "../odontogram";
 import {
-  buildArchGraphic,
+  buildBuccalArchSvg,
+  buildPalatalArchSvg,
   perioCairoMarks,
   type TemplateDocCache,
   type TemplateNo,
@@ -158,7 +159,8 @@ describe("PG-C Task 1: drawArchOverlay integration (real templates)", () => {
 
   function mountArch(): HTMLDivElement {
     const container = document.createElement("div");
-    container.appendChild(buildArchGraphic(cache, UPPER_ARCH));
+    container.appendChild(buildBuccalArchSvg(cache, UPPER_ARCH));
+    container.appendChild(buildPalatalArchSvg(cache, UPPER_ARCH));
     return container;
   }
 

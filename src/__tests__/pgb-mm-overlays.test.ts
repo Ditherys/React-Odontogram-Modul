@@ -30,7 +30,8 @@ import {
   setPerioOverlayLayer,
 } from "../odontogram";
 import {
-  buildArchGraphic,
+  buildBuccalArchSvg,
+  buildPalatalArchSvg,
   pdCalHeatBucket,
   recessionHeatBucket,
   perioMmHeatMarks,
@@ -161,7 +162,8 @@ describe("PG-B Task 3: drawArchOverlay integration (real templates)", () => {
 
   function mountArch(): HTMLDivElement {
     const container = document.createElement("div");
-    container.appendChild(buildArchGraphic(cache, UPPER_ARCH));
+    container.appendChild(buildBuccalArchSvg(cache, UPPER_ARCH));
+    container.appendChild(buildPalatalArchSvg(cache, UPPER_ARCH));
     return container;
   }
 

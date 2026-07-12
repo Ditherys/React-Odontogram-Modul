@@ -30,7 +30,8 @@ import {
   onStateChange,
 } from "../odontogram";
 import {
-  buildArchGraphic,
+  buildBuccalArchSvg,
+  buildPalatalArchSvg,
   perioOverlayMarks,
   perioPlaqueMarks,
   buildPerioOverlayLayer,
@@ -202,7 +203,8 @@ describe("PG-B Task 2: drawArchOverlay integration (real templates)", () => {
 
   function mountArch(): HTMLDivElement {
     const container = document.createElement("div");
-    container.appendChild(buildArchGraphic(cache, UPPER_ARCH));
+    container.appendChild(buildBuccalArchSvg(cache, UPPER_ARCH));
+    container.appendChild(buildPalatalArchSvg(cache, UPPER_ARCH));
     return container;
   }
 

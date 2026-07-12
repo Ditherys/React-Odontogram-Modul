@@ -92,7 +92,7 @@ describe("UI-2 Task 2: default visibility (all true)", () => {
   it("the tooth-number header and the tooth-row graphic placeholder are present", () => {
     openGrid();
     expect(toothHeaders().length).toBe(32);
-    expect(graphicCellCount()).toBe(2); // one per arch (upper + lower)
+    expect(graphicCellCount()).toBe(4); // buccal + palatal cells, per arch (upper + lower)
   });
 });
 
@@ -114,7 +114,7 @@ describe("UI-2 Task 2: hiding a single-block row (pi)", () => {
 
     // The always-rendered rows never gate.
     expect(toothHeaders().length).toBe(32);
-    expect(graphicCellCount()).toBe(2);
+    expect(graphicCellCount()).toBe(4);
 
     act(() => {
       setPerioRowVisibility("pi", true);
@@ -139,7 +139,7 @@ describe("UI-2 Task 2: hiding a two-block row (pd — buccal + palatal)", () => 
     expect(labelsHidden.filter((l) => l.endsWith("BOP"))).toHaveLength(4);
     // The always-rendered rows never gate.
     expect(toothHeaders().length).toBe(32);
-    expect(graphicCellCount()).toBe(2);
+    expect(graphicCellCount()).toBe(4);
 
     act(() => {
       setPerioRowVisibility("pd", true);
@@ -156,6 +156,6 @@ describe("UI-2 Task 2: hiding every row still leaves the header + graphic", () =
     });
     expect(rowLabels().filter((l) => l !== "")).toHaveLength(0);
     expect(toothHeaders().length).toBe(32);
-    expect(graphicCellCount()).toBe(2);
+    expect(graphicCellCount()).toBe(4);
   });
 });
