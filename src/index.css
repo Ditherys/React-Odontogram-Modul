@@ -109,6 +109,11 @@ body{
   text-align:left;
 }
 .dropdown-item:hover{background: rgba(0,0,0,.08)}
+.dropdown-item:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+.dropdown-item:disabled:hover{background: rgba(0,0,0,.04)}
 .dropdown-item[aria-checked="true"]{
   background: rgba(59,123,255,.18);
   border-color: rgba(59,123,255,.45);

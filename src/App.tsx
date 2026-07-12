@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { destroyOdontogram, initOdontogram, setNumberingSystem, clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, openPerioOverlay, closePerioOverlay, isPerioOverlayOpen, getPerioViewMode, setPerioViewMode, getPerioRowVisibility, setPerioRowVisibility, getPerioIndexNameMode, setPerioIndexNameMode, isDualStateConfirmPending, acceptDualStateConfirm, cancelDualStateConfirm } from "./odontogram";
+import { destroyOdontogram, initOdontogram, setNumberingSystem, clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, openPerioOverlay, closePerioOverlay, isPerioOverlayOpen, getPerioViewMode, setPerioViewMode, getPerioRowVisibility, setPerioRowVisibility, getPerioIndexNameMode, setPerioIndexNameMode, isDualStateConfirmPending, acceptDualStateConfirm, cancelDualStateConfirm, hasAnyPerioData } from "./odontogram";
 export { clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, getPerioViewMode, setPerioViewMode, getPerioRowVisibility, setPerioRowVisibility, getPerioIndexNameMode, setPerioIndexNameMode, isDualStateConfirmPending, acceptDualStateConfirm, cancelDualStateConfirm };
 export { default as PerioChart } from "./PerioChart";
 import type { OdontogramSummary, PulpDetailLevel, SecondaryCariesMode, RootCariesMode, RadiographicDepthMode, ToothDetailLevel, SurfaceNotation, PerioViewMode, PerioRowId, PerioIndexNameMode } from "./odontogram";
@@ -13,6 +13,7 @@ import SettingsModal, { type SettingsState } from "./SettingsModal";
 import PerioChart from "./PerioChart";
 import PerioSidebar from "./PerioSidebar";
 import DualStateConfirm from "./DualStateConfirm";
+import ExportOptionsModal from "./ExportOptionsModal";
 import type { Language } from "./i18n/translations";
 import type { NumberingSystem } from "./utils/numbering";
 import { applyThemeConfig, type OdontogramThemeConfig } from "./theme";
@@ -215,8 +216,10 @@ export default function App({
   const [showStatusCard, setShowStatusCard] = useState<boolean>(showStatusCardProp ?? true);
   const [showOrthoCard, setShowOrthoCard] = useState<boolean>(showOrthoCardProp ?? true);
   const [summary, setSummary] = useState<OdontogramSummary | null>(null);
+  const [hasPerio, setHasPerio] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement | null>(null);
+  const [pdfOpen, setPdfOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const importRef = useRef<HTMLDivElement | null>(null);
   // P2 Task 1: demo state mirroring the module-level perio-overlay flag
@@ -368,10 +371,23 @@ export default function App({
   // every state change, and when language/numbering change (which affect labels).
   useEffect(() => {
     if(!toothInfoOn) return;
-    const refresh = () => setSummary(getOdontogramSummary());
+    const refresh = () => {
+      setSummary(getOdontogramSummary());
+    };
     refresh();
     return onStateChange(refresh);
   }, [toothInfoOn, lang, currentNumbering]);
+
+  // UI-3b: mirror perio-data presence into React state so the perio export
+  // menu items' `disabled` gate stays live. Deliberately its OWN effect,
+  // subscribed UNCONDITIONALLY (NOT gated by `toothInfoOn` like the summary
+  // effect above) — the export gate must track charted perio data even when
+  // the user has the Tooth-info panel turned off.
+  useEffect(() => {
+    const refresh = () => setHasPerio(hasAnyPerioData());
+    refresh();
+    return onStateChange(refresh);
+  }, []);
 
   // P2 Task 1: mirror the module-level perio-overlay flag into React state via
   // the existing onStateChange subscription (openPerioOverlay/closePerioOverlay
@@ -538,6 +554,9 @@ export default function App({
           <button id="btnStatusPngExport" hidden aria-hidden="true" tabIndex={-1}>{t("topbar.exportPng")}</button>
           <button id="btnStatusJpgExport" hidden aria-hidden="true" tabIndex={-1}>{t("topbar.exportJpg")}</button>
           <button id="btnStatusSvgExport" hidden aria-hidden="true" tabIndex={-1}>{t("export.menu.svg")}</button>
+          <button id="btnPerioSvgExport" hidden aria-hidden="true" tabIndex={-1}>{t("export.menu.perioSvg")}</button>
+          <button id="btnPerioPngExport" hidden aria-hidden="true" tabIndex={-1}>{t("export.menu.perioPng")}</button>
+          <button id="btnPerioJpgExport" hidden aria-hidden="true" tabIndex={-1}>{t("export.menu.perioJpg")}</button>
           <div className="topbar-group dropdown" ref={exportRef}>
             <button id="btnExportMenu" className="btn-theme" onClick={() => setExportOpen((o) => !o)} aria-haspopup="menu" aria-expanded={exportOpen} title={t("topbar.export")} aria-label={t("topbar.export")}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
@@ -549,6 +568,14 @@ export default function App({
                 <button className="dropdown-item" role="menuitem" onClick={() => { (document.getElementById("btnStatusPngExport") as HTMLButtonElement | null)?.click(); setExportOpen(false); }}>{t("export.menu.png")}</button>
                 <button className="dropdown-item" role="menuitem" onClick={() => { (document.getElementById("btnStatusJpgExport") as HTMLButtonElement | null)?.click(); setExportOpen(false); }}>{t("export.menu.jpg")}</button>
                 <button className="dropdown-item" role="menuitem" onClick={() => { (document.getElementById("btnStatusSvgExport") as HTMLButtonElement | null)?.click(); setExportOpen(false); }}>{t("export.menu.svg")}</button>
+                <button className="dropdown-item" role="menuitem" disabled={!hasPerio}
+                  onClick={() => { (document.getElementById("btnPerioSvgExport") as HTMLButtonElement | null)?.click(); setExportOpen(false); }}>{t("export.menu.perioSvg")}</button>
+                <button className="dropdown-item" role="menuitem" disabled={!hasPerio}
+                  onClick={() => { (document.getElementById("btnPerioPngExport") as HTMLButtonElement | null)?.click(); setExportOpen(false); }}>{t("export.menu.perioPng")}</button>
+                <button className="dropdown-item" role="menuitem" disabled={!hasPerio}
+                  onClick={() => { (document.getElementById("btnPerioJpgExport") as HTMLButtonElement | null)?.click(); setExportOpen(false); }}>{t("export.menu.perioJpg")}</button>
+                <button className="dropdown-item" role="menuitem"
+                  onClick={() => { setExportOpen(false); setPdfOpen(true); }}>{t("export.menu.pdf")}</button>
               </div>
             )}
           </div>
@@ -977,6 +1004,12 @@ export default function App({
         t={t}
         onAccept={acceptDualStateConfirm}
         onCancel={cancelDualStateConfirm}
+      />
+
+      <ExportOptionsModal
+        open={pdfOpen}
+        t={t}
+        onClose={() => setPdfOpen(false)}
       />
     </div>
   );

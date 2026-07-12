@@ -64,6 +64,8 @@ describe("UI-1 Task 2: Páciens adatok metadata uses a labelled row structure", 
   it("every metadata control has an associated <label>", () => {
     renderSidebar();
     const controlIds = [
+      "caseMetaPatientName",
+      "caseMetaExamDate",
       "caseMetaAge",
       "caseMetaSmoking",
       "caseMetaCigarettesPerDay",
@@ -84,8 +86,8 @@ describe("UI-1 Task 2: Páciens adatok metadata uses a labelled row structure", 
   it("metadata rows use the two-column grid row class", () => {
     renderSidebar();
     const rows = document.querySelectorAll(".case-meta-row");
-    // 7 metadata rows (age, smoking, cigs, diabetes, hba1c, rbl, toothLoss)
-    expect(rows.length).toBe(7);
+    // 9 metadata rows (patientName, examDate, age, smoking, cigs, diabetes, hba1c, rbl, toothLoss)
+    expect(rows.length).toBe(9);
   });
 
   it("conditional fields (cigarettes/day, HbA1c) carry the disabled-row class when gated off", () => {

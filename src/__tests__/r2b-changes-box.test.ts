@@ -71,6 +71,11 @@ vi.mock("../odontogram", async () => {
     // Real exports under test — not part of the imperative DOM/SVG wiring.
     getOdontogramSummary: actual.getOdontogramSummary,
     getPlanChanges: actual.getPlanChanges,
+    hasAnyPerioData: actual.hasAnyPerioData,
+    getCaseMeta: actual.getCaseMeta,
+    setPatientName: actual.setPatientName,
+    setExamDate: actual.setExamDate,
+    exportPdf: vi.fn().mockResolvedValue(undefined),
     formatToothLabel: actual.formatToothLabel,
     onStateChange: actual.onStateChange,
     openPerioOverlay: actual.openPerioOverlay,

@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createElement } from "react";
 import { render, cleanup } from "@testing-library/react";
 import PerioChart from "../PerioChart";
-import { __resetChartStateForTest, setNumberingSystem, setReadOnly } from "../odontogram";
+import { __resetChartStateForTest, __setToothStateForTest, setNumberingSystem, setReadOnly } from "../odontogram";
 import { t } from "../i18n/useI18n";
 
 function openGrid() {
@@ -58,6 +58,9 @@ describe("UI-1 Task 3: row-label column is wide enough for full index names", ()
 
 describe("UI-1 Task 3: long labels render the full i18n string (no data-layer truncation)", () => {
   it('the mBI row label text node equals t("perio.mbi.row") verbatim, not clipped', () => {
+    // UI-3b Task 3: mBI additionally gates on the arch having an implant
+    // (see ui3b-mpi-implant-gate.test.ts) — set one so the row renders here.
+    __setToothStateForTest(16, { toothSelection: "implant" });
     openGrid();
     const labels = Array.from(document.querySelectorAll(".perio-fullgrid-row-label-text"));
     const mbiLabel = labels.find((el) => el.textContent === t("perio.mbi.row"));

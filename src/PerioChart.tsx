@@ -1187,6 +1187,11 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   // in the PerioChart component below). The tooth-number header + the tooth
   // graphic (below) are NEVER gated.
   const visible = getPerioRowVisibility();
+  // UI-3b Task 3: the peri-implant Mombelli indices (mPI/mBI) are meaningless
+  // without an implant, so their rows only render in an arch that has at
+  // least one implant tooth. Per-arch because buildArch runs once per arch
+  // (UPPER/LOWER) — an upper-only implant must not show a phantom lower row.
+  const archHasImplant = teeth.some((n) => isToothImplant(n));
   // UI-2 Task 3: every row-label text below goes through `indexName(id)`
   // (`src/perioIndexNames.ts`) instead of a raw `t(...)` call, so a row's
   // NAME switches between the localized string and a fixed English/Latin
@@ -1321,7 +1326,7 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   // --- mPI row (Mombelli modified Plaque Index, implant-only, per-surface
   //     graded 0-3 — SP-perio PG-E Task 2). Built for EVERY tooth like PI/GI,
   //     but the cells are only ACTIVE on an implant tooth (see syncToothCells). ---
-  if (visible.mpi) {
+  if (visible.mpi && archHasImplant) {
     arch.appendChild(mkRowLabelCell(indexName("mpi"), "perio.info.mpi"));
     for (const toothNo of teeth) {
       arch.appendChild(buildGradeCell(toothNo, "mpi", registry.get(toothNo)!, handlers));
@@ -1329,7 +1334,7 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   }
 
   // --- mBI row (Mombelli modified sulcus Bleeding Index, implant-only). ---
-  if (visible.mbi) {
+  if (visible.mbi && archHasImplant) {
     arch.appendChild(mkRowLabelCell(indexName("mbi"), "perio.info.mbi"));
     for (const toothNo of teeth) {
       arch.appendChild(buildGradeCell(toothNo, "mbi", registry.get(toothNo)!, handlers));
@@ -1923,15 +1928,26 @@ export default function PerioChart({
       },
     };
 
-    // UI-2 Task 2/3: current Settings -> Periodontal-tab row-visibility +
-    // index-name-mode snapshot, as a compact string so the rebuild below
-    // only fires when either actually changes (mirrors the "Dental Chart"
-    // graphical redesign's `implantSig` pattern for the tooth-row graphic,
-    // see the effect further down). `buildArch` reads BOTH
-    // `getPerioRowVisibility()` (T2) and `getPerioIndexNameMode()` (T3) once
-    // per build, so a rebuild triggered by either flag changing re-renders
-    // both row presence AND row label text from the current snapshot.
-    const visibilitySig = () => JSON.stringify([getPerioRowVisibility(), getPerioIndexNameMode()]);
+    // UI-2 Task 2/3 + UI-3b Task 3: current Settings -> Periodontal-tab
+    // row-visibility + index-name-mode + implant-set snapshot, as a compact
+    // string so the rebuild below only fires when any of them actually
+    // changes (mirrors the "Dental Chart" graphical redesign's `implantSig`
+    // pattern for the tooth-row graphic, see the effect further down).
+    // `buildArch` reads `getPerioRowVisibility()` (T2), `getPerioIndexNameMode()`
+    // (T3), and each arch's implant set (`archHasImplant`, UI-3b T3) once per
+    // build, so a rebuild triggered by any of them changing re-renders row
+    // presence (including the per-arch mPI/mBI gate) AND row label text from
+    // the current snapshot.
+    const visibilitySig = () => JSON.stringify([
+      getPerioRowVisibility(),
+      getPerioIndexNameMode(),
+      // UI-3b Task 3: the mPI/mBI rows are gated per-arch on whether that arch
+      // contains an implant (see `archHasImplant` in `buildArch`) — the
+      // implant SET affects row presence, so a rebuild must also fire when it
+      // changes (adding/removing an implant), not just on a visibility/name
+      // flag flip.
+      [...UPPER_ARCH, ...LOWER_ARCH].filter((n) => isToothImplant(n)).join(","),
+    ]);
     let lastVisibilitySig: string | null = null;
 
     // (Re)build the entire arch grid's DOM from scratch — row presence is

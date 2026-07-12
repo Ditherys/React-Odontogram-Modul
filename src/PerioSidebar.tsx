@@ -6,6 +6,8 @@ import {
   getReadOnly,
   onStateChange,
   getCaseMeta,
+  setPatientName,
+  setExamDate,
   setCaseAge,
   setSmokingStatus,
   setCigarettesPerDay,
@@ -81,6 +83,8 @@ const EMPTY_CASE_META: CaseMetaData = {
   stageOverride: null,
   gradeOverride: null,
   extentOverride: null,
+  patientName: null,
+  examDate: null,
 };
 
 type ClassificationData = ReturnType<typeof getPerioClassification>;
@@ -231,6 +235,28 @@ export default function PerioSidebar() {
       <details id="caseMetaPanel" className="case-meta-panel" open>
         <summary className="case-meta-panel-title">{t("case.panelTitle")}</summary>
         <div className="case-meta-panel-body">
+          <div className="case-meta-row">
+            <label className="case-meta-row-label" htmlFor="caseMetaPatientName">{t("case.patientName")}</label>
+            <input
+              id="caseMetaPatientName"
+              className="case-meta-input"
+              type="text"
+              disabled={readOnly}
+              value={caseMeta.patientName ?? ""}
+              onChange={(e) => setPatientName(e.target.value === "" ? null : e.target.value)}
+            />
+          </div>
+          <div className="case-meta-row">
+            <label className="case-meta-row-label" htmlFor="caseMetaExamDate">{t("case.examDate")}</label>
+            <input
+              id="caseMetaExamDate"
+              className="case-meta-input"
+              type="date"
+              disabled={readOnly}
+              value={caseMeta.examDate ?? ""}
+              onChange={(e) => setExamDate(e.target.value === "" ? null : e.target.value)}
+            />
+          </div>
           <div className="case-meta-row">
             <label className="case-meta-row-label" htmlFor="caseMetaAge">{t("case.age")}</label>
             <input

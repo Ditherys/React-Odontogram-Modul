@@ -44,6 +44,16 @@ vi.mock('../odontogram', () => ({
   getDiscolorationDetailLevel: vi.fn().mockReturnValue('complex'),
   setSurfaceNotation: vi.fn(),
   getSurfaceNotation: vi.fn().mockReturnValue('full'),
+  hasAnyPerioData: vi.fn().mockReturnValue(false),
+  getCaseMeta: vi.fn().mockReturnValue({
+    age: null, smokingStatus: 'unknown', cigarettesPerDay: null,
+    diabetesStatus: 'unknown', hba1c: null, toothLossPerio: null, maxRblPercent: null,
+    diagnosisOverride: null, stageOverride: null, gradeOverride: null, extentOverride: null,
+    patientName: null, examDate: null,
+  }),
+  setPatientName: vi.fn(),
+  setExamDate: vi.fn(),
+  exportPdf: vi.fn().mockResolvedValue(undefined),
   getOdontogramSummary: vi.fn().mockReturnValue({
     overview: '', permanentList: null, missingList: null,
     sections: [], implants: null, periodontalTitle: '', periodontalText: '',

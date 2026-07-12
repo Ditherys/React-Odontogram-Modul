@@ -16,6 +16,7 @@ import PerioChart from "../PerioChart";
 import PerioSidebar from "../PerioSidebar";
 import {
   __resetChartStateForTest,
+  __setToothStateForTest,
   setNumberingSystem,
   getPerioIndexNameMode,
   setPerioIndexNameMode,
@@ -57,6 +58,10 @@ beforeEach(() => {
   cleanup();
   document.body.innerHTML = "";
   __resetChartStateForTest();
+  // UI-3b Task 3: mPI/mBI additionally gate on the arch having an implant
+  // (see ui3b-mpi-implant-gate.test.ts) — set one so the rows render across
+  // this file's grid-label / info-tooltip / overlay-pill assertions.
+  __setToothStateForTest(16, { toothSelection: "implant" });
   setNumberingSystem("FDI");
 });
 

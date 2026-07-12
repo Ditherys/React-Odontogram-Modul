@@ -23,6 +23,8 @@ import {
   type BridgeToothState,
 } from "./bridgeOverlay";
 import { derivePerioClassification, type PerioClassification, type PerioDerivationInput, type ToothDerivationInput } from "./perioClassification";
+import { buildPerioSvg } from "./perioExport";
+import { assemblePdf, type PdfExportOptions, type PdfAssembleData } from "./perioPdf";
 import tooth11Url from "./assets/teeth-svgs/11.svg";
 import tooth13Url from "./assets/teeth-svgs/13.svg";
 import tooth14Url from "./assets/teeth-svgs/14.svg";
@@ -462,11 +464,16 @@ type CaseMeta = {
   stageOverride: string | null;
   gradeOverride: string | null;
   extentOverride: string | null;
+  /** UI-3b: PDF-report identity — patient display name + exam date (ISO
+   *  `YYYY-MM-DD`). Additive caseMeta fields; NOT emitted to FHIR. */
+  patientName: string | null;
+  examDate: string | null;
 };
 function defaultCaseMeta(): CaseMeta {
   return { age: null, smokingStatus: "unknown", cigarettesPerDay: null,
     diabetesStatus: "unknown", hba1c: null, toothLossPerio: null, maxRblPercent: null,
-    diagnosisOverride: null, stageOverride: null, gradeOverride: null, extentOverride: null };
+    diagnosisOverride: null, stageOverride: null, gradeOverride: null, extentOverride: null,
+    patientName: null, examDate: null };
 }
 let caseMeta: CaseMeta = defaultCaseMeta();
 const VALID_SMOKING = new Set(["unknown", "never", "former", "current"]);
@@ -530,11 +537,27 @@ export function setExtentOverride(v: string | null): void {
   if(v === null){ if(caseMeta.extentOverride !== null){ caseMeta.extentOverride = null; notifyStateChange(); } return; }
   if(VALID_EXTENT.has(v) && v !== caseMeta.extentOverride){ caseMeta.extentOverride = v; notifyStateChange(); }
 }
+/** UI-3b Task 1: patient display name + exam date setters. Mirror the
+ *  existing caseMeta setter pattern — trim, `null`-clears, malformed
+ *  exam-date values are a silent no-op (mirrors `setSmokingStatus`). */
+export function setPatientName(v: string | null): void {
+  const next = (v === null) ? null : (v.trim() === "" ? null : v.trim());
+  if(next !== caseMeta.patientName){ caseMeta.patientName = next; notifyStateChange(); }
+}
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+export function setExamDate(v: string | null): void {
+  if(v === null){ if(caseMeta.examDate !== null){ caseMeta.examDate = null; notifyStateChange(); } return; }
+  if(v.trim() === ""){ if(caseMeta.examDate !== null){ caseMeta.examDate = null; notifyStateChange(); } return; }
+  if(!ISO_DATE.test(v.trim())) return;  // malformed → no-op (mirrors setSmokingStatus)
+  const next = v.trim();
+  if(next !== caseMeta.examDate){ caseMeta.examDate = next; notifyStateChange(); }
+}
 export function resetCaseMeta(): void { caseMeta = defaultCaseMeta(); }
 function caseMetaIsEmpty(c: CaseMeta): boolean {
   return c.age === null && c.smokingStatus === "unknown" && c.cigarettesPerDay === null
     && c.diabetesStatus === "unknown" && c.hba1c === null && c.toothLossPerio === null && c.maxRblPercent === null
-    && c.diagnosisOverride === null && c.stageOverride === null && c.gradeOverride === null && c.extentOverride === null;
+    && c.diagnosisOverride === null && c.stageOverride === null && c.gradeOverride === null && c.extentOverride === null
+    && c.patientName === null && c.examDate === null;
 }
 function serializeCaseMeta(c: CaseMeta): Record<string, unknown> {
   const o: Record<string, unknown> = {};
@@ -549,6 +572,8 @@ function serializeCaseMeta(c: CaseMeta): Record<string, unknown> {
   if(c.stageOverride !== null) o.stageOverride = c.stageOverride;
   if(c.gradeOverride !== null) o.gradeOverride = c.gradeOverride;
   if(c.extentOverride !== null) o.extentOverride = c.extentOverride;
+  if(c.patientName !== null) o.patientName = c.patientName;
+  if(c.examDate !== null) o.examDate = c.examDate;
   return o;
 }
 function hydrateCaseMeta(raw: Any): void {
@@ -565,6 +590,8 @@ function hydrateCaseMeta(raw: Any): void {
   caseMeta.stageOverride = VALID_STAGE.has(raw.stageOverride) ? raw.stageOverride : null;
   caseMeta.gradeOverride = VALID_GRADE.has(raw.gradeOverride) ? raw.gradeOverride : null;
   caseMeta.extentOverride = VALID_EXTENT.has(raw.extentOverride) ? raw.extentOverride : null;
+  caseMeta.patientName = (typeof raw.patientName === "string" && raw.patientName.trim() !== "") ? raw.patientName.trim() : null;
+  caseMeta.examDate = (typeof raw.examDate === "string" && ISO_DATE.test(raw.examDate.trim())) ? raw.examDate.trim() : null;
 }
 /** P4a Task 2: builds the compact, labelled case-context fragment
  *  (e.g. "Age 54 · current smoker (12/day) · diabetic (HbA1c 7.8%) · max
@@ -5864,7 +5891,7 @@ function collectExportPayload(){
   const planTeeth = planInitialized ? collectTeeth(charts.plan) : null;
   const planDiffers = planTeeth !== null && JSON.stringify(planTeeth) !== JSON.stringify(statusTeeth);
   return {
-    version: "2.18",
+    version: "2.19",
     globals: collectGlobals(),
     teeth: statusTeeth,
     ...(caseMetaIsEmpty(caseMeta) ? {} : { case: serializeCaseMeta(caseMeta) }),
@@ -5894,7 +5921,7 @@ export function getStatusChart(): Any {
  */
 export function getPlanChart(): Any {
   return {
-    version: "2.18",
+    version: "2.19",
     globals: collectGlobals(),
     teeth: collectTeeth(charts.plan),
     ...(caseMetaIsEmpty(caseMeta) ? {} : { case: serializeCaseMeta(caseMeta) }),
@@ -6826,6 +6853,39 @@ export function getPerioSummary(): {
   };
 }
 
+/** UI-3b: true iff ANY periodontal axis has been charted anywhere in the
+ *  mouth. Used to auto-skip the perio section of an export and to disable the
+ *  perio image-export menu items on a blank chart. Derived entirely from
+ *  `getPerioSummary()` — no new traversal. */
+export function hasAnyPerioData(): boolean {
+  const s = getPerioSummary();
+  if(s.chartedSites > 0
+    || s.maxFurcation !== null
+    || s.plaquePercent > 0
+    || s.piScore !== null
+    || s.giScore !== null
+    || s.kgDeficientTeeth > 0
+    || s.gtDistribution.thin > 0 || s.gtDistribution.medium > 0 || s.gtDistribution.thick > 0
+    || s.millerDistribution.i > 0 || s.millerDistribution.ii > 0
+    || s.millerDistribution.iii > 0 || s.millerDistribution.iv > 0
+    || s.mpiScore !== null
+    || s.mbiScore !== null) return true;
+  // `getPerioSummary()` doesn't surface three independently-chartable perio
+  // axes, so scan for them directly (else a chart with ONLY such a finding is
+  // wrongly treated as "no perio data" and its export section auto-skipped):
+  //   - cejVisibility / rootConcavity: registry enum axes ("none" default),
+  //     charted with no dependency on any PD site;
+  //   - a NON-deficient KG measurement: the summary only counts kg<2
+  //     (`kgDeficientTeeth`), so a healthy charted width (e.g. 5 mm) is invisible
+  //     to the checks above but is still charted perio data.
+  for(const toothNo of ALL_TEETH){
+    if(getKeratinizedWidth(toothNo) !== null) return true;
+    if(getCejVisibility(toothNo) !== "none") return true;
+    if(getRootConcavity(toothNo) !== "none") return true;
+  }
+  return false;
+}
+
 /** Per-tooth perio for every tooth on the active chart that has at least one
  *  charted site (an uncharted tooth is OMITTED, not present with empty
  *  maps — mirrors the same "absence = not charted" convention the payload's
@@ -7497,6 +7557,45 @@ export async function exportSvg(){
 }
 
 /**
+ * UI-3b Task 6: shared SVG→raster core — loads a serialized SVG (as a data
+ * URI) into an off-screen `<canvas>` at `scale`×, painted over a white
+ * background first (charts have transparent gaps), and returns the canvas so
+ * callers can encode it as PNG or JPEG at whatever quality they need.
+ * Extracted out of `exportImage`/`exportPerioImage`'s previously-duplicated
+ * raster paths (DRY) — behavior is unchanged, only factored out. The new
+ * `exportPdf()` raster path reuses it too, via {@link rasterizeSvgToPng}.
+ */
+async function rasterizeSvgToCanvas(xml: string, width: number, height: number, scale = 2): Promise<HTMLCanvasElement> {
+  const svgUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(xml);
+  const img = new Image();
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("SVG rasterization failed"));
+    img.src = svgUrl;
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+  const ctx = canvas.getContext("2d");
+  if(!ctx) throw new Error("Canvas 2D context unavailable");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}
+
+/**
+ * UI-3b Task 6: SVG → PNG data URL, built on {@link rasterizeSvgToCanvas}.
+ * Used by `exportImage`'s/`exportPerioImage`'s PNG branch AND by
+ * `exportPdf`'s chart-embedding path (jsPDF `.addImage` needs a PNG/JPEG
+ * data URL, never raw SVG — see the module doc comment on `exportPdf`).
+ */
+async function rasterizeSvgToPng(xml: string, width: number, height: number, scale = 2): Promise<string> {
+  const canvas = await rasterizeSvgToCanvas(xml, width, height, scale);
+  return canvas.toDataURL("image/png");
+}
+
+/**
  * Export the odontogram as PNG or JPG. Renders the serialized SVG via the
  * browser's native rasterizer (Image → canvas) — much faster than the previous
  * html2canvas DOM rasterization, and sharper.
@@ -7510,22 +7609,7 @@ export async function exportImage(format: "png" | "jpg" = "png"){
     const built = buildOdontogramSvg();
     if(!built) throw new Error("Odontogram grid not found");
     setExportProgress(40, "export.progress.rendering");
-    const scale = 2;
-    const svgUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(built.xml);
-    const img = new Image();
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error("SVG rasterization failed"));
-      img.src = svgUrl;
-    });
-    const canvas = document.createElement("canvas");
-    canvas.width = built.width * scale;
-    canvas.height = built.height * scale;
-    const ctx = canvas.getContext("2d");
-    if(!ctx) throw new Error("Canvas 2D context unavailable");
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const canvas = await rasterizeSvgToCanvas(built.xml, built.width, built.height);
     setExportProgress(90, "export.progress.encoding");
     const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g, "-");
     if(format === "jpg"){
@@ -7539,6 +7623,141 @@ export async function exportImage(format: "png" | "jpg" = "png"){
     hideExportOverlay();
     exportInProgress = false;
   }
+}
+
+/** UI-3b: export the full perio chart as a standalone vector SVG file. */
+export async function exportPerioSvg(): Promise<void> {
+  if(exportInProgress) return;
+  exportInProgress = true;
+  showExportOverlay();
+  setExportProgress(10, "export.progress.preparing");
+  try{
+    const built = await buildPerioSvg();
+    if(!built) throw new Error("Perio chart could not be built");
+    const blob = new Blob([built.xml], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g, "-");
+    const a = document.createElement("a");
+    a.href = url; a.download = `perio-${stamp}.svg`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    setExportProgress(100, "export.progress.done");
+    await new Promise((r) => window.setTimeout(r, 200));
+  }finally{ hideExportOverlay(); exportInProgress = false; }
+}
+
+/** UI-3b: export the full perio chart as PNG/JPG (SVG → canvas @2×, via the
+ *  shared {@link rasterizeSvgToCanvas} raster core). */
+export async function exportPerioImage(format: "png" | "jpg" = "png"): Promise<void> {
+  if(exportInProgress) return;
+  exportInProgress = true;
+  showExportOverlay();
+  setExportProgress(10, "export.progress.preparing");
+  try{
+    const built = await buildPerioSvg();
+    if(!built) throw new Error("Perio chart could not be built");
+    setExportProgress(40, "export.progress.rendering");
+    const canvas = await rasterizeSvgToCanvas(built.xml, built.width, built.height);
+    setExportProgress(90, "export.progress.encoding");
+    const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g, "-");
+    if(format === "jpg") downloadDataUrl(canvas.toDataURL("image/jpeg", 0.92), `perio-${stamp}.jpg`);
+    else downloadDataUrl(canvas.toDataURL("image/png"), `perio-${stamp}.png`);
+    setExportProgress(100, "export.progress.done");
+    await new Promise((r) => window.setTimeout(r, 300));
+  }finally{ hideExportOverlay(); exportInProgress = false; }
+}
+
+/**
+ * UI-3b Task 6: assemble a printable PDF report (jsPDF-native — vector text
+ * + raster chart PNGs, no svg2pdf.js). Gathers all `data` (SVG→PNG
+ * rasterization via {@link rasterizeSvgToPng}, summary/classification text,
+ * `hasAnyPerioData()`), drives the export-progress overlay, then hands off
+ * to the PURE `assemblePdf()` (`src/perioPdf.ts`), which decides section
+ * layout from `opts`/`data` alone.
+ *
+ * jsPDF-in-jsdom note: constructing a real `jsPDF` instance depends on
+ * browser canvas/font internals jsdom doesn't fully provide, so this
+ * wrapper is NOT unit-tested directly — `assemblePdf`'s section-gating IS
+ * thoroughly unit-tested with an injectable fake doc (see
+ * `ui3b-export-pdf.test.ts`). This wrapper's own raster→layout→save path is
+ * a browser-verify item (see the task report).
+ */
+export async function exportPdf(opts: PdfExportOptions): Promise<void> {
+  if(exportInProgress) return;
+  exportInProgress = true;
+  showExportOverlay();
+  setExportProgress(10, "export.progress.preparing");
+  try{
+    const odontoBuilt = opts.odontogram ? buildOdontogramSvg() : null;
+    if(opts.odontogram && !odontoBuilt) throw new Error("Odontogram grid not found");
+    setExportProgress(30, "export.progress.rendering");
+    const odontogramPng = odontoBuilt
+      ? await rasterizeSvgToPng(odontoBuilt.xml, odontoBuilt.width, odontoBuilt.height)
+      : "";
+
+    const hasPerio = hasAnyPerioData();
+    const perioNeeded = hasPerio && (opts.perioStatus || opts.perioDescription);
+    let perioPng = "";
+    let perioImageSize: { width: number; height: number } | undefined;
+    if(perioNeeded){
+      setExportProgress(50, "export.progress.rendering");
+      const perioBuilt = await buildPerioSvg();
+      if(!perioBuilt) throw new Error("Perio chart could not be built");
+      perioPng = await rasterizeSvgToPng(perioBuilt.xml, perioBuilt.width, perioBuilt.height);
+      perioImageSize = { width: perioBuilt.width, height: perioBuilt.height };
+    }
+    setExportProgress(80, "export.progress.encoding");
+
+    const odontoSummary = getOdontogramSummary();
+    const perioSum = getPerioSummary();
+    const worstCalText = perioSum.worstCal === null
+      ? "–"
+      : `${perioSum.worstCal}${perioSum.worstCalTooth !== null ? ` (${formatToothLabel(perioSum.worstCalTooth)})` : ""}`;
+    const perioSummaryText = [
+      `${t("perio.bopPercent")}: ${perioSum.bopPercent}%`,
+      `${t("perio.summary.worstCal")}: ${worstCalText}`,
+      `${t("perio.summary.maxPd")}: ${perioSum.maxPd === null ? "–" : perioSum.maxPd}`,
+      `${odontoSummary.periodontalTitle}: ${odontoSummary.periodontalText}`,
+    ].join("\n");
+
+    const data: PdfAssembleData = {
+      hasPerio,
+      caseMeta: getCaseMeta(),
+      odontogramPng,
+      odontogramSummaryText: buildOdontogramProseText(odontoSummary),
+      odontogramImageSize: odontoBuilt ? { width: odontoBuilt.width, height: odontoBuilt.height } : undefined,
+      perioPng,
+      perioSummaryText,
+      perioImageSize,
+    };
+
+    assemblePdf(opts, data);
+    setExportProgress(100, "export.progress.done");
+    await new Promise((r) => window.setTimeout(r, 300));
+  }finally{
+    hideExportOverlay();
+    exportInProgress = false;
+  }
+}
+
+/**
+ * UI-3b Task 6: multi-paragraph prose built from {@link getOdontogramSummary}
+ * for the PDF odontogram section — overview sentence, permanent/missing
+ * tooth lists, implants, and every non-empty per-axis section (caries,
+ * fillings, endo, ...), each on its own line. Kept internal to `exportPdf`'s
+ * data-gathering (not part of the public summary API) since it's just a
+ * PDF-specific flattening of fields `OdontogramSummary` already exposes
+ * structurally.
+ */
+function buildOdontogramProseText(summary: OdontogramSummary): string {
+  const parts: string[] = [summary.overview];
+  if(summary.permanentList) parts.push(summary.permanentList);
+  if(summary.missingList) parts.push(summary.missingList);
+  if(summary.implants) parts.push(`${summary.implants.heading}: ${summary.implants.text}`);
+  for(const section of summary.sections){
+    if(section.items.length) parts.push(`${section.heading}: ${section.items.join("; ")}`);
+  }
+  return parts.join("\n");
 }
 
 function exportStatus(){
@@ -8632,6 +8851,12 @@ function wireControls(){
   if(svgBtn){
     svgBtn.onclick = () => { exportSvg().catch((e)=>console.error("SVG export failed", e)); };
   }
+  const perioSvgBtn = $("#btnPerioSvgExport") as HTMLButtonElement | null;
+  const perioPngBtn = $("#btnPerioPngExport") as HTMLButtonElement | null;
+  const perioJpgBtn = $("#btnPerioJpgExport") as HTMLButtonElement | null;
+  if(perioSvgBtn) perioSvgBtn.onclick = () => { exportPerioSvg().catch((e)=>console.error("Perio SVG export failed", e)); };
+  if(perioPngBtn) perioPngBtn.onclick = () => { exportPerioImage("png").catch((e)=>console.error("Perio PNG export failed", e)); };
+  if(perioJpgBtn) perioJpgBtn.onclick = () => { exportPerioImage("jpg").catch((e)=>console.error("Perio JPG export failed", e)); };
   if(importBtn && importInput){
     importBtn.onclick = () => {
       importInput.value = "";

@@ -74,6 +74,11 @@ afterEach(() => {
 
 describe("PG-E Task 2: row labels render", () => {
   it("both mPI and mBI rows are labeled (both arches, inline chrome)", () => {
+    // UI-3b Task 3: mPI/mBI additionally gate per-arch on that arch having an
+    // implant (see ui3b-mpi-implant-gate.test.ts) — set one in EACH arch so
+    // both rows render in both arches.
+    __setToothStateForTest(16, { toothSelection: "implant" }); // upper
+    __setToothStateForTest(46, { toothSelection: "implant" }); // lower
     openInline();
     const grid = document.getElementById("perioInlineGrid")!;
     const labels = Array.from(grid.querySelectorAll(".perio-fullgrid-row-label-text")).map((el) => el.textContent);
@@ -104,6 +109,10 @@ describe("PG-E Task 2: implant gate — active on an implant tooth, inert on a n
 
   it("a NATURAL (present, default) tooth's mPI/mBI cells are DISABLED", () => {
     // Tooth 16 is never touched -> defaults to a present natural tooth.
+    // UI-3b Task 3: mPI/mBI rows only render in an arch with an implant, so
+    // give the (same, upper) arch an implant elsewhere (17) to make the row
+    // exist while keeping 16 itself natural/inert.
+    __setToothStateForTest(17, { toothSelection: "implant" });
     openOverlay();
     const mpiBtn = document.getElementById("perio-fg-mpi-16-buccal") as HTMLButtonElement;
     const mbiBtn = document.getElementById("perio-fg-mbi-16-buccal") as HTMLButtonElement;
@@ -113,6 +122,10 @@ describe("PG-E Task 2: implant gate — active on an implant tooth, inert on a n
 
   it("a MISSING tooth's mPI/mBI cells are also DISABLED", () => {
     __setToothStateForTest(21, { toothSelection: "none" });
+    // UI-3b Task 3: mPI/mBI rows only render in an arch with an implant, so
+    // give the (same, upper) arch an implant elsewhere (16) to make the row
+    // exist while keeping 21 itself missing/inert.
+    __setToothStateForTest(16, { toothSelection: "implant" });
     openOverlay();
     const mpiBtn = document.getElementById("perio-fg-mpi-21-buccal") as HTMLButtonElement;
     expect(mpiBtn.disabled).toBe(true);
@@ -170,6 +183,8 @@ describe("PG-E Task 2: info buttons open the right popover", () => {
   ];
   for (const { rowKey, infoKey } of cases) {
     it(`${rowKey}'s info button opens a popover with t("${infoKey}")`, () => {
+      // UI-3b Task 3: mPI/mBI rows only render in an arch with an implant.
+      __setToothStateForTest(16, { toothSelection: "implant" });
       openInline();
       const rowLabels = Array.from(document.querySelectorAll(".perio-fullgrid-row-label"));
       const target = rowLabels.find((el) => el.textContent?.includes(t(rowKey)));

@@ -17,6 +17,7 @@ import { render, cleanup, act } from "@testing-library/react";
 import PerioChart from "../PerioChart";
 import {
   __resetChartStateForTest,
+  __setToothStateForTest,
   setNumberingSystem,
   getPerioRowVisibility,
   setPerioRowVisibility,
@@ -69,6 +70,9 @@ describe("UI-2 Task 2: default visibility (all true)", () => {
   });
 
   it("every index row label is present", () => {
+    // UI-3b Task 3: mPI/mBI additionally gate on the arch having an implant
+    // (see ui3b-mpi-implant-gate.test.ts) — set one so both rows render here.
+    __setToothStateForTest(16, { toothSelection: "implant" });
     openGrid();
     const labels = rowLabels();
     expect(labels).toContain("Plaque Index (PI)");

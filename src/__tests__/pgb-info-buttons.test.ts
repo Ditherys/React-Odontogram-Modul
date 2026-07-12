@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createElement } from "react";
 import { render, cleanup, fireEvent, act } from "@testing-library/react";
 import PerioChart from "../PerioChart";
-import { __resetChartStateForTest, setNumberingSystem } from "../odontogram";
+import { __resetChartStateForTest, __setToothStateForTest, setNumberingSystem } from "../odontogram";
 import { setI18nLanguage, t } from "../i18n/useI18n";
 
 function openInline() {
@@ -28,6 +28,11 @@ beforeEach(() => {
   cleanup();
   document.body.innerHTML = "";
   __resetChartStateForTest();
+  // UI-3b Task 3: mPI/mBI additionally gate on the arch having an implant
+  // (see ui3b-mpi-implant-gate.test.ts) — set one in EACH arch so both rows
+  // render in both arches, matching this file's BUTTONS_PER_ARCH*2 counts.
+  __setToothStateForTest(16, { toothSelection: "implant" });
+  __setToothStateForTest(46, { toothSelection: "implant" });
   setNumberingSystem("FDI");
   setI18nLanguage("en");
 });

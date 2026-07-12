@@ -16,6 +16,7 @@ import { render, cleanup, act } from "@testing-library/react";
 import PerioChart from "../PerioChart";
 import {
   __resetChartStateForTest,
+  __setToothStateForTest,
   setNumberingSystem,
   getPerioRowVisibility,
   setPerioRowVisibility,
@@ -81,6 +82,10 @@ describe("UI-3a Task 2: two graphic grid cells per arch", () => {
 
 describe("UI-3a Task 2: central index band DOM order", () => {
   it("orders: header -> Miller -> buccal graphic -> band label -> Plaque -> PI -> GI -> mPI -> mBI -> palatal graphic", () => {
+    // UI-3b Task 3: mPI/mBI rows only render in an arch with an implant
+    // (see ui3b-mpi-implant-gate.test.ts) — this test asserts DOM order
+    // within the upper arch, so give it one.
+    __setToothStateForTest(16, { toothSelection: "implant" });
     openGrid();
     const arch = upperArch();
 
