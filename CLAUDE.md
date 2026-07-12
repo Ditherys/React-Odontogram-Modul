@@ -117,10 +117,16 @@ Each tooth has:
   version in `package.json` and the README version badge for each release.
 - **English is the source of truth** for the README; translate the others from it.
 - Maintain a README for **every UI language the program supports** (currently
-  HU, EN, DE, ES, IT, SK, PL, RU, PT-BR — see `Language` in `src/i18n/translations.ts`).
-  `README.md` holds English + Spanish; the rest live in `lang/README-<code>.md`
-  (e.g. `lang/README-de.md`, `lang/README-pl.md`, `lang/README-ru.md`). When a new
-  UI language is added, add its README too and update every language switcher.
+  HU, EN, DE, ES, IT, SK, PL, RU, PT-BR, AR, ZH — see `Language` in
+  `src/i18n/translations.ts`). `README.md` holds English + Spanish; the rest live
+  in `lang/README-<code>.md` (e.g. `lang/README-de.md`, `lang/README-pl.md`,
+  `lang/README-ru.md`, `lang/README-ar.md`, `lang/README-zh.md`). When a new UI
+  language is added, add its README too and update every language switcher.
+- **RTL:** Arabic (`ar`) is the only RTL language. The document root `dir`
+  attribute reacts to the active language (`rtl` for `ar`, `ltr` otherwise), so
+  the whole UI mirrors; the dental chart (`#toothGrid`) and the periodontal
+  charts are explicitly pinned `dir="ltr"` (attribute + CSS) so tooth
+  geometry/numbering never flips.
 
 ## Scope Control
 - Do not add dependencies on external dental systems or APIs

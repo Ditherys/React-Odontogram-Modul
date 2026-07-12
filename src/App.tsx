@@ -26,6 +26,18 @@ import iconNoSelectionUrl from "./assets/icon-svgs/icon_no_selection.svg";
 import iconOcclUrl from "./assets/icon-svgs/icon_occl.svg";
 import iconPulpUrl from "./assets/icon-svgs/icon_pulp.svg";
 
+// Task 4 (Arabic+Chinese sub-project): languages whose native reading
+// direction is right-to-left. Only Arabic today; Chinese (zh) is LTR.
+// The shell root's `dir` is reactive to the active `lang` (never mutates
+// `document.documentElement` — an embedding host page's direction is not
+// ours to change), while the dental/perio charts stay pinned `dir="ltr"`
+// (see `#toothGrid` below + the defensive CSS rule in `src/index.css`) since
+// they are diagrams read 18->28 left-to-right in every locale.
+const RTL_LANGUAGES: ReadonlySet<Language> = new Set(["ar"]);
+function isRtl(lang: Language): boolean {
+  return RTL_LANGUAGES.has(lang);
+}
+
 /**
  * Props for the main Odontogram application component.
  *
@@ -147,6 +159,8 @@ const LANGUAGE_OPTIONS: { value: Language; labelKey: string }[] = [
   { value: "pl", labelKey: "language.pl" },
   { value: "ru", labelKey: "language.ru" },
   { value: "pt-br", labelKey: "language.pt-br" },
+  { value: "zh", labelKey: "language.zh" },
+  { value: "ar", labelKey: "language.ar" },
 ];
 
 /**
@@ -490,7 +504,7 @@ export default function App({
   };
 
   return (
-    <div ref={themeRootRef} className="odontogram-root">
+    <div ref={themeRootRef} className="odontogram-root" dir={isRtl(lang) ? "rtl" : "ltr"} lang={lang}>
       <header className="topbar">
         <div className="brand">
           <div className="dot"></div>
@@ -668,7 +682,7 @@ export default function App({
               </button>
             </div>
           </div>
-          <div id="toothGrid" className="tooth-grid" aria-label={t("chart.aria.toothGrid")}></div>
+          <div id="toothGrid" className="tooth-grid" dir="ltr" aria-label={t("chart.aria.toothGrid")}></div>
         </section>
         {toothInfoOn && summary && (
           <section className="tooth-info card" aria-label={t("toothInfo.title")}>
@@ -708,7 +722,7 @@ export default function App({
         )}
         </div>
         {viewMode === "toggle" && activeView === "dentalChart" && (
-          <div className="dental-chart-column">
+          <div className="dental-chart-column" dir="ltr">
             <PerioChart inline />
           </div>
         )}

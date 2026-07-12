@@ -127,7 +127,7 @@ describe("computeFillingDefectSummaryLine (SP16 Task 1 fillings-panel hint, para
 
 describe("filling.fillingDefectSummarySingle/Multiple resolve in every UI language", () => {
   it("is a non-empty, non-raw-key translation for every supported language", () => {
-    for (const lang of ["hu", "en", "de", "es", "it", "sk", "pl", "ru", "pt-br"] as const) {
+    for (const lang of ["hu", "en", "de", "es", "it", "sk", "pl", "ru", "pt-br", "zh", "ar"] as const) {
       const single = t("filling.fillingDefectSummarySingle", lang, { teeth: "35 (O)" });
       const multiple = t("filling.fillingDefectSummaryMultiple", lang, { teeth: "35 (O), 36 (M)" });
       expect(single).not.toBe("filling.fillingDefectSummarySingle");

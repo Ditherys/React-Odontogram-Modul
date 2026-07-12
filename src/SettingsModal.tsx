@@ -94,6 +94,8 @@ const LANGUAGE_OPTIONS: { value: Language; labelKey: string }[] = [
   { value: "pl", labelKey: "language.pl" },
   { value: "ru", labelKey: "language.ru" },
   { value: "pt-br", labelKey: "language.pt-br" },
+  { value: "zh", labelKey: "language.zh" },
+  { value: "ar", labelKey: "language.ar" },
 ];
 
 const SECONDARY_OPTIONS: { value: SecondaryCariesMode; labelKey: string }[] = [

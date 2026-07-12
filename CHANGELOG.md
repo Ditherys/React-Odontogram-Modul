@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.50.0] - 2026-08-03
+### Added
+- **Arabic (`ar`) and Simplified Chinese (`zh`) UI languages** — 11 UI languages total (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH). Both ship the full 749-key translation block (matching Hungarian's key set, enforced by `translations.test.ts`), a `language.*` self-label, and an entry in the language switcher and `Language` union (`src/i18n/translations.ts`).
+- **RTL layout for Arabic.** The app root mirrors to right-to-left whenever `ar` is active (`dir` reactive to the language, `RTL_LANGUAGES`/`isRtl()` in `src/App.tsx`), while the dental chart (`#toothGrid`) and the periodontal charts (`.dental-chart-column`, `.perio-fullgrid-scroll`, `[data-perio-arch]`) stay pinned `dir="ltr"` — both via the JSX `dir="ltr"` attribute and a defensive CSS `direction: ltr` rule — so tooth geometry, numbering, and mesial/distal orientation never flip.
+- **Per-language READMEs** — `lang/README-ar.md` and `lang/README-zh.md`, added to every README language switcher.
+- Both new languages are **machine-translated**; native-speaker review is pending.
+### Notes
+- UI/i18n/CSS-only — no change to `odontogram.ts` derivation/serialization, any `fhir/*` builder, or the SVG render itself. SVG-fingerprint, FHIR-golden, and roundtrip-golden parity fixtures are byte-identical to 1.49.0. Payload version stays **2.19**.
+
 ## [1.49.0] - 2026-08-03
 ### Added
 - **Standalone periodontal chart export (SVG/PNG/JPG).** `buildPerioSvg()` (`src/perioExport.ts`) renders the FULL perio chart — tooth graphics, numeric rows, and the 2017 classification block — as one standalone vector SVG, built headlessly from the active chart's state (not from the mounted `PerioChart` DOM). `exportPerioSvg()` / `exportPerioImage("png"|"jpg")` download it, wired to three new export-menu items ("Perio SVG/PNG/JPG"); all three are disabled whenever `hasAnyPerioData()` is false.

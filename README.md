@@ -1,7 +1,7 @@
 # 🦷 React Odontogram Modul
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-1.49.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-1.50.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
 
@@ -10,7 +10,7 @@
 
 ---
 
-> 🌐 **Languages:**  🇬🇧 [English](#-english) | 🇪🇸 [Español](#-español) | 🇩🇪 [Deutsch](lang/README-de.md) | 🇭🇺 [Magyar](lang/README-hu.md) | 🇮🇹 [Italiano](lang/README-it.md) | 🇸🇰 [Slovenčina](lang/README-sk.md) | 🇵🇱 [Polski](lang/README-pl.md) | 🇷🇺 [Русский](lang/README-ru.md) | 🇧🇷 [Português (BR)](lang/README-pt-br.md)
+> 🌐 **Languages:**  🇬🇧 [English](#-english) | 🇪🇸 [Español](#-español) | 🇩🇪 [Deutsch](lang/README-de.md) | 🇭🇺 [Magyar](lang/README-hu.md) | 🇮🇹 [Italiano](lang/README-it.md) | 🇸🇰 [Slovenčina](lang/README-sk.md) | 🇵🇱 [Polski](lang/README-pl.md) | 🇷🇺 [Русский](lang/README-ru.md) | 🇧🇷 [Português (BR)](lang/README-pt-br.md) | 🇸🇦 [العربية](lang/README-ar.md) | 🇨🇳 [简体中文](lang/README-zh.md)
 
 ## 🇬🇧 English
 
@@ -74,7 +74,7 @@ This project is an interactive, browser-based odontogram editor that supports fa
 - ⏳ Progress overlay during image export
 - 🎓 12-step interactive intro tour
 - 🔢 Three numbering systems (FDI, Universal, Palmer)
-- 🌐 I18n (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR) with language switcher (190+ translation keys per language)
+- 🌐 I18n — 11 UI languages (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH) with a language switcher; Arabic renders the UI right-to-left with the dental/perio charts pinned left-to-right (machine-translated, native-speaker review pending for AR/ZH)
 - 🌗 Dark mode support with toggle button (standalone or controlled by parent app)
 - 🎨 Custom theme configuration (`themeConfig` prop) with CSS custom properties (`--odon-*`)
 - 📱 Mobile touch UX: tap-to-zoom popover, long-press context menu, pinch-to-zoom, WCAG 44px touch targets, arch toggle navigation
@@ -90,7 +90,7 @@ This project is an interactive, browser-based odontogram editor that supports fa
 - 📝 "What changes" box: whenever the plan differs from the current status, a box under the Tooth-information panel lists every difference per tooth and per treatment axis (presence, substrate, restoration, prosthesis, planned crown, orthodontics, pulp/endo, apical) as a `tooth: axis  from → to` line; also available programmatically via `getPlanChanges()`
 - 🩺 Periodontal charting: per-site **probing depth**, **gingival margin**, **bleeding on probing** (+ suppuration) at the six standard sites per tooth, with derived **clinical attachment level (CAL = PD + gingival margin)**, recession, and whole-mouth **%BOP**. A **graphical full-mouth perio chart** — each arch drawn as **two separate buccal/palatal(lingual) SVGs** (reusing the tooth artwork with a uniform crowns-to-band orientation on both aspects; an **implant graphic** for implant teeth) with a red **CEJ line**, a **numbered millimeter guide grid**, and a **gingival-margin / pocket-depth curve** over the teeth, split by a **central perio index band** (labeled `▲ Buccal … Lingual/Palatal ▼`) that carries the shared per-tooth indices — **Miller class** at the very top, and **Plaque/PI/GI/mPI/mBI** rendered as an **anatomical diamond tile** per tooth (buccal tip up, lingual tip down, mesial/distal on the middle row swapped per side so mesial always points toward the arch midline); the number rows (full index names — PD/GM/CAL/BOP + mobility + furcation — in larger, more touch-friendly cells) aligned in columns and a summary (avg PD/CAL, %BOP, PI%), with **keyboard auto-advance** entry; the chart **dynamically scales to fill the available width**, responsive at any window size. Presented as an `Odontogram | Periodontal Status` **view toggle**, whose right panel is repurposed into a **perio-context sidebar** (patient data, the 2017 classification, and the whole-mouth summary) while that view is active (a Settings option switches the whole presentation back to a **popup**), and still a **separately-invocable component** (`PerioChart` export) so a host app can call up the perio chart independently of the base odontogram. Per-site **FHIR** export via the LOINC periodontal panel (`74029-0`; PD `32910-2`, recession `32911-0`, CAL `32912-8`)
 - 🅿️ Proposed styling: in Plan mode, findings the plan **adds** vs the current status (planned crown, extraction, orthodontic movement, prosthesis, …) render with a distinct **dashed, tinted "proposed" outline** so the plan reads as intent, not fact — with a "dashed = proposed" legend in the chart card. Status-mode rendering is byte-identical; the treatment is plan-only and fully reset on switching back
-- 🧪 1704 automated tests passing (1 additional test skipped) (Vitest) across 163 test files covering numbering, translations, presets, i18n, App component, theme, touch, plugins, accessibility, and clinical-axis/diagnosis parity
+- 🧪 1721 automated tests passing (1 additional test skipped) (Vitest) across 163 test files (164 total) covering numbering, translations, presets, i18n, App component, theme, touch, plugins, accessibility, and clinical-axis/diagnosis parity
 - 📖 TypeDoc API documentation with JSDoc comments on all public exports (`npm run docs`)
 
 ### 📦 Modules
@@ -98,7 +98,7 @@ This project is an interactive, browser-based odontogram editor that supports fa
 - 🎛️ Controls and status panel
 - 🎨 SVG layering engine and templates
 - 🔢 Tooth numbering and label mapping (FDI/Universal/Palmer)
-- 🌐 Localization (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR)
+- 🌐 Localization — 11 UI languages (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH), including Arabic (RTL)
 - 💾 Status export/import
 - 📋 Status extras: predefined restoration templates
 - 🎨 Theme configuration: customizable color palette via `--odon-*` CSS properties
@@ -114,7 +114,7 @@ This project is an interactive, browser-based odontogram editor that supports fa
 ### 🛠️ UI Controls
 
 **🔝 Topbar:**
-- Language switcher (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR dropdown)
+- Language switcher (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH dropdown)
 - Dark mode toggle button (sun/moon icon, switches between light and dark theme)
 - Numbering system switcher (FDI/Universal/Palmer dropdown)
 - Export Status / Import Status buttons
@@ -375,7 +375,7 @@ npm run docs           # Generate TypeDoc docs in docs/
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `language` | `string` | `'hu'` | UI language (hu/en/de/es/it/sk/pl/ru/pt-br) |
+| `language` | `string` | `'hu'` | UI language (hu/en/de/es/it/sk/pl/ru/pt-br/ar/zh) |
 | `onLanguageChange` | `(lang) => void` | — | Callback when language changes |
 | `numberingSystem` | `string` | `'FDI'` | Numbering system (FDI/Universal/Palmer) |
 | `onNumberingChange` | `(system) => void` | — | Callback when numbering changes |
@@ -542,7 +542,7 @@ Beyond the odontogram's own Status JSON / FHIR / PNG / JPG / SVG export, the **p
 - `src/plugin.ts` - `OdontogramPlugin` type, `PluginLayer`, `getQuadrant()`, `LAYER_Z` z-index priorities
 - `src/theme.ts` - `OdontogramThemeConfig` type and `applyThemeConfig()` utility
 - `src/status_extras.ts` - 34 predefined restoration templates (bridges, dentures, bar constructions)
-- `src/i18n/` - translations (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR) and i18n hook
+- `src/i18n/` - translations (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH) and i18n hook
 - `src/utils/numbering.ts` - FDI, Universal, Palmer numbering conversion
 - `src/registry/` - declarative clinical-axis registry: FHIR field mappings, SVG-clear-set/boolean-flag activation, restoration type×material matrix, UI option lists (single source of truth generating export/import, FHIR, and picker UI)
 - `src/fhir/` - HL7 FHIR R4 export/import: `toFhir.ts`/`fromFhir.ts`, code systems, field mappings, primitives
@@ -551,7 +551,7 @@ Beyond the odontogram's own Status JSON / FHIR / PNG / JPG / SVG export, the **p
 - `src/perioExport.ts` - `buildPerioSvg()`: the full perio chart as one standalone vector SVG
 - `src/perioPdf.ts` - `exportPdf()`'s pure jsPDF report assembler (`assemblePdf`)
 - `src/ExportOptionsModal.tsx` - the "PDF report…" export-settings dialog
-- `src/__tests__/` + `src/registry/__tests__/` - Vitest test suite (1704 tests passing, 1 skipped, across 163 files)
+- `src/__tests__/` + `src/registry/__tests__/` - Vitest test suite (1721 tests passing, 1 skipped, across 163 files, 164 total)
 - `src/assets/teeth-svgs/` - SVG tooth templates (6 files: incisors, canines, premolars, molars + occlusal views)
 - `src/assets/icon-svgs/` - toolbar icon SVGs (5 files)
 
@@ -647,7 +647,7 @@ Este proyecto es un editor de odontograma interactivo basado en navegador que pe
 - ⏳ Superposición de progreso durante la exportación de imagen
 - 🎓 Tour interactivo de introducción de 12 pasos
 - 🔢 Tres sistemas de numeración (FDI, Universal, Palmer)
-- 🌐 I18n (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR) con selector de idioma (190+ claves de traducción por idioma)
+- 🌐 I18n — 11 idiomas de interfaz (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH) con selector de idioma; el árabe muestra la interfaz de derecha a izquierda, con los odontogramas periodontal y dental fijados de izquierda a derecha (AR/ZH son traducciones automáticas, pendientes de revisión por hablantes nativos)
 - 🌗 Modo oscuro con botón de alternancia (independiente o controlado por la aplicación principal)
 - 🎨 Configuración de tema personalizado (prop `themeConfig`) con CSS custom properties (`--odon-*`)
 - 📱 UX táctil móvil: popover de zoom al tocar, menú contextual con pulsación larga, zoom con pellizco, áreas táctiles WCAG 44px, navegación por arcada
@@ -671,7 +671,7 @@ Este proyecto es un editor de odontograma interactivo basado en navegador que pe
 - 🎛️ Panel de controles y estado
 - 🎨 Motor de capas SVG y plantillas
 - 🔢 Numeración dental y mapeo de etiquetas (FDI/Universal/Palmer)
-- 🌐 Localización (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR)
+- 🌐 Localización — 11 idiomas de interfaz (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH), incluyendo árabe (RTL)
 - 💾 Exportación/importación de estado
 - 📋 Extras de estado: plantillas de restauración predefinidas
 - 🎨 Configuración de tema: paleta de colores personalizable mediante propiedades CSS `--odon-*`
@@ -687,7 +687,7 @@ Este proyecto es un editor de odontograma interactivo basado en navegador que pe
 ### 🛠️ Controles de interfaz
 
 **🔝 Barra superior:**
-- Selector de idioma (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR desplegable)
+- Selector de idioma (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH desplegable)
 - Botón de modo oscuro (icono sol/luna, alterna entre tema claro y oscuro)
 - Selector de sistema de numeración (FDI/Universal/Palmer desplegable)
 - Botones Exportar estado / Importar estado
@@ -948,7 +948,7 @@ npm run docs           # Generar documentación TypeDoc en docs/
 
 | Prop | Tipo | Predeterminado | Descripción |
 |---|---|---|---|
-| `language` | `string` | `'hu'` | Idioma de la UI (hu/en/de/es/it/sk/pl/ru/pt-br) |
+| `language` | `string` | `'hu'` | Idioma de la UI (hu/en/de/es/it/sk/pl/ru/pt-br/ar/zh) |
 | `onLanguageChange` | `(lang) => void` | — | Callback cuando cambia el idioma |
 | `numberingSystem` | `string` | `'FDI'` | Sistema de numeración (FDI/Universal/Palmer) |
 | `onNumberingChange` | `(system) => void` | — | Callback cuando cambia la numeración |
@@ -1115,7 +1115,7 @@ Además de la propia exportación de Estado JSON / FHIR / PNG / JPG / SVG del od
 - `src/plugin.ts` - tipo `OdontogramPlugin`, `PluginLayer`, `getQuadrant()`, prioridades Z `LAYER_Z`
 - `src/theme.ts` - tipo `OdontogramThemeConfig` y función `applyThemeConfig()`
 - `src/status_extras.ts` - 34 plantillas de restauración predefinidas (puentes, prótesis, construcciones con barra)
-- `src/i18n/` - traducciones (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR) y hook i18n
+- `src/i18n/` - traducciones (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH) y hook i18n
 - `src/utils/numbering.ts` - conversión de numeración FDI, Universal, Palmer
 - `src/registry/` - registro declarativo de ejes clínicos: mapeos de campos FHIR, conjunto de limpieza SVG/activación de indicadores booleanos, matriz tipo×material de restauración, listas de opciones de UI (fuente única de verdad que genera la UI de exportación/importación, FHIR y de selectores)
 - `src/fhir/` - exportación/importación HL7 FHIR R4: `toFhir.ts`/`fromFhir.ts`, sistemas de códigos, mapeos de campos, primitivas

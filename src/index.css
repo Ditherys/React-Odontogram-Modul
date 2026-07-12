@@ -106,7 +106,7 @@ body{
   border-radius:10px;
   font-weight:600;
   cursor:pointer;
-  text-align:left;
+  text-align:start;
 }
 .dropdown-item:hover{background: rgba(0,0,0,.08)}
 .dropdown-item:disabled{
@@ -247,6 +247,21 @@ select:focus{
   width:18px;
   height:0;
   border-top:2px dashed var(--accent);
+}
+
+/* Task 4 (Arabic+Chinese sub-project): RTL UI (Arabic) keeps the chrome RTL,
+   but the dental & perio charts are diagrams read 18->28 left-to-right in
+   every locale — pin them LTR so the grid never auto-reverses and per-tooth
+   mesial/distal stays anatomical. Defensive/belt-and-suspenders on top of the
+   `dir="ltr"` JSX attributes on #toothGrid/.dental-chart-column (App.tsx):
+   this also covers nested geometry (e.g. [data-perio-arch] SVG cells) that
+   isn't itself a JSX dir-attribute target. */
+.tooth-grid,
+.chart-column,
+.dental-chart-column,
+.perio-fullgrid-scroll,
+[data-perio-arch]{
+  direction: ltr;
 }
 
 .tooth-grid{
@@ -632,7 +647,7 @@ select:focus{
    inline-block, so they wrap left-to-right instead of stacking. Stack them
    vertically like every other option group in this popup family. */
 .odon-depth-group{display:flex; flex-direction:column; gap:4px}
-.odon-depth-option{border:1px solid var(--line); background:rgba(0,0,0,.04); color:var(--text); padding:8px 10px; border-radius:10px; font-weight:600; cursor:pointer; text-align:left; font-size:13px}
+.odon-depth-option{border:1px solid var(--line); background:rgba(0,0,0,.04); color:var(--text); padding:8px 10px; border-radius:10px; font-weight:600; cursor:pointer; text-align:start; font-size:13px}
 .odon-depth-option:hover{background:rgba(59,123,255,.12)}
 .odon-depth-option.is-active{border-color:var(--accent,#3b7bff); background:rgba(59,123,255,.16)}
 .odon-depth-group-label{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted,#7b8794); padding:6px 4px 2px}
@@ -863,7 +878,7 @@ select:focus{
 .tooth-note-icon{
   display: inline-flex;
   align-items: center;
-  margin-left: 3px;
+  margin-inline-start: 3px;
   vertical-align: middle;
   color: var(--text);
 }
@@ -1037,7 +1052,7 @@ select:focus{
   font-weight:600;
   font-size:13px;
   cursor:pointer;
-  text-align:left;
+  text-align:start;
 }
 .odon-ctx-item:hover{background: rgba(59,123,255,.1)}
 .odon-ctx-item.danger{color:#b83a3a}
@@ -1238,7 +1253,7 @@ select:focus{
   overflow-y: auto;
 }
 .odon-settings-tab{
-  text-align: left;
+  text-align: start;
   padding: 8px 12px;
   border: 1px solid transparent; border-radius: 10px;
   background: transparent; color: var(--muted);
@@ -1278,7 +1293,7 @@ select:focus{
 }
 .odon-settings-row-control{ flex-shrink: 0; }
 .odon-settings-badge{
-  display: inline-block; margin-left: 6px;
+  display: inline-block; margin-inline-start: 6px;
   padding: 1px 7px; border-radius: 999px;
   background: rgba(59,123,255,.14); color: var(--accent, #3b7bff);
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
@@ -1704,7 +1719,7 @@ select:focus{
 }
 .perio-overlay-switch-btn:focus-visible{ outline: 2px solid var(--accent, #3b82f6); outline-offset: 1px; }
 .perio-overlay-readout{
-  margin-left: 6px;
+  margin-inline-start: 6px;
   font-size: 12px;
   font-weight: 700;
   color: var(--text);
@@ -1868,7 +1883,7 @@ select:focus{
   white-space: nowrap;
 }
 .perio-fullgrid-band-label-lingual{
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 .perio-fullgrid-cell{
   display: flex; align-items: center; justify-content: center;
