@@ -5,7 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0] - 2026-08-03
+
+First release published to npm as a consumable React component library
+(`react-odontogram-modul`). This is a **major** version bump because the
+distribution model changes — React becomes a peer dependency and the package
+ships ESM-only — even though the component's runtime behavior, data model and
+FHIR output are unchanged.
+
 ### Added
 - **Publishable npm package.** The module can now be built and published as a
   consumable library, not only run as a demo app:
@@ -21,6 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     duplicate React in consumer bundles.
   - CI (`.github/workflows/ci.yml`) and tag-triggered npm publish
     (`.github/workflows/publish.yml`) with provenance; `.nvmrc`.
+### Changed (BREAKING)
+- **React / ReactDOM are now `peerDependencies`** (`^18 || ^19`) instead of
+  regular dependencies — a consuming app must install `react` and `react-dom`
+  itself. This prevents a duplicate React copy / "Invalid hook call" errors.
+- **The package is ESM-only** — there is no CommonJS build. Consume it from a
+  bundler that supports the `exports` field (Vite, webpack 5, Next.js, Rollup,
+  esbuild, Parcel).
+- **The stylesheet must be imported separately** —
+  `import "react-odontogram-modul/style.css"`. It is no longer implied by
+  importing the component.
 ### Changed
 - **Tooth-template and inline-icon SVGs are now inlined into the JS bundle**
   (`?raw` imports) and parsed directly instead of being fetched at runtime from

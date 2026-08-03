@@ -33,13 +33,13 @@ Thumbs.db
 # === Testing / coverage ===
 coverage/
 
-# === Generated docs ===
-docs/
-
 # === Misc ===
 *.log
 
 # === Adobe Illustrator files ===
 graphics/
+
+# === SNOMED CT working files ===
+snomed/
 
 

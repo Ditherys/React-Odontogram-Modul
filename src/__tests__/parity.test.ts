@@ -22,6 +22,8 @@ const svgText = (name: string) => readFileSync(fileURLToPath(new URL(`../assets/
 describe("SP2 parity oracle (current engine must match frozen goldens)", () => {
   // Generous timeout: rendering 500+ SVG fingerprints via jsdom parsing exceeds
   // vitest's default 5000ms in this environment (see parity/capture.test.ts).
+  // Slow CI runners (GitHub Actions) can take ~50s where a dev machine takes
+  // ~25s, so keep this well above the observed CI wall-clock.
   it("SVG fingerprints match", () => {
     const golden = read("svg-fingerprints.json");
     const cases = svgCases();
@@ -32,7 +34,7 @@ describe("SP2 parity oracle (current engine must match frozen goldens)", () => {
       const layers = __renderActiveLayers(texts[c.template], c.toothNo, c.state);
       expect(layers, `${golden[i].template} #${i}`).toEqual(golden[i].layers);
     });
-  }, 30000);
+  }, 120000);
   it("FHIR bundles match", () => {
     const golden = read("fhir-golden.json");
     payloadCases().forEach((p, i) => expect(buildFhirBundle(p.payload), p.name).toEqual(golden[i].bundle));

@@ -1,7 +1,7 @@
 # 🦷 React Odontogram Modul
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-1.50.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.0.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
 
@@ -26,13 +26,23 @@ This project is an interactive, browser-based odontogram editor that supports fa
 
 ### 📦 Use as an npm package
 
-Install the component and its React peers:
+The odontogram ships as a self-contained React component library on npm:
+[`react-odontogram-modul`](https://www.npmjs.com/package/react-odontogram-modul).
+
+#### Requirements
+- **React 18 or 19** (declared as a peer dependency — provided by your app).
+- A **bundler** that understands the `exports` field and ESM: Vite, webpack 5, Next.js, Rollup, esbuild, Parcel. The package is **ESM-only**.
+- Node **≥ 18** for tooling.
+
+#### Installation
 
 ```bash
 npm install react-odontogram-modul react react-dom
 ```
 
-Render `OdontogramShell` and import the stylesheet once:
+#### Basic usage
+
+Render `OdontogramShell` and import the stylesheet **once** anywhere in your app:
 
 ```tsx
 import { OdontogramShell } from "react-odontogram-modul";
@@ -49,25 +59,73 @@ export function Chart() {
 }
 ```
 
-The imperative state API and the standalone `PerioChart` are named exports from the same package (`OdontogramShell` is also the default export):
+#### Component props
+
+`OdontogramShell` is a controlled component. The most common props:
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `language` | `Language` | `"hu"` | UI language (`hu`/`en`/`de`/`es`/`it`/`sk`/`pl`/`ru`/`pt-br`/`ar`/`zh`). |
+| `numberingSystem` | `"FDI" \| "Universal" \| "Palmer"` | `"FDI"` | Tooth numbering system. |
+| `darkMode` | `boolean` | `false` | Dark theme toggle. |
+| `readOnly` | `boolean` | `false` | Disable all editing (view-only). |
+| `themeConfig` | `OdontogramThemeConfig` | — | Override theme CSS variables (`--odon-*`). |
+| `plugins` | `OdontogramPlugin[]` | — | Register custom state plugins / extra layers. |
+| `enableNotes` | `boolean` | `false` | Enable per-tooth notes. |
+| `enableIcdas` | `boolean` | `false` | Enable ICDAS II caries scoring. |
+| `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Fire when the user changes the setting from the UI. |
+
+Finer-grained detail-level props (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) are also accepted — see the shipped `.d.ts` types for the full, typed list.
+
+#### Public API (named exports)
+
+`OdontogramShell` is both the default export and a named export. The imperative state API, the standalone `PerioChart` component, the guided tour, and all public types are named exports from the same entry point:
 
 ```ts
 import {
-  OdontogramShell,
-  PerioChart,
+  OdontogramShell,           // also the default export
+  PerioChart,                // standalone periodontal chart component
+  // read state
   getOdontogramSummary,
-  exportFhir, exportSvg, exportImage,
-  setReadOnly,
-  startIntroTour,
+  getToothStateSummary,
+  onStateChange,             // subscribe to state changes
+  // export / import
+  exportFhir,                // HL7 FHIR R4 bundle
+  exportSvg, exportImage,    // vector / raster chart export
+  setImportFormat,
+  // control
+  setReadOnly, getReadOnly,
+  clearSelection,
+  registerPlugins, setPluginState, getPluginState,
+  startIntroTour,            // launch the onboarding tour
+  // …and many more setX/getX settings functions
 } from "react-odontogram-modul";
 ```
 
-**Notes**
-- **ESM-only**, targeting bundler module resolution (Vite, webpack, Next.js, esbuild, Rollup). React **18 or 19** is a peer dependency, provided by your app.
-- **The stylesheet is separate** — import `react-odontogram-modul/style.css` once; it is not injected automatically.
-- **SSR:** the component is client-only (it touches `document` on mount). In frameworks like Next.js, render it inside a Client Component (`"use client"`) or via a client-only dynamic import.
-- **Assets are self-contained** — the tooth/icon SVGs are inlined into the bundle; there is no runtime asset fetch to configure.
-- **One instance per page** in this release — engine state is a module-level singleton, so two `<OdontogramShell>` instances would share a single chart's state.
+The full surface (≈ 44 functions + types such as `OdontogramSummary`, `OdontogramThemeConfig`, `OdontogramPlugin`, `FhirExportOptions`, `PerioViewMode`, …) is fully typed in the bundled declarations.
+
+#### Using it with Next.js (App Router)
+
+The component is client-only, so render it from a Client Component:
+
+```tsx
+"use client";
+import { OdontogramShell } from "react-odontogram-modul";
+import "react-odontogram-modul/style.css";
+
+export default function OdontogramClient() {
+  return <OdontogramShell language="en" numberingSystem="FDI" />;
+}
+```
+
+Or load it with a client-only dynamic import: `dynamic(() => import("./OdontogramClient"), { ssr: false })`.
+
+#### Important notes & current limitations
+- **ESM-only** — the package publishes a single ES module (`dist/odontogram.js`) plus a type-declaration entry (`dist/index.d.ts`). It targets bundler module resolution; there is no CommonJS build.
+- **The stylesheet is separate** — you **must** import `react-odontogram-modul/style.css` once; it is not injected automatically. Styling is global CSS scoped under `.odontogram-root` and driven by `--odon-*` CSS variables.
+- **SSR / client-only** — the component reads the DOM on mount (`document`), so it must run in the browser. In SSR frameworks, render it in a Client Component (`"use client"`) or via a client-only dynamic import.
+- **Assets are self-contained** — the tooth and icon SVGs are inlined into the JavaScript bundle at build time; there is **no runtime asset fetch** to configure and nothing extra to copy to your public folder.
+- **One instance per page** — engine state is currently a module-level singleton, so rendering two `<OdontogramShell>` instances on the same page would make them share a single chart's state. Multi-instance support is planned for a future release.
 
 ---
 
@@ -641,6 +699,111 @@ Este proyecto es un editor de odontograma interactivo basado en navegador que pe
 <img width="1727" height="870" alt="react-odontogram-modul-spanish-preview" src="https://github.com/user-attachments/assets/ef914e4f-0c7e-4c8b-a95b-76d94080a1a6" />
 
 🔗 **Test URL:** https://react-odontogram-modul.vercel.app/
+
+---
+
+### 📦 Uso como paquete npm
+
+El odontograma se publica como una biblioteca de componentes React autocontenida en npm:
+[`react-odontogram-modul`](https://www.npmjs.com/package/react-odontogram-modul).
+
+#### Requisitos
+- **React 18 o 19** (declarado como dependencia peer — lo proporciona tu aplicación).
+- Un **bundler** que entienda el campo `exports` y ESM: Vite, webpack 5, Next.js, Rollup, esbuild, Parcel. El paquete es **solo ESM**.
+- Node **≥ 18** para las herramientas.
+
+#### Instalación
+
+```bash
+npm install react-odontogram-modul react react-dom
+```
+
+#### Uso básico
+
+Renderiza `OdontogramShell` e importa la hoja de estilos **una sola vez** en tu aplicación:
+
+```tsx
+import { OdontogramShell } from "react-odontogram-modul";
+import "react-odontogram-modul/style.css";
+
+export function Chart() {
+  return (
+    <OdontogramShell
+      language="es"          // hu | en | de | es | it | sk | pl | ru | pt-br | ar | zh
+      numberingSystem="FDI"  // FDI | Universal | Palmer
+      darkMode={false}
+    />
+  );
+}
+```
+
+#### Props del componente
+
+`OdontogramShell` es un componente controlado. Las props más habituales:
+
+| Prop | Tipo | Por defecto | Descripción |
+|------|------|-------------|-------------|
+| `language` | `Language` | `"hu"` | Idioma de la interfaz (`hu`/`en`/`de`/`es`/`it`/`sk`/`pl`/`ru`/`pt-br`/`ar`/`zh`). |
+| `numberingSystem` | `"FDI" \| "Universal" \| "Palmer"` | `"FDI"` | Sistema de numeración dental. |
+| `darkMode` | `boolean` | `false` | Activa el tema oscuro. |
+| `readOnly` | `boolean` | `false` | Desactiva toda edición (solo lectura). |
+| `themeConfig` | `OdontogramThemeConfig` | — | Sobrescribe las variables CSS del tema (`--odon-*`). |
+| `plugins` | `OdontogramPlugin[]` | — | Registra plugins de estado / capas adicionales. |
+| `enableNotes` | `boolean` | `false` | Habilita las notas por diente. |
+| `enableIcdas` | `boolean` | `false` | Habilita la puntuación de caries ICDAS II. |
+| `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Se disparan cuando el usuario cambia el ajuste desde la interfaz. |
+
+También se aceptan props de nivel de detalle más finas (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) — consulta los tipos `.d.ts` incluidos para la lista completa y tipada.
+
+#### API pública (exports con nombre)
+
+`OdontogramShell` es a la vez el export por defecto y un export con nombre. La API de estado imperativa, el componente `PerioChart` independiente, el tour guiado y todos los tipos públicos son exports con nombre del mismo punto de entrada:
+
+```ts
+import {
+  OdontogramShell,           // también el export por defecto
+  PerioChart,                // gráfico periodontal independiente
+  // leer estado
+  getOdontogramSummary,
+  getToothStateSummary,
+  onStateChange,             // suscribirse a los cambios de estado
+  // exportar / importar
+  exportFhir,                // bundle HL7 FHIR R4
+  exportSvg, exportImage,    // exportación vectorial / ráster
+  setImportFormat,
+  // control
+  setReadOnly, getReadOnly,
+  clearSelection,
+  registerPlugins, setPluginState, getPluginState,
+  startIntroTour,            // lanzar el tour de introducción
+  // …y muchas más funciones setX/getX de ajustes
+} from "react-odontogram-modul";
+```
+
+Toda la superficie (≈ 44 funciones + tipos como `OdontogramSummary`, `OdontogramThemeConfig`, `OdontogramPlugin`, `FhirExportOptions`, `PerioViewMode`, …) está completamente tipada en las declaraciones incluidas.
+
+#### Uso con Next.js (App Router)
+
+El componente es solo de cliente, así que renderízalo desde un Client Component:
+
+```tsx
+"use client";
+import { OdontogramShell } from "react-odontogram-modul";
+import "react-odontogram-modul/style.css";
+
+export default function OdontogramClient() {
+  return <OdontogramShell language="es" numberingSystem="FDI" />;
+}
+```
+
+O cárgalo con un import dinámico solo de cliente: `dynamic(() => import("./OdontogramClient"), { ssr: false })`.
+
+#### Notas importantes y limitaciones actuales
+- **Solo ESM** — el paquete publica un único módulo ES (`dist/odontogram.js`) más un punto de entrada de tipos (`dist/index.d.ts`). Está pensado para la resolución de módulos de un bundler; no hay build CommonJS.
+- **La hoja de estilos es aparte** — **debes** importar `react-odontogram-modul/style.css` una vez; no se inyecta automáticamente. Los estilos son CSS global bajo `.odontogram-root`, gobernados por variables CSS `--odon-*`.
+- **SSR / solo cliente** — el componente lee el DOM al montarse (`document`), por lo que debe ejecutarse en el navegador. En frameworks con SSR, renderízalo en un Client Component (`"use client"`) o mediante un import dinámico solo de cliente.
+- **Recursos autocontenidos** — los SVG de dientes e iconos se incrustan en el bundle de JavaScript en tiempo de compilación; **no hay ninguna descarga de recursos en tiempo de ejecución** que configurar ni nada extra que copiar a tu carpeta pública.
+- **Una instancia por página** — el estado del motor es actualmente un singleton a nivel de módulo, por lo que renderizar dos instancias de `<OdontogramShell>` en la misma página haría que compartieran el estado de un único gráfico. El soporte multi-instancia está previsto para una versión futura.
 
 ---
 
