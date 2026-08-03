@@ -8,14 +8,16 @@ abstract: >-
   prosthetic and periodontal states, FDI/Universal/Palmer tooth numbering,
   HL7 FHIR R4 export/import, optional ICDAS II caries scoring, and a user
   interface localized in nine languages.
-version: 1.11.1
-date-released: 2026-07-10
+version: 1.49.0
+date-released: 2026-08-03
 url: "https://react-odontogram-modul.vercel.app/"
 repository-code: "https://github.com/ZoliQua/React-Odontogram-Modul"
 license: MIT
 # Zenodo concept (all-versions) DOI — auto-resolves to the latest archived
-# release. Recommended for citing the software in general. The DOI for this
-# specific release (v1.10.0) is listed under `identifiers:` below.
+# release. Recommended for citing the software in general. A version-specific
+# DOI is minted per release when it is archived on Zenodo; the last archived
+# version-specific DOI (v1.10.0) is kept under `identifiers:` below until a
+# newer release is archived.
 doi: "10.5281/zenodo.21156787"
 identifiers:
   - type: doi
@@ -23,7 +25,7 @@ identifiers:
     description: "Zenodo concept DOI (all versions) — recommended for citing the software"
   - type: doi
     value: "10.5281/zenodo.21156788"
-    description: "Zenodo DOI for version 1.10.0"
+    description: "Zenodo DOI for the last archived version (v1.10.0)"
 authors:
   - family-names: Dul
     given-names: Zoltán

@@ -43,7 +43,7 @@ This project is an interactive, browser-based odontogram editor that supports fa
 - 🔢 12 selection filters (all, present, permanent, milk, implants, missing, upper/lower, front/molars)
 - 📊 Predefined status presets (reset, primary dentition, mixed dentition, edentulous)
 - 📦 34 predefined restoration templates (bridges, removable dentures, bar dentures with implants)
-- 💾 Status export/import in JSON (version 2.10; imports still accept legacy 1.4, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, and 2.9 and migrate automatically, with plugin custom states and per-tooth notes)
+- 💾 Status export/import in JSON (version 2.19; imports still accept legacy 1.4 and 2.0 through 2.18 and migrate automatically, with plugin custom states and per-tooth notes)
 - 🔗 HL7 FHIR R4 export (collection Bundle of per-tooth Observations, ISO 3950 tooth coding for permanent dentition, local code system — SNOMED CT mapping planned)
 - ✚ Cross/plus surface selection UI (B/M/O/D/L) for caries and fillings
 - 🧱 Per-surface restoration materials (mixed fillings, e.g. buccal amalgam + distal composite)
@@ -466,7 +466,7 @@ npm run docs           # Generate TypeDoc docs in docs/
 | `startIntroTour()` | Launch the 12-step interactive intro tour |
 
 ### 💾 Status Export/Import Format
-The export creates a JSON file (version `2.11`; imports also accept legacy `1.4`, `2.0`, `2.1`, `2.2`, `2.3`, `2.4`, `2.5`, `2.6`, `2.7`, `2.8`, `2.9`, and `2.10` and migrate automatically) containing:
+The export creates a JSON file (version `2.19`; imports also accept legacy `1.4` and `2.0` through `2.18` and migrate automatically) containing:
 
 **Global fields:**
 - `wisdomVisible` - wisdom teeth visible
@@ -571,10 +571,14 @@ Beyond the odontogram's own Status JSON / FHIR / PNG / JPG / SVG export, the **p
 
 If you use this module in your work, please cite it.
 
-**This version (v1.10.0):**
-> Dul, Z. (2026). *React Odontogram Modul* (v1.10.0). Zenodo. https://doi.org/10.5281/zenodo.21156788
+**This version (v1.49.0):**
+> Dul, Z. (2026). *React Odontogram Modul* (v1.49.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **All versions (concept DOI):** https://doi.org/10.5281/zenodo.21156787
+
+> The all-versions concept DOI above always resolves to the most recent archived
+> release; a version-specific DOI is minted per release when it is archived on
+> Zenodo. Until v1.49.0 is archived, cite it via the concept DOI.
 
 Machine-readable citation metadata is in [`CITATION.cff`](CITATION.cff).
 
