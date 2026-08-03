@@ -20,11 +20,16 @@ import { applyThemeConfig, type OdontogramThemeConfig } from "./theme";
 export type { OdontogramThemeConfig };
 import type { OdontogramPlugin, PluginLayer } from "./plugin";
 export type { OdontogramPlugin, PluginLayer };
-import icon8Url from "./assets/icon-svgs/icon_8.svg";
-import iconGumUrl from "./assets/icon-svgs/icon_gum.svg";
+// Toolbar icons rendered as inline SVG (via `loadInlineIcon`, which parses the
+// `data-icon-src` markup) are imported `?raw` so they inline into the JS bundle
+// as strings — no runtime fetch. `iconNoSelectionUrl` is rendered as an
+// `<img src>` instead, so it stays a URL import: the library build inlines this
+// small asset as a self-contained `data:` URI (Vite `assetsInlineLimit`).
+import icon8Svg from "./assets/icon-svgs/icon_8.svg?raw";
+import iconGumSvg from "./assets/icon-svgs/icon_gum.svg?raw";
 import iconNoSelectionUrl from "./assets/icon-svgs/icon_no_selection.svg";
-import iconOcclUrl from "./assets/icon-svgs/icon_occl.svg";
-import iconPulpUrl from "./assets/icon-svgs/icon_pulp.svg";
+import iconOcclSvg from "./assets/icon-svgs/icon_occl.svg?raw";
+import iconPulpSvg from "./assets/icon-svgs/icon_pulp.svg?raw";
 
 // Task 4 (Arabic+Chinese sub-project): languages whose native reading
 // direction is right-to-left. Only Arabic today; Chinese (zh) is LTR.
@@ -673,10 +678,10 @@ export default function App({
               {t("chart.proposedLegend")}
             </div>
             <div className="chart-actions">
-              <button id="btnOcclView" className="btn btn-toggle btn-icon" aria-pressed="true" title={t("chart.actions.occlusal")} aria-label={t("chart.actions.occlusal")} data-icon-src={iconOcclUrl} data-xline="1"></button>
-              <button id="btnWisdomVisible" className="btn btn-toggle btn-icon" aria-pressed="true" title={t("chart.actions.wisdom")} aria-label={t("chart.actions.wisdom")} data-icon-src={icon8Url} data-xline="1"></button>
-              <button id="btnBoneVisible" className="btn btn-toggle btn-icon" aria-pressed="true" title={t("chart.actions.bone")} aria-label={t("chart.actions.bone")} data-icon-src={iconGumUrl} data-xline="1"></button>
-              <button id="btnPulpVisible" className="btn btn-toggle btn-icon" aria-pressed="true" title={t("chart.actions.pulp")} aria-label={t("chart.actions.pulp")} data-icon-src={iconPulpUrl} data-xline="1"></button>
+              <button id="btnOcclView" className="btn btn-toggle btn-icon" aria-pressed="true" title={t("chart.actions.occlusal")} aria-label={t("chart.actions.occlusal")} data-icon-src={iconOcclSvg} data-xline="1"></button>
+              <button id="btnWisdomVisible" className="btn btn-toggle btn-icon" aria-pressed="true" title={t("chart.actions.wisdom")} aria-label={t("chart.actions.wisdom")} data-icon-src={icon8Svg} data-xline="1"></button>
+              <button id="btnBoneVisible" className="btn btn-toggle btn-icon" aria-pressed="true" title={t("chart.actions.bone")} aria-label={t("chart.actions.bone")} data-icon-src={iconGumSvg} data-xline="1"></button>
+              <button id="btnPulpVisible" className="btn btn-toggle btn-icon" aria-pressed="true" title={t("chart.actions.pulp")} aria-label={t("chart.actions.pulp")} data-icon-src={iconPulpSvg} data-xline="1"></button>
               <button id="btnSelectNoneChart" className="btn btn-ghost btn-icon" title={t("chart.actions.clearSelection")} aria-label={t("chart.actions.clearSelection")}>
                 <img className="icon-img" src={iconNoSelectionUrl} alt="" aria-hidden="true" />
               </button>

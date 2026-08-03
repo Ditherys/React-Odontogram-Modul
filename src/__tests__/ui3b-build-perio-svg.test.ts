@@ -3,52 +3,33 @@
 // vector SVG, from state (not the mounted `PerioChart` DOM).
 //
 // `buildPerioSvg()` awaits the SAME `loadTemplateCache()` `perioGraphic.ts`
-// exports (memoized fetch+parse of the 4 tooth templates) that
-// `PerioChart.tsx` itself awaits — jsdom has no real network, so this suite
-// stubs `global.fetch` to serve the real on-disk SVG assets, the EXACT same
-// seam `perio-graphic-rows.test.ts`/`ui1-dynamic-scale.test.ts` already use
-// (keyed only by the trailing `NN.svg` filename, robust to however Vite
-// rewrites the asset URL in the test env) — no new cache mechanism invented.
+// exports. Tooth templates are now INLINED into the bundle (via `?raw` imports
+// in `odontogram.ts`) and parsed directly — no `fetch()` — so this suite needs
+// no network/asset stub; the cache resolves from the inlined markup. The
+// template-load FAILURE path is exercised by spying on `loadTemplateCache` and
+// forcing a rejection (see first test), instead of the old fetch-404 stub.
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import * as perioGraphic from "../perioGraphic";
 import { buildPerioSvg } from "../perioExport";
 import { __resetChartStateForTest, setPerioSite } from "../odontogram";
 import { t } from "../i18n/useI18n";
 
-const testFileUrl = import.meta.url;
-function svgFor(name: string): string {
-  return readFileSync(fileURLToPath(new URL(`../assets/teeth-svgs/${name}`, testFileUrl)), "utf8");
-}
-
 beforeEach(() => {
   __resetChartStateForTest();
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (url: unknown) => {
-      const m = String(url).match(/(\d+\.svg)(?:\?.*)?$/);
-      if (!m) throw new Error(`unexpected fetch: ${String(url)}`);
-      return { ok: true, status: 200, text: async () => svgFor(m[1]) } as unknown as Response;
-    }),
-  );
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("UI-3b T4: buildPerioSvg", () => {
-  // Runs FIRST, deliberately: `loadTemplateCache()` memoizes its promise at
-  // MODULE scope (only a FAILED load resets it for a retry — see its own
-  // doc comment in perioGraphic.ts) — once a later test in this file loads
-  // the real templates successfully, that cache stays resolved for the rest
-  // of the file, so a stubbed-failure assertion must run before any
-  // successful load populates it.
   it("returns null gracefully when the tooth-template cache cannot be loaded", async () => {
-    vi.unstubAllGlobals();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => ({ ok: false, status: 404, text: async () => "" }) as unknown as Response),
+    // Templates are inlined now, so a load failure is only possible via an
+    // internal fault in `loadTemplateCache` (e.g. a parse error). Force it to
+    // reject to prove `buildPerioSvg`'s null-guard still holds. `mockRestore`
+    // (in afterEach) hands subsequent tests the real, successful loader.
+    vi.spyOn(perioGraphic, "loadTemplateCache").mockRejectedValueOnce(
+      new Error("forced template-load failure"),
     );
     const built = await buildPerioSvg();
     expect(built).toBeNull();

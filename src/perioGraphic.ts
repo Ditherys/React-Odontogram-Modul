@@ -132,32 +132,28 @@ export type TemplateDocCache = Map<TemplateNo, Document>;
 let cachedPromise: Promise<TemplateDocCache> | null = null;
 
 /**
- * Fetch + parse each of the 4 tooth templates ONCE into a cached `Document`
- * (never re-fetched per tooth — the returned promise is memoized at module
- * scope so concurrent/repeated calls all await the same in-flight/settled
- * load). Mirrors `odontogram.ts`'s own `loadSvg` (`fetch` -> `res.text()` ->
- * `new DOMParser().parseFromString(txt, "image/svg+xml")`), but keeps its
- * OWN cache — the live grid's `tplCache` (inside `buildGrid()`) is a
- * function-local variable, not exported/reachable from here.
+ * Parse each of the 4 tooth templates ONCE into a cached `Document` (never
+ * re-parsed per tooth — the returned promise is memoized at module scope so
+ * concurrent/repeated calls all await the same settled load). `TEMPLATES` now
+ * holds inlined SVG *text* (from `odontogram.ts`'s `?raw` imports), so this
+ * parses the markup directly — no `fetch()`. Keeps its OWN cache — the live
+ * grid's `tplCache` (inside `buildGrid()`) is a function-local variable, not
+ * exported/reachable from here.
  */
 export async function loadTemplateCache(): Promise<TemplateDocCache> {
   if (!cachedPromise) {
     cachedPromise = (async () => {
       const cache: TemplateDocCache = new Map();
       const entries = Object.entries(TEMPLATES) as [string, string][];
-      await Promise.all(
-        entries.map(async ([tplNoStr, url]) => {
-          const tplNo = Number(tplNoStr) as TemplateNo;
-          const res = await fetch(url);
-          if (!res.ok) throw new Error(`perioGraphic: template fetch failed (${res.status}): ${url}`);
-          const txt = await res.text();
-          cache.set(tplNo, new DOMParser().parseFromString(txt, "image/svg+xml"));
-        }),
-      );
+      for (const [tplNoStr, svgText] of entries) {
+        const tplNo = Number(tplNoStr) as TemplateNo;
+        if (!svgText) throw new Error(`perioGraphic: missing template SVG for ${tplNoStr}`);
+        cache.set(tplNo, new DOMParser().parseFromString(svgText, "image/svg+xml"));
+      }
       return cache;
     })().catch((err) => {
-      // Let a failed load be retried on the next call rather than sticking
-      // forever on a rejected promise (e.g. transient network failure).
+      // Let a failed parse be retried on the next call rather than sticking
+      // forever on a rejected promise.
       cachedPromise = null;
       throw err;
     });

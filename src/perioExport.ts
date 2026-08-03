@@ -291,7 +291,8 @@ function appendArchGraphic(
  * 2017 classification) as ONE standalone vector SVG, from the ACTIVE chart's
  * state — headless, no mounted DOM read. Returns `null` when the shared
  * tooth-template cache (`loadTemplateCache()`, same loader/memoized promise
- * `PerioChart.tsx` awaits) fails to load (e.g. no network).
+ * `PerioChart.tsx` awaits) fails to load (templates are inlined, so this is
+ * only an internal parse fault — the guard is defensive).
  */
 export async function buildPerioSvg(): Promise<{ xml: string; width: number; height: number } | null> {
   let cache: TemplateDocCache;

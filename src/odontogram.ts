@@ -25,27 +25,33 @@ import {
 import { derivePerioClassification, type PerioClassification, type PerioDerivationInput, type ToothDerivationInput } from "./perioClassification";
 import { buildPerioSvg } from "./perioExport";
 import { assemblePdf, type PdfExportOptions, type PdfAssembleData } from "./perioPdf";
-import tooth11Url from "./assets/teeth-svgs/11.svg";
-import tooth13Url from "./assets/teeth-svgs/13.svg";
-import tooth14Url from "./assets/teeth-svgs/14.svg";
-import tooth16Url from "./assets/teeth-svgs/16.svg";
-import tooth14OcclUrl from "./assets/teeth-svgs/14_occl.svg";
-import tooth16OcclUrl from "./assets/teeth-svgs/16_occl.svg";
+// Tooth-template SVGs are imported with Vite's `?raw` suffix so their markup is
+// INLINED into the JS bundle as string literals at build time — no runtime
+// `fetch()` of an emitted asset URL. This is what makes the built library
+// self-contained and portable to any consumer bundler (a fetched hashed asset
+// URL would 404 in a downstream app). `TEMPLATES` therefore holds SVG *text*,
+// not URLs.
+import tooth11Svg from "./assets/teeth-svgs/11.svg?raw";
+import tooth13Svg from "./assets/teeth-svgs/13.svg?raw";
+import tooth14Svg from "./assets/teeth-svgs/14.svg?raw";
+import tooth16Svg from "./assets/teeth-svgs/16.svg?raw";
+import tooth14OcclSvg from "./assets/teeth-svgs/14_occl.svg?raw";
+import tooth16OcclSvg from "./assets/teeth-svgs/16_occl.svg?raw";
 /* Tooth SVG Test UI (v2) - vanilla JS */
 
-// Exported (read-only use) so `perioGraphic.ts` can load + clone the same
+// Exported (read-only use) so `perioGraphic.ts` can parse + clone the same
 // tooth-base artwork for the perio "Dental Chart" tooth-row graphic without
-// re-fetching or duplicating these URLs/mappings. Purely additive — no
-// existing call site or behavior changes.
+// re-importing or duplicating this SVG text. Purely additive — no existing
+// call site or behavior changes. Values are inlined SVG markup (see above).
 export const TEMPLATES = {
-  11: tooth11Url,
-  13: tooth13Url,
-  14: tooth14Url,
-  16: tooth16Url,
+  11: tooth11Svg,
+  13: tooth13Svg,
+  14: tooth14Svg,
+  16: tooth16Svg,
 };
 const TEMPLATES_OCCL = {
-  14: tooth14OcclUrl,
-  16: tooth16OcclUrl,
+  14: tooth14OcclSvg,
+  16: tooth16OcclSvg,
 };
 
 // Tooth mapping in details:
@@ -1138,16 +1144,15 @@ function buildSelect(selectEl: Any, options: Any, onChange: Any){
   selectEl.addEventListener("change", (e)=>onChange((e.target as HTMLSelectElement).value));
 }
 
+// `data-icon-src` carries inlined SVG markup (from a `?raw` import in App.tsx),
+// parsed directly — never fetched — so inline icons ship inside the JS bundle.
 async function loadInlineIcon(button: Any){
   if(!button) return;
   const src = button.dataset.iconSrc;
   if(!src) return;
   try{
-    const res = await fetch(src);
-    if(!res.ok) return;
-    const txt = await res.text();
     const parser = new DOMParser();
-    const doc = parser.parseFromString(txt, "image/svg+xml");
+    const doc = parser.parseFromString(src, "image/svg+xml");
     const svg = doc.documentElement;
     svg.removeAttribute("width");
     svg.removeAttribute("height");
@@ -1155,7 +1160,7 @@ async function loadInlineIcon(button: Any){
     button.innerHTML = "";
     button.appendChild(svg);
   }catch(_e){
-    // ignore icon load failures
+    // ignore icon parse failures
   }
 }
 
@@ -8103,12 +8108,12 @@ let initialized = false;
 let controlsWired = false;
 let initToken = 0;
 
-async function loadSvg(url: Any){
-  const res = await fetch(url);
-  if(!res.ok) throw new Error(`SVG fetch failed: ${url}`);
-  const txt = await res.text();
+// `svgText` is the inlined SVG markup from a `?raw` import (see TEMPLATES) —
+// parsed directly, never fetched. Kept `async` so existing `await loadSvg(...)`
+// call sites are unchanged.
+async function loadSvg(svgText: Any){
   const parser = new DOMParser();
-  const doc = parser.parseFromString(txt, "image/svg+xml");
+  const doc = parser.parseFromString(svgText, "image/svg+xml");
   const svg = doc.documentElement;
   // Normalize ids/attrs
   stripDisplayNoneToDataActive(svg);
