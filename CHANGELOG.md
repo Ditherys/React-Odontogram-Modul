@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- **Publishable npm package.** The module can now be built and published as a
+  consumable library, not only run as a demo app:
+  - `npm run build:lib` (new `vite.lib.config.ts` + `tsconfig.build.json`)
+    emits `dist/odontogram.js` (ESM), a single `dist/style.css`, and `.d.ts`
+    types. The existing `npm run build` (demo/GitHub-Pages site) is unchanged.
+  - `package.json` gains `exports` (`.` → types + `import`; `./style.css`),
+    `main`/`module`/`types`, `files`, `sideEffects`, `engines`, and package
+    metadata; `private: true` was removed.
+  - New public entry `src/index.ts` exports `OdontogramShell` (default **and**
+    named) plus everything `App.tsx` already surfaced.
+  - React/ReactDOM moved to `peerDependencies` (`^18 || ^19`) to avoid a
+    duplicate React in consumer bundles.
+  - CI (`.github/workflows/ci.yml`) and tag-triggered npm publish
+    (`.github/workflows/publish.yml`) with provenance; `.nvmrc`.
+### Changed
+- **Tooth-template and inline-icon SVGs are now inlined into the JS bundle**
+  (`?raw` imports) and parsed directly instead of being fetched at runtime from
+  emitted asset URLs. This makes the built library self-contained and portable
+  to any consumer bundler (previously the fetched hashed asset URLs would 404
+  in a downstream app). Rendering is byte-identical — SVG-fingerprint parity is
+  green.
+### Notes
+- Consumers must import the stylesheet once:
+  `import "react-odontogram-editor-modul/style.css"`. The package is
+  **ESM-only** and targets bundler module resolution (Vite/webpack/Next/esbuild).
+- **Known limitation:** engine state is a module-level singleton, so only one
+  `<OdontogramShell>` instance per page is supported in this release.
+- Behavior/derivation/serialization/FHIR are unchanged; payload version stays
+  **2.19**.
+
 ## [1.50.0] - 2026-08-03
 ### Added
 - **Arabic (`ar`) and Simplified Chinese (`zh`) UI languages** — 11 UI languages total (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH). Both ship the full 749-key translation block (matching Hungarian's key set, enforced by `translations.test.ts`), a `language.*` self-label, and an entry in the language switcher and `Language` union (`src/i18n/translations.ts`).

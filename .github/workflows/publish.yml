@@ -1,0 +1,33 @@
+name: Publish to npm
+
+# Publishes the library when a version tag (e.g. v1.51.0) is pushed.
+# Requires an NPM_TOKEN secret (automation token with publish rights) in the
+# repository settings. `npm publish` runs the `prepublishOnly` script, which
+# rebuilds the library, so the tarball always reflects the tagged source.
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # enables npm provenance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+      - run: npm ci
+      - name: Verify build + tests before publishing
+        run: |
+          npx tsc -b --noEmit
+          npm test
+      - name: Publish
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
