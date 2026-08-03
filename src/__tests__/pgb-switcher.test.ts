@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // PG-B Task 2: the Dental Chart index switcher (#perioOverlaySwitch) + the
 // discrete-highlight overlay layers (BOP / Plakk / >=5mm / >=6mm). T1 shipped
 // the row info buttons; T3 later adds the continuous PD/CAL/GR heat.

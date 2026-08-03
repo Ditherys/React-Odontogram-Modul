@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 import '@testing-library/jest-dom/vitest';
 
 // jsdom does not implement scrollIntoView; stub it so code paths that call it

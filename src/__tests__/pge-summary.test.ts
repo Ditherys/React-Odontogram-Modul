@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP-perio PG-E Task 3: whole-mouth summary + per-tooth tooltip surfacing for
 // the peri-implant Mombelli indices — mPI (modified plaque index) and mBI
 // (modified sulcus bleeding index). Mirrors pgd-summary.test.ts's

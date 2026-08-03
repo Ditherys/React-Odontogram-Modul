@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+//
 // Vite library BUILD entry (not the types entry — that is `src/index.ts`).
 //
 // It pulls in the component's global stylesheet as a side effect so the library

@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP14 Task 3: UI wiring for the orthodontic axes (appliance/drift/vertical/
 // rotation). Tasks 1-2 already provide the four enums, the
 // getOrthoApplianceOptions()/getOrthoDriftOptions()/getOrthoVerticalOptions()

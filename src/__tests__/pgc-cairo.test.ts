@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP-perio PG-C Task 1: the derived Cairo (2011) recession-TYPE (RT1-3) —
 // a DERIVED index computed purely from the already-charted per-site CAL
 // (getToothCal) + the buccal gingival margin (perio.gm.get("B")). No new

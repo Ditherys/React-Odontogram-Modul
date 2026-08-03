@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // UI-3a Task 1: split the single composite perio-arch SVG into two
 // INDEPENDENT SVGs (buccal aspect, palatal/lingual aspect), each uniformly
 // oriented across BOTH arches — the #1 fix over the legacy `buildArchGraphic`

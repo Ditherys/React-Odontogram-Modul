@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // UI-1 Task 2: style the `<PerioSidebar/>` case-meta/classification/summary
 // block into a clean, responsive sidebar (`src/index.css`) and rename its
 // title to "Páciens adatok" (hu) / "Patient data" (en). This test is

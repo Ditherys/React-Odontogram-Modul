@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP12 Task 3: UI wiring for the discoloration axis. Tasks 1-2 already
 // provide the discoloration enum, getDiscolorationOptions(), the render-time
 // crown tint, and the discolorationAllowed()/__discolorationAllowedForTest

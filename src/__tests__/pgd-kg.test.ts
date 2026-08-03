@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP-perio PG-D Task 2: keratinized gingiva width (KG) — a per-tooth BUCCAL
 // mm scalar (integer, clamped 0-15; null = not charted). Deliberately a
 // single scalar, not per-site/per-surface, unlike PI/GI (Task 1) or the

@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP4 final-review fixes:
 //  - periapicalRowVisible: the lesion-subtype row must stay authorable on a
 //    non-present tooth (implant/missing) carrying mods.inflammation (regression

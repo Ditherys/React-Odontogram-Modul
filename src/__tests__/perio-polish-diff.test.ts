@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // PG-A Task 4: furcation + plaque in the status->plan diff. Furcation and
 // plaque were added (SP-perio P2b) as their own sub-records on the tooth
 // state (separate from `perio`'s pd/gm/bop/sup), but were NOT wired into the

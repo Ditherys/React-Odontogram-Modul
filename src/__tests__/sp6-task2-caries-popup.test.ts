@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP6 Task 2: contextual per-surface caries popup + recurrent-caries indicator
 // on the filling-surface cell + CARS 0..6 names. No full-DOM harness exists for
 // the tooth panel, so — as prior SP tasks did — these tests target the pure

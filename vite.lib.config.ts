@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+//
 // Library build config — produces the distributable npm package artifacts.
 //
 // Kept SEPARATE from `vite.config.ts` (the demo/GitHub-Pages app build) so

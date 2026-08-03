@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP5 Task 1: caries fields foundation — additive registry scaffolding only
 // (no render/UI wiring yet; see later SP5 tasks). Mirrors
 // diagnosis-axes.test.ts's shape for the new `rootCaries` enum axis, and

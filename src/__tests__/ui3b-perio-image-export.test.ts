@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // UI-3b Task 5: `exportPerioSvg()`/`exportPerioImage()` — the perio-chart
 // export menu items. `exportPerioSvg` awaits T4's `buildPerioSvg()`, which
 // itself awaits `loadTemplateCache()` (perioGraphic.ts) — jsdom has no real

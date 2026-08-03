@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP15 wholebranch review fix — two visibility-gate-without-render/state-clear
 // findings (same bug class as SP15 Task 1's B5/B7 gates):
 //

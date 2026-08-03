@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP3b final-review fixes:
 //  FIX 1 — a v1.14.0 (payload 2.0) implant FIXED crown (serialized by the SP3a
 //          interim defer as restorationType:"none" + crownMaterial:<material>)

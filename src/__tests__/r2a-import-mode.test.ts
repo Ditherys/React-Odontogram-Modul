@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // Whole-branch review fix: importing a case file while in PLAN mode must not
 // strand the user on an empty/stale plan chart.
 //

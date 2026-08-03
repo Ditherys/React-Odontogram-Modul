@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+//
 // UI-3b Task 4: `buildPerioSvg()` — the FULL perio chart (teeth graphic +
 // numeric rows + 2017 classification) rendered as ONE standalone vector SVG,
 // built headlessly from state (NOT from the mounted `PerioChart` DOM). Tasks

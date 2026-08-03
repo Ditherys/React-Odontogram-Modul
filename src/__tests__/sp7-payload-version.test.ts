@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP7 Task 6: payload version 2.5 — root/periodontium/endo-pulp consolidation
 // (merged Pulp/Endo selector, merged Root+Periodontium card, granuloma/cyst
 // lesion subtype, reversible-pulpitis reduced glyph, retired duplicate

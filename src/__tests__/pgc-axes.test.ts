@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP-perio PG-C Task 2: two new per-tooth categorical DATA axes —
 // `cejVisibility` (none|detectable|not-detectable) and `rootConcavity`
 // (none|mild|deep). Data + registry + FHIR + payload only (the Dental Chart

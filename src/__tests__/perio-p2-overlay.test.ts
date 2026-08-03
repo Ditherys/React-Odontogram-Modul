@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // Periodontal-arc sub-project P2, Task 1: the separately-invocable perio-chart
 // OVERLAY shell + its open/close imperative API. P1 (v1.34.0, committed)
 // shipped the perio data core (setPerioSite/getToothPerio/getPerioSummary/

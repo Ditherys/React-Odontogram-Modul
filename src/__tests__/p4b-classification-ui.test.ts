@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // P4b Task 4: the periodontal classification UI panel (Dental Chart) — the
 // 2017 World Workshop diagnosis/stage/grade/extent classification, extending
 // the P4a case-metadata panel (`src/PerioChart.tsx`) with a block that shows,

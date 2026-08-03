@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP5 final-review fixes (data integrity + summary visibility).
 //
 // FIX 1 — version-gate the legacy secondary-caries inference: a surface with

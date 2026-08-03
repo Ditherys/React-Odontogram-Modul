@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // Periodontal-arc sub-project P2b, Task 4: surface the furcation (T2) and
 // plaque (T3) data as ROWS in the perio chart (both chrome variants — the
 // modal overlay `#perioOverlayGrid` and the inline `#perioInlineGrid` panel)

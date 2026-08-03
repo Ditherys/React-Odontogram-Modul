@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP4 Task 3 byte-identical proof: `pulpDx` (enum) replaces the retired
 // `pulpInflam` boolean. Any non-"normal" pulpDx value must activate the SAME
 // pulp-diseased layer that the legacy `pulpInflam:true` boolean activated —

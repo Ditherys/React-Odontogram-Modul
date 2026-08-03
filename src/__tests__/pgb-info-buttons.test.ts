@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // PG-B Task 1: a small "i" info button on each perio row label
 // (`mkRowLabelCell` in PerioChart.tsx) that opens a lightweight popover
 // explaining that index. Self-contained (user #2) — NO switcher/overlay

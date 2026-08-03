@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // UI-3a Task 3: the 4-surface graded cells (Plaque/PI/GI/mPI/mBI) render as
 // an anatomical DIAMOND — buccal top-centered, mesial+distal middle,
 // lingual bottom-centered — via `style.gridArea` set per button, instead of

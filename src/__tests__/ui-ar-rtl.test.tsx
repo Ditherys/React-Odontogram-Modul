@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // Task 4 (Arabic+Chinese sub-project): RTL layout for Arabic.
 //
 // The shell root (`.odontogram-root`) carries a reactive `dir`/`lang` pair

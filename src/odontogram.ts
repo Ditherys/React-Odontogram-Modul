@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 import { STATUS_EXTRAS } from "./status_extras";
 import { t, onI18nChange, getI18nLanguage } from "./i18n/useI18n";
 import { toLabel, type NumberingSystem } from "./utils/numbering";

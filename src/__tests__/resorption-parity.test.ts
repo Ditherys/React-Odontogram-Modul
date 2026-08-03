@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP4 Task 2 byte-identical proof: `resorptionType` (enum) replaces the
 // retired `rootResorption` boolean. Both `internal` and `external-cervical`
 // must activate the SAME single `endo-resorption` layer that the legacy

@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP4 Task 4 byte-identical proof: the `apicalDx` clinical axis drives the
 // periapical glyph on a PRESENT tooth, decoupled from `mods.inflammation`.
 // A legacy present-tooth payload `{mods:["inflammation"], periapicalType:X}`

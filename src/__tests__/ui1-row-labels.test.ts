@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // UI-1 Task 3: full-name perio-grid row labels + a wider label column.
 // Before this task the row-label column was a hardcoded 132px, ellipsis-
 // clipping long index names (e.g. "Gingival Index (GI)" -> "Gingival Index

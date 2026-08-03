@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP7 Task 4: merged #pulpEndoSelect (root/periodontium/endo-pulp
 // consolidation). Like diagnosis-ui.test.ts and sp6-task2-caries-popup.test.ts,
 // no full-DOM harness exists for the tooth panel (odontogram.ts's DOM logic is

@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // R2-C Task 2: plan-mode "dashed = proposed" legend. Task 1 (committed)
 // dashes+tints plan-only-added SVG layers when Plan mode is active. This task
 // adds a small `#proposedLegend` hint in the chart card explaining the dashed

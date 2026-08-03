@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP5 Task 5: caries-granularity settings (modes) + the per-tooth/per-surface
 // caries authoring builders and surface-write helpers. No full-DOM harness
 // exists for the tooth panel, so — as prior SP tasks did — these tests target

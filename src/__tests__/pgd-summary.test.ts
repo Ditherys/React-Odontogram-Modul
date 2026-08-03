@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP-perio PG-D Task 5: whole-mouth summary + per-tooth tooltip surfacing for
 // the five PG-D axes — PI (Silness-Löe Plaque Index), GI (Löe-Silness
 // Gingival Index), KG (keratinized gingiva width), GT (gingival thickness/

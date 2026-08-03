@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // Perio graphical polish (PG-A), Task 3: an IMPLANT tooth in the graphical
 // Dental Chart renders the template's implant fixture artwork (`#implant-base`)
 // instead of the natural `#tooth-base`, aligned on the SAME row baseline as its

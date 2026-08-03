@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP-perio PG-E Task 2: surface the Task 1 mPI/mBI (Mombelli modified
 // Plaque/Bleeding indices) data axes in the Dental Chart — two per-surface
 // graded (0-3) cycle-button rows mirroring PG-D's PI/GI rows exactly

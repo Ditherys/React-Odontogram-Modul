@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // Periodontal-arc "Dental Chart" graphical redesign, Task 4: the number rows
 // (PD/GM/CAL/BOP/mobility) re-laid into the reference structure AROUND the
 // tooth graphic — buccal-aspect rows ABOVE the buccal teeth, palatal-aspect

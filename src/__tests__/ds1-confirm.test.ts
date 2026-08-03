@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // DS-1 Task 2: blocking confirm modal for a status edit on a plan-edited tooth.
 //
 // T1 shipped the gate + propagation; the status-mode-on-a-plan-edited-tooth

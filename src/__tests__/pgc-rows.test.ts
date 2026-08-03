@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP-perio PG-C Task 3: surface the T2 cejVisibility / rootConcavity data
 // axes in the Dental Chart — two per-tooth cycle-button rows (mirrors the
 // P2b furcation/plaque rows), each with an "i" info button (mirrors PG-B

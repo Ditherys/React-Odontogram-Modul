@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP15 Task 1: restoration-dropdown gating regressions from the prior
 // materials/prosthetics refactor.
 //   B5 — implant Restoration dropdown was hidden by hideRestorationRow (fixed:

@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 /** Registry type definitions for the clinical-axis engine (SP2). Types only. */
 
 export type AxisKind = "enum" | "boolean" | "set" | "surfaceSet" | "restoration" | "derived" | "global";

@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { Language } from "./i18n/translations";
 import type { NumberingSystem } from "./utils/numbering";

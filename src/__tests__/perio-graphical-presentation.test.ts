@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // Periodontal-arc "Dental Chart" graphical redesign, Task 1: PRESENTATION only.
 // The perio CONTENT is still P2's existing <PerioChart/> body (grid + summary
 // bar) — this task only changes how it's HOUSED: an `Odontogram | Dental

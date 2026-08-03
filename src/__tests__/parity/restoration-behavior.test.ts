@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP3a Task 4 + SP3b Task 3: explicit new-behavior / migration assertions for the
 // crown-material -> toothSubstrate + restorationType x restorationMaterial swap,
 // including implant fixed crowns/bridges folding into the same axis (SP3b Task 3,

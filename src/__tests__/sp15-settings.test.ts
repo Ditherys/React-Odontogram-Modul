@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP15 Task 4:
 //   B1 — a new "Panels" settings tab (id "panels") is inserted immediately
 //        after "general", with two ToggleRows bound to showStatusCard /

@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // FIX 2 (a11y): the settings-modal tablist uses a roving tabindex, so without
 // an Arrow-key handler only the active tab is keyboard/AT reachable (the other
 // four are mouse-only). This verifies APG-tabs keyboard support: Left/Right

@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // Periodontal "Dental Chart" polish, Task 1: occlusal-to-occlusal arch
 // orientation + browser-responsive sizing + tighter/bigger teeth. Structural
 // tests only — visual correctness (arches face occlusal-to-occlusal, the

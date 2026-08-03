@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP13 Task 2: wear/discoloration detail-level accessors + simple-mode
 // toggles. Task 1 (committed) restructured the wear rows and added hidden
 // toggle checkboxes (#wearEdgeToggle / #wearCervicalToggle /

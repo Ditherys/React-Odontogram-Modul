@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // PG-B Task 3: the continuous mm heat overlays (PD / CAL / GR). T2 shipped
 // the switcher + the discrete-highlight overlays (BOP/Plakk/>=5mm/>=6mm) and
 // left pd/cal/gr as no-op stubs in the switcher + drawArchOverlay. This task

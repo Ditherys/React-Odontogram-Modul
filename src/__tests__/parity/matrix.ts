@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // Deterministic parity matrix: every enum value / surface / boolean in isolation,
 // plus curated tricky combinations, over the 6 representative templates.
 import { VALID_TOOTH_SELECTION, VALID_ENDO,

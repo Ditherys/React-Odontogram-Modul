@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 import type { Bundle, Observation, Condition, CodeableConcept, ToothRecord, OdontogramExportPayload, FhirExportOptions } from "./types";
 import { LOCAL_SYSTEM, FDI_SYSTEM, ICD10_SYSTEM } from "./codesystems";
 import { PLACEHOLDER_PATIENT_FULLURL, baseObservation } from "./primitives";

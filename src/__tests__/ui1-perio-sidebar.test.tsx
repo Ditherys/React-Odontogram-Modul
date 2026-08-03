@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // UI-1 Task 1: extract `PerioSidebar` out of `PerioChart.tsx` (the whole-mouth
 // summary bar + "Páciens adatok" case-metadata form + 2017 classification
 // block) into its own standalone, separately-mountable component, and

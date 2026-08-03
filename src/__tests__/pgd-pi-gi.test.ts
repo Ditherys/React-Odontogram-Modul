@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP-perio PG-D Task 1: Silness-Löe Plaque Index (PI) + Löe-Silness Gingival
 // Index (GI) — per-surface GRADED (1-3) axes, deliberately separate from the
 // O'Leary `plaque` boolean axis. Data + serialize + hydrate only (FHIR export

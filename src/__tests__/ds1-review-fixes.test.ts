@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // DS-1 whole-branch review — three Minor fixes:
 //   Fix 1: PER-TOOTH reset paths (zoom-popover / context-menu single-tooth
 //          reset + "Reset selected teeth") route through the edit GATE, so a

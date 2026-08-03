@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-08-03
+### Changed
+- **Docs:** every language README now shows a language-specific Overview
+  screenshot (`lang/screenshot_<lang>_odontogram.png`) in place of the shared
+  preview image, and a periodontal-chart screenshot
+  (`lang/screenshot_<lang>_perio.png`) above the periodontal-charting feature.
+  Version aligned to 2.0.2 across package.json, CITATION, README badges and the
+  regenerated TypeDoc docs. No code, API, behavior, or payload change.
+
 ## [2.0.1] - 2026-08-03
 ### Changed
 - **Docs:** added a live npm version badge (shields.io, links to

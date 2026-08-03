@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 /**
  * SP-perio P4b Task 1 — pure 2017 World Workshop periodontal classification
  * derivation core (diagnosis / stage / grade / extent).

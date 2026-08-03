@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP13 Task 3: "Tooth details" settings tab (wear/discoloration detail level).
 // Exercises the real SETTINGS_TABS registry entry — not a rendered DOM, since
 // this file must stay plain TS (no JSX) per the task brief. We call the tab's

@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP6 Task 3: root-caries severity opacity. The `caries-root` layer (wired in
 // SP5 Task 2, root-caries-parity.test.ts) previously rendered at the SVG
 // default (fully opaque) regardless of severity. This adds severity-based

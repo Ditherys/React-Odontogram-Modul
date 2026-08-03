@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP4 Task 5: the diagnosis-authoring UI (3-level pulp control + practical-Latin
 // subtypes, apical picker, resorption picker). No full-DOM harness exists, so
 // these tests target the pure option/mapping builders and the registry

@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP6 Task 4: "Fillings and restorative" panel subcaries summary line (spec
 // §7) + anterior "occlusal" -> "incisal" display label (spec §8).
 //

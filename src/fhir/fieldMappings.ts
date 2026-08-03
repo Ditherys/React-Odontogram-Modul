@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 /**
  * Declarative description of how each serialized tooth field becomes one or
  * more FHIR Observations. The generic emitter in toFhir.ts reads this table,

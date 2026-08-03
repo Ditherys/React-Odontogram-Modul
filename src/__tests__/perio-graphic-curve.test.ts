@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // Periodontal-arc "Dental Chart" graphical redesign, Task 3: the curve
 // overlay — a CEJ line + gingival-margin line + pocket-base line + a filled
 // band, driven by the per-site PD/GM data, drawn OVER the T2 tooth arch.

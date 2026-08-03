@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // UI-1 Task 3b: dynamic full-width fill-scale for the perio chart. Before
 // this task the arch's tooth columns were a FIXED multiple
 // (`PERIO_DISPLAY_SCALE`, 1.5x) of each tooth's real viewBox width, leaving

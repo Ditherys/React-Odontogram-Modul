@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP3b Task 6: crown-marginal-leakage toggle. The SVG artwork has shipped a
 // dormant `crown-leakage` layer since v2.5.0 (never toggled — see
 // svg-assets.test.ts's NEW_LEAVES_ALL), but no clinical axis, state field, or

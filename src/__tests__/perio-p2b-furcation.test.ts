@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP-perio P2b Task 2: furcation involvement (Glickman I-IV, per entrance).
 // Data + serialize + FHIR + summary only (the UI row is a later task). See
 // .superpowers/sdd/task-2-brief.md for the exact entrance sets / LOINC code.

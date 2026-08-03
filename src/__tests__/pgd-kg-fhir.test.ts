@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP-perio PG-D Task 2: FHIR export coverage for keratinized gingiva width
 // (KG) — a per-tooth BUCCAL mm scalar. Mirrors the PI/GI FHIR test structure
 // (pgd-pi-gi-fhir.test.ts): rides as one additional component on the SAME

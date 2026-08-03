@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // Periodontal-arc sub-project P2, Task 2: the full-mouth perio-chart grid +
 // state binding + summary bar, built inside the P2 Task 1 overlay shell's
 // `#perioOverlayGrid` placeholder. P1 (v1.34.0) shipped the data core

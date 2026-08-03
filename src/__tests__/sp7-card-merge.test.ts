@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP7 Task 5: merge the "Root" (#endoSection) and "Periodontium and
 // inflammations" (#inflammationSection) cards into one #rootPeriodontiumSection
 // card with two labeled blocks (#rpRootBlock / #rpPerioBlock), relocate the

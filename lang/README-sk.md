@@ -1,7 +1,7 @@
 # 🦷 React Odontogram Modul
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.0.1-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.0.2-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-odontogram-modul?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-odontogram-modul)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -21,7 +21,7 @@
 Tento projekt je interaktívny, prehliadačovo orientovaný editor odontogramu, ktorý umožňuje rýchle zaznamenávanie zubného statusu s prehľadným rozhraním. Vykresľuje vrstvené SVG šablóny zubov na reprezentáciu reštaurácií, kazu, endodontického stavu, mobility a ďalších klinických detailov, pričom poskytuje viacnásobný výber, filtre výberu a preddefinované stavové predvoľby.
 
 ---
-<img width="1728" height="922" alt="react-odontogram-modul-english-preview" src="https://github.com/user-attachments/assets/0d6e076e-a840-408c-93cc-974e0767aaaf" />
+![Odontogram – náhľad (slovenčina)](screenshot_sk_odontogram.png)
 
 🔗 **Test URL:** https://react-odontogram-modul.vercel.app/
 
@@ -196,6 +196,9 @@ Alebo ho načítajte pomocou dynamického importu iba na strane klienta: `dynami
 - 📝 Poznámky ku každému zubu: dvojklik pre pridanie/úpravu poznámok, ikona poznámky vedľa čísla zuba, tooltip pri najetí s textom poznámky, export/import JSON
 - 🔀 Rozdelenie grafu Stav ↔ Plán: prepínač `Status | Plan` v hlavičke grafu prepína medzi aktuálnym grafom **stavu** (status) a grafom **plánu** (plan, zamýšľaný stav po ošetrení), pričom každý má vlastné stavy zubov; graf plánu sa pri prvom prepnutí naň vytvorí ako kópia stavu a úpravy v jednom grafe nikdy neovplyvnia druhý. Export/import (`exportStatus`/`exportFhir`/import súboru) sa vždy vzťahuje na graf stavu; graf plánu sa číta/zapisuje samostatne cez vlastné API (pozri Verejné API nižšie) a — keď sa líši od stavu — je zahrnutý ako doplnková sekcia `plan` v exporte JSON
 - 📝 Rámček „Čo sa zmenilo": kedykoľvek sa plán líši od aktuálneho stavu, rámček pod panelom informácií o zuboch vypíše každý rozdiel podľa zuba a osi ošetrenia (prítomnosť, substrát, náhrada, protetika, plánovaná korunka, ortodoncia, dreň/endo, apikálna) ako riadok `zub: os  z → na`; dostupné aj programovo cez `getPlanChanges()`
+
+![Parodontologická karta celých úst (slovenčina)](screenshot_sk_perio.png)
+
 - 🩺 Parodontálne vyšetrenie: pre každé miesto **hĺbka sondáže (PD)**, **gingiválny okraj**, **krvácanie pri sondáži** (+ supurácia) na šiestich štandardných miestach na zub, s odvodenou **klinickou úrovňou prichytenia (CAL = PD + gingiválny okraj)**, recesiou a celoústnym **%BOP**. **Grafický parodontálny graf pre celé ústa** — každý oblúk je vykreslený ako **dve samostatné bukálne/palatinálne(linguálne) SVG** (opätovne využívajúce ilustráciu zuba s jednotnou orientáciou korunky smerom k pásu na oboch stranách; **grafika implantátu** pre implantátové zuby) s červenou **CEJ čiarou**, **číslovanou milimetrovou vodiacou mriežkou** a **krivkou gingiválneho okraja / hĺbky vačku** nad zubmi, oddelenou **centrálnym pásom parodontálnych indexov** (s popiskom `▲ Buccal … Lingual/Palatal ▼`), ktorý nesie spoločné indexy pre každý zub — **Millerova trieda** úplne navrchu a **Plak/PI/GI/mPI/mBI** vykreslené ako **anatomická dlaždica v tvare diamantu** pre každý zub (bukálny hrot hore, linguálny dole, meziálna/distálna strana v strednom riadku prehodené podľa strany, takže meziálna vždy smeruje k stredovej línii oblúka); riadky s číslami (plné názvy indexov — PD/GM/CAL/BOP + mobilita + furkácia — vo väčších, dotyku prívetivejších bunkách) zarovnané do stĺpcov a súhrn (priemerné PD/CAL, %BOP, PI%), so zadávaním s **automatickým posunom klávesnicou**; graf sa **dynamicky prispôsobuje dostupnej šírke**, responzívny pri akejkoľvek veľkosti okna. Prezentovaný ako **prepínač zobrazenia** `Odontogram | Periodontal Status`, ktorého pravý panel sa počas tohto zobrazenia mení na **bočný panel parodontálneho kontextu** (údaje pacienta, klasifikácia 2017 a súhrn za celé ústa) (voľba v Nastaveniach prepína celé zobrazenie späť na **vyskakovacie okno**), a stále ide o **samostatne vyvolateľný komponent** (export `PerioChart`), takže hostiteľská aplikácia môže vyvolať parodontálny graf nezávisle od základného odontogramu. Export **FHIR** pre každé miesto cez parodontálny panel LOINC (`74029-0`; PD `32910-2`, recesia `32911-0`, CAL `32912-8`)
 - 🅿️ Navrhovaný štýl: v režime Plán sa nálezy, ktoré plán **pridáva** oproti aktuálnemu stavu (plánovaná korunka, extrakcia, ortodontický pohyb, protetika, …), vykresľujú s výrazným prerušovaným, tónovaným „navrhovaným" obrysom, aby bolo zrejmé, že ide o zámer, nie fakt — s legendou „prerušovane = navrhované" na karte grafu. Vykresľovanie v režime Stav je bajtovo identické; ošetrenie existuje iba v pláne a pri prepnutí späť sa úplne resetuje
 - 🧪 1704 prebiehajúcich automatizovaných testov (1 ďalší test preskočený) (Vitest) v 163 testovacích súboroch pokrývajúcich číslovanie, preklady, predvoľby, i18n, komponent App, tému, dotyk, pluginy, prístupnosť a paritu klinických osí/diagnóz

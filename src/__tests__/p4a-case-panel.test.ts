@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // P4a Task 2: the case-metadata UI panel in the Dental Chart view.
 // Task 1 (committed) shipped the data layer only — getCaseMeta() + setters
 // (setCaseAge/setSmokingStatus/setCigarettesPerDay/setDiabetesStatus/setHba1c/

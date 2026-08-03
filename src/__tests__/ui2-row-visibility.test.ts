@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // UI-2 Task 2: the perio chart consumes `getPerioRowVisibility()` (the
 // Settings -> Periodontal tab flags added in Task 1) and hides the
 // corresponding index rows. Default (all-visible) must render every row

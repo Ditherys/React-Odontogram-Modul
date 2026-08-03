@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP13 Task 1: Wear-row layout restructure (the overflow fix).
 // #bruxismRow was a no-wrap horizontal .row holding two 220px-min wear
 // <select>s, with #extractionPlanRow reparented in as a third child at

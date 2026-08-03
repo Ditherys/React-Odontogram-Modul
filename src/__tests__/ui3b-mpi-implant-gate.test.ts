@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // UI-3b Task 3: per-arch mPI/mBI implant-gating.
 //
 // The Mombelli mPI/mBI rows (SP-perio PG-E) are per-surface graded indices

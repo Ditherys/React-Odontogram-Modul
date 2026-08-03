@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 /**
  * Registry catalog coding data (SP2 Stage 3b). Generic AXES-driven pass that
  * replaces the render's 13 scattered boolean-flag layer toggles + the `mods`

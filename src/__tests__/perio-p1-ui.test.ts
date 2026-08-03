@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP-perio P1 Task 2: minimal per-site input UI for the 6-site periodontal
 // data core (Task 1, committed a18731f). Adds a #perioRow block — six PD
 // number inputs + six GM number inputs (buccal row MB/B/DB, then lingual row

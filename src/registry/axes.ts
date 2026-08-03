@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 /**
  * Registry catalog coding data (SP2 Stage 0). One `ClinicalAxis` per
  * `FIELD_MAPPINGS` row (`src/fhir/fieldMappings.ts`), with finding codes and

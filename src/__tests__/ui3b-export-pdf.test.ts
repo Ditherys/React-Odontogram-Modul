@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // UI-3b Task 6: `assemblePdf()` — pure section-gating assembler behind
 // `exportPdf()`. Verified with an injectable fake jsPDF-like doc (see
 // `PdfDocLike` in `../perioPdf`) rather than a real jsPDF instance, since

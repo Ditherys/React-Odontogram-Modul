@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP5 Task 4: `radiographicDepth` surfaces as (1) a `data-radio` attribute on
 // the existing per-surface indicator element (alongside the ICDAS `data-depth`/
 // `data-icdas` attributes, added by SP5 Task 1 as a plain data field), and

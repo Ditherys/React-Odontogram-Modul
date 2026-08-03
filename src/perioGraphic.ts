@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+//
 // Periodontal-arc "Dental Chart" graphical redesign, Task 2: the tooth-row
 // graphic — draws the perio arch by REUSING the existing `tooth-base`
 // artwork (the same 4 templates the odontogram grid already loads), instead

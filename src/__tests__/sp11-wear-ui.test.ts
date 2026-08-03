@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP11 Task 3: UI wiring for the wear axis (Tasks 1-2 already provide the
 // wearEdge/wearCervical enums, getWearEdgeOptions()/getWearCervicalOptions(),
 // render gate, and hydrate/migration). This task replaces the two bruxism

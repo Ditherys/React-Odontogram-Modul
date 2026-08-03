@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // UI-3b Task 7: `ExportOptionsModal` — PDF export-settings dialog. Mirrors
 // `DualStateConfirm.tsx`'s dialog contract (backdrop/modal classes,
 // role="dialog", focus-trap, Esc/backdrop close); see

@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // UI-2 Task 1: app-level Settings -> Periodontal tab.
 //
 // Two new module-level flags (mirroring the existing `perioViewMode`

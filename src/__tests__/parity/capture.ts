@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // ONE-TIME capture of the pre-rewrite engine's behavior into frozen golden fixtures.
 // Run via `npm run parity:capture`. DO NOT re-run after Stage 0 — later stages must
 // MATCH these fixtures; re-capturing would make the oracle circular.

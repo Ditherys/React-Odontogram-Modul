@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 import { describe, it, expect, beforeEach } from 'vitest';
 import { t, setI18nLanguage, getI18nLanguage, onI18nChange } from '../i18n/useI18n';
 

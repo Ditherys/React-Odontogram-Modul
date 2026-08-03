@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // DS-1 Task 1: status->plan edit GATE + propagation (no confirm modal yet).
 //
 // The gate (`gateToothEdit`/`gateToothEditBatch`) is the single choke point

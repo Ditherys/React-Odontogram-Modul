@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP-perio PG-D Task 4: surface the Task 1-3 PI/GI/KG/GT/Miller data axes in
 // the Dental Chart — two per-surface graded (0-3) cycle-button rows (PI/GI,
 // mirrors the O'Leary plaque row's 4-quadrant shape), one per-tooth mm number

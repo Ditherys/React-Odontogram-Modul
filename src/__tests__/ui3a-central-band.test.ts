@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // UI-3a Task 2: restructure `buildArch` into buccal-graphic-top -> central
 // perio index band -> palatal-graphic-bottom, with Miller moved to the top
 // buccal area and a band-orientation legend between the buccal graphic and

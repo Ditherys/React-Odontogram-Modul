@@ -1,7 +1,7 @@
 # 🦷 React Odontogram Modul
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.0.1-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.0.2-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-odontogram-modul?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-odontogram-modul)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -21,7 +21,7 @@
 Este projeto é um editor de odontograma interativo, executado no navegador, que agiliza o registro dentário com uma interface limpa. Ele renderiza modelos de dentes em SVG por camadas para representar restaurações, cáries, estado endodôntico, mobilidade e outros detalhes clínicos, oferecendo seleção múltipla, filtros de seleção e predefinições de estado prontas para uso.
 
 ---
-<img width="1728" height="922" alt="react-odontogram-modul-portuguese-preview" src="https://github.com/user-attachments/assets/0d6e076e-a840-408c-93cc-974e0767aaaf" />
+![Odontograma – prévia (português)](screenshot_pt-br_odontogram.png)
 
 🔗 **URL de teste:** https://react-odontogram-modul.vercel.app/
 
@@ -143,6 +143,9 @@ Ou carregue-o com um import dinâmico somente client-side: `dynamic(() => import
 - 🪥 Materiais de restauração por face: amálgama, resina composta, ionômero de vidro (GIC), provisória
 - 🏥 Um seletor unificado de "Estado pulpar/endodôntico" (agrupado: polpa vital vs. tratada/endo): os estados endodônticos (obturação medicamentosa, obturação de canal, obturação de canal incompleta, pino de fibra de vidro, pino metálico) e o diagnóstico pulpar AAE (`pulpDx`: normal / pulpite reversível / irreversível / necrose) são mutuamente exclusivos — um dente tratado endodonticamente (`endo` definido) não pode também ter um diagnóstico de polpa vital; ao tratar, `pulpDx` é normalizado para `normal` e o glifo de polpa doente é suprimido. A pulpite reversível renderiza um glifo de polpa reduzido. Um ajuste opcional de 3 níveis de detalhe pulpar (`pulpDetailLevel`: simple / AAE / latim prático) exibe 9 subtipos em latim prático (pulpa sana … gangraena pulpae) via `pulpLatin`; a resecção e o pino parapulpar continuam sendo indicadores especiais separados
 - 🦴 O diagnóstico apical (`apicalDx`: periodontite apical sintomática/assintomática, abscesso apical agudo/crônico, osteíte condensante) determina diretamente o glifo periapical; um qualificador de subtipo de lesão granuloma/cisto é exibido apenas sob periodontite apical sintomática/assintomática (o subtipo redundante "abscesso" foi removido — já é coberto pelo diagnóstico apical)
+
+![Gráfico periodontal de boca completa (português)](screenshot_pt-br_perio.png)
+
 - 🩹 Cartão unificado "Raiz e periodonto" (uma única seção recolhível para achados radiculares/periapicais e periodontais)
 - ⚕️ Modificações: inflamação periapical (exibida apenas em dentes ausentes/alvéolo de extração; oculta em dentes presentes, onde apenas `apicalDx` determina o glifo periapical, e em implantes, onde `periImplant` cobre isso), doença periodontal, graus de mobilidade (M1/M2/M3, ocultos em implantes)
 - 🦷🔩 Estado peri-implantar (`periImplant`: `none` / `mucositis` / `peri-implantitis-mild` / `peri-implantitis-moderate` / `peri-implantitis-severe`) — estadiamento do World Workshop de 2018, exibido como um seletor dedicado em implantes; a mucosite reutiliza o glifo gengival periodontal, a peri-implantite adiciona uma camada gradual `peri-implant-bone-loss` (opacidade 0,4/0,7/1,0). Os implantes não renderizam mais o glifo de lesão periapical — sua inflamação passa a ser expressa por esse eixo — e as caixas de seleção de modificadores periodontais ficam ocultas em implantes (a rotulagem improvisada da caixa "Peri-implantite" foi aposentada)

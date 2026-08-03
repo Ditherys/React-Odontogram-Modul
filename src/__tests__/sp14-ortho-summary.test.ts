@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP14 Task 4: orthodontic findings in the per-tooth tooltip and the
 // whole-mouth summary. Both sites gate on the SAME orthoAllowed predicate
 // that render (Task 2) and the Ortho UI card (Task 3) use — an implant or

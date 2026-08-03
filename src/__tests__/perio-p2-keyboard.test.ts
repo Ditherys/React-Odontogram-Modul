@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // Periodontal-arc sub-project P2, Task 3: keyboard auto-advance + navigation
 // on the full-mouth perio-chart grid. P2 Task 2 (committed) shipped the grid
 // itself, bound to the P1 data core via plain `change`/`click` listeners.

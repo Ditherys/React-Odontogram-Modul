@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP5 Task 2: `rootCaries` (enum) wires the previously-dormant `caries-root`
 // SVG artwork layer (present since v2.5.0 in the 4 main-view templates —
 // 11/13/14/16 — but NOT in the 2 occlusal templates — 14_occl/16_occl — and

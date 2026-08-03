@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // R2-A Task 3: the `Status | Plan` chart-mode toggle UI. Tasks 1-2 (committed)
 // added the dual-chart core (charts.status/charts.plan, chartMode,
 // getChartMode()/setChartMode()) and a private no-op syncChartModeUi() seam

@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // R2-A Task 1: dual-state core (status/plan) + mode switch + reset.
 //
 // The chart now carries two PARALLEL per-case states — "status" (findings)

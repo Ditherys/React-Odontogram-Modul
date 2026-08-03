@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 import { t } from "./i18n/useI18n";
 
 export interface TourStep { selector: string; titleKey: string; textKey: string; }

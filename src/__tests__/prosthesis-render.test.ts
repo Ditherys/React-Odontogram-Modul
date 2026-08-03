@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP3b Task 2 byte-identical proof: implant attachments + removable dentures now
 // render off the dedicated `prosthesis` axis (field-move from the legacy
 // crownMaterial/bridgeUnit). Each value must activate the SAME SVG layer set the

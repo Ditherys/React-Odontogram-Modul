@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // DS-1 Task 2: control-revert on cancel (end-to-end).
 //
 // This is the one requirement that needs a REAL active tooth + the REAL control

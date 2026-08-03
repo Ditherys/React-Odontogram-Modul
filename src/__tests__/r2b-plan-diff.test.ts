@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // R2-B Task 1: getPlanChanges() — a PURE, read-only diff engine that compares
 // the "status" chart to the "plan" chart, axis by axis, and reports what
 // changed. This is the data layer only — the "what changes" UI box lands in

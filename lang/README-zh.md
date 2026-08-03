@@ -1,7 +1,7 @@
 # 🦷 React Odontogram Modul
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.0.1-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.0.2-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-odontogram-modul?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-odontogram-modul)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -23,7 +23,7 @@
 本项目是一款交互式、基于浏览器的牙位图（口腔检查图）编辑器，界面简洁，支持快速的牙科病历记录。它通过分层渲染 SVG 牙齿模板来表现修复体、龋齿、牙髓治疗状态、松动度及其他临床细节，同时提供多选、选择过滤器和预设状态模板。
 
 ---
-<img width="1728" height="922" alt="react-odontogram-modul-english-preview" src="https://github.com/user-attachments/assets/0d6e076e-a840-408c-93cc-974e0767aaaf" />
+![牙位图 – 预览（简体中文）](screenshot_zh_odontogram.png)
 
 🔗 **测试地址：** https://react-odontogram-modul.vercel.app/
 
@@ -198,6 +198,9 @@ export default function OdontogramClient() {
 - 📝 每颗牙齿的备注：双击添加/编辑备注，牙号旁显示备注图标，悬停提示显示备注文字，支持 JSON 导出/导入
 - 🔀 现状 ↔ 计划图表切换：图表标题栏中的 `Status | Plan`（现状 | 计划）切换开关可在**现状**图表与**计划**（拟定治疗后）图表之间切换，二者各自拥有独立的牙齿状态；首次切换到计划图表时，它会以现状图表为初始副本，此后一个图表中的编辑不会影响另一个图表。导出/导入（`exportStatus`/`exportFhir`/文件导入）始终针对现状图表；计划图表通过其自身的 API 单独读写（见下文“公共 API”）——当其与现状不同时，会作为附加的 `plan` 区块包含在 JSON 导出中
 - 📝 “变更内容”提示框：只要计划与当前现状存在差异，牙齿信息面板下方的一个提示框会按牙位、按治疗轴（存在与否、基质、修复体、可摘修复、拟定牙冠、正畸、牙髓/根管、根尖）逐条列出差异，格式为 `牙位: 轴  从 → 到`；也可通过 `getPlanChanges()` 以编程方式获取
+
+![全口牙周图（简体中文）](screenshot_zh_perio.png)
+
 - 🩺 牙周记录：每颗牙齿六个标准位点的**探诊深度**、**龈缘位置**、**探诊出血**（+溢脓），并推算出**临床附着水平（CAL = 探诊深度 + 龈缘位置）**、牙龈退缩量，以及全口**探诊出血百分比（%BOP）**。**图形化全口牙周图**——每侧牙弓分别绘制为**两张独立的颊侧/腭（舌）侧 SVG 图**（复用牙齿美术资源，在两个面上统一采用“牙冠朝向一致”的方向；种植牙位使用**种植体图形**），配有红色的**CEJ 线**、**带毫米刻度编号的参考网格**，以及贯穿各牙的**龈缘/牙周袋深度曲线**，并由一条**中央牙周指标带**（标注为 `▲ 颊侧 … 舌/腭侧 ▼`）将其分隔，该指标带承载共用的按牙位指标——最上方为 **Miller 分级**，**菌斑/PI/GI/mPI/mBI** 则以每颗牙齿一个**解剖学菱形方块**呈现（颊侧尖朝上，舌侧尖朝下，中间行的近中/远中根据左右侧对调，使近中始终指向牙弓中线）；数值行（完整指标名称——PD/GM/CAL/BOP + 松动度 + 根分叉——采用更大、更适合触控的单元格）按列对齐，并附一份摘要（平均 PD/CAL、%BOP、PI%），支持**键盘自动前进**式录入；图表会**动态缩放以填满可用宽度**，在任意窗口尺寸下均具响应式效果。以 `Odontogram | Periodontal Status`（牙位图 | 牙周状态）**视图切换开关**呈现，该视图激活时右侧面板会转用为**牙周情境侧栏**（患者数据、2017 年分类结果及全口摘要），设置选项可将整体呈现方式切回**弹窗**形式；`PerioChart` 依然是一个**可独立调用的组件**（具名导出），使宿主应用可以独立于基础牙位图单独调起牙周图表。按位点的 **FHIR** 导出通过 LOINC 牙周面板代码（`74029-0`；探诊深度 `32910-2`、牙龈退缩 `32911-0`、CAL `32912-8`）
 - 🅿️ 拟定样式：在计划模式下，计划相对当前现状**新增**的发现（拟定牙冠、拔牙、正畸移动、修复体等）会以醒目的**虚线、着色“拟定”轮廓**渲染，使计划呈现为意向而非既成事实——图表卡片中附有“虚线 = 拟定”图例说明。现状模式下的渲染保持逐字节一致；治疗方案仅存在于计划图表中，切回现状时会完全重置
 - 🧪 1704 个自动化测试通过（另有 1 个测试被跳过）（Vitest），覆盖 163 个测试文件，涵盖编号系统、翻译、预设模板、国际化、App 组件、主题、触控、插件、无障碍访问及临床轴/诊断一致性

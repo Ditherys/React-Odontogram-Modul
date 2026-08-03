@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+//
 // UI-3b Task 6: `exportPdf()` — jsPDF-native PDF report assembler (vector
 // text via jsPDF `.text`/`.addImage`, raster tooth/perio charts, NO
 // svg2pdf.js — jsPDF is already a dependency, this is its first use in the
@@ -18,6 +21,7 @@
 // unit-tested exclusively via an injected fake `PdfDocLike` (see
 // `src/__tests__/ui3b-export-pdf.test.ts`) — never a real `new jsPDF()`.
 // `exportPdf()`'s real-jsPDF path is a controller/browser-verify item.
+
 import { jsPDF } from "jspdf";
 import { t } from "./i18n/useI18n";
 

@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 import { describe, it, expect } from "vitest";
 import { LOCAL_VALUE_MAPS, LOCAL_SYSTEM, FDI_SYSTEM } from "../fhir/codesystems";
 

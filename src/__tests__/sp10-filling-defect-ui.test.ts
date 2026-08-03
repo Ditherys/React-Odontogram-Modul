@@ -1,3 +1,6 @@
+// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
+
 // SP10 Task 3: LEFT-side per-surface filling-defect indicator on the Fillings
 // card. Mirrors the RIGHT-side `.surf-depth` / `syncFillingSubcariesIndicator`
 // indicator-sync tests in `radiographic-depth-badge.test.ts` (hand-built
