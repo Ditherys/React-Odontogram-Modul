@@ -1,13 +1,16 @@
 name: Publish to npm
 
-# Publishes the library when a version tag (e.g. v1.51.0) is pushed.
-# Requires an NPM_TOKEN secret (automation token with publish rights) in the
-# repository settings. `npm publish` runs the `prepublishOnly` script, which
-# rebuilds the library, so the tarball always reflects the tagged source.
+# Publishes the library when a version tag (e.g. v1.51.0) is pushed, or on a
+# manual run (workflow_dispatch) — the latter is handy for publishing without a
+# new version/tag (e.g. re-publishing the current version under a new package
+# name). Requires an NPM_TOKEN secret (automation token with publish rights) in
+# the repository settings. `npm publish` runs the `prepublishOnly` script, which
+# rebuilds the library, so the tarball always reflects the source.
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 jobs:
   publish:

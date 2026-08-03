@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.2] - 2026-08-03
 ### Changed
+- **npm package renamed** from `react-odontogram-modul` to
+  **`react-advanced-odontogram`** — the previous name was too close to the
+  unrelated `react-odontogram` package. Same version (2.0.2), same code; only
+  the published package name changes. The old `react-odontogram-modul` name is
+  deprecated on npm and points here. The display name ("React Odontogram
+  Modul/Module"), the GitHub repository, and the demo URL are unchanged.
 - **Docs:** every language README now shows a language-specific Overview
   screenshot (`lang/screenshot_<lang>_odontogram.png`) in place of the shared
   preview image, and a periodontal-chart screenshot

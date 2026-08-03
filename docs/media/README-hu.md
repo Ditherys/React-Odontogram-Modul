@@ -2,7 +2,7 @@
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
 [![Version](https://img.shields.io/badge/version-2.0.2-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
-[![npm](https://img.shields.io/npm/v/react-odontogram-modul?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-odontogram-modul)
+[![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
 
@@ -23,14 +23,14 @@ Ez a projekt egy interaktív, böngészőben futó odontogram szerkesztő, amely
 ---
 ![Odontogram – előnézet (magyar)](screenshot_hu_odontogram.png)
 
-🔗 **Test URL:** https://react-odontogram-modul.vercel.app/
+🔗 **Test URL:** https://react-advanced-odontogram.vercel.app/
 
 ---
 
 ### 📦 Használat npm csomagként
 
 Az odontogram önálló React komponenskönyvtárként érhető el az npm-en:
-[`react-odontogram-modul`](https://www.npmjs.com/package/react-odontogram-modul).
+[`react-advanced-odontogram`](https://www.npmjs.com/package/react-advanced-odontogram).
 
 #### Követelmények
 - **React 18 vagy 19** (peer dependency-ként deklarálva — az alkalmazásod biztosítja).
@@ -40,7 +40,7 @@ Az odontogram önálló React komponenskönyvtárként érhető el az npm-en:
 #### Telepítés
 
 ```bash
-npm install react-odontogram-modul react react-dom
+npm install react-advanced-odontogram react react-dom
 ```
 
 #### Alapvető használat
@@ -48,8 +48,8 @@ npm install react-odontogram-modul react react-dom
 Renderelj `OdontogramShell`-t, és importáld a stíluslapot **egyszer**, bárhol az alkalmazásodban:
 
 ```tsx
-import { OdontogramShell } from "react-odontogram-modul";
-import "react-odontogram-modul/style.css";
+import { OdontogramShell } from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
 
 export function Chart() {
   return (
@@ -102,7 +102,7 @@ import {
   registerPlugins, setPluginState, getPluginState,
   startIntroTour,            // bemutató túra indítása
   // …és még sok további setX/getX beállítás függvény
-} from "react-odontogram-modul";
+} from "react-advanced-odontogram";
 ```
 
 A teljes felület (≈ 44 függvény + olyan típusok, mint az `OdontogramSummary`, `OdontogramThemeConfig`, `OdontogramPlugin`, `FhirExportOptions`, `PerioViewMode`, …) teljesen típusosan szerepel a mellékelt deklarációkban.
@@ -113,8 +113,8 @@ A komponens kizárólag kliensoldali, ezért egy Client Component-ből kell rend
 
 ```tsx
 "use client";
-import { OdontogramShell } from "react-odontogram-modul";
-import "react-odontogram-modul/style.css";
+import { OdontogramShell } from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
 
 export default function OdontogramClient() {
   return <OdontogramShell language="hu" numberingSystem="FDI" />;
@@ -125,7 +125,7 @@ Vagy töltsd be egy kizárólag kliensoldali dinamikus importtal: `dynamic(() =>
 
 #### Fontos megjegyzések és jelenlegi korlátok
 - **Kizárólag ESM** — a csomag egyetlen ES modult (`dist/odontogram.js`) publikál, kiegészítve egy típusdeklarációs belépési ponttal (`dist/index.d.ts`). A bundler modulfeloldást célozza; nincs CommonJS build.
-- **A stíluslap külön van** — kötelező egyszer importálnod a `react-odontogram-modul/style.css` fájlt; ez nem töltődik be automatikusan. A stílus globális CSS, amely a `.odontogram-root` alá van skálázva, és `--odon-*` CSS változók vezérlik.
+- **A stíluslap külön van** — kötelező egyszer importálnod a `react-advanced-odontogram/style.css` fájlt; ez nem töltődik be automatikusan. A stílus globális CSS, amely a `.odontogram-root` alá van skálázva, és `--odon-*` CSS változók vezérlik.
 - **SSR / kizárólag kliensoldali** — a komponens csatoláskor (mount) olvassa a DOM-ot (`document`), ezért a böngészőben kell futnia. SSR keretrendszerekben egy Client Component-ben (`"use client"`) vagy kizárólag kliensoldali dinamikus importon keresztül kell renderelni.
 - **Az eszközök (assets) önállóak** — a fog- és ikon-SVG-k build időben be vannak ágyazva a JavaScript bundle-be; **nincs futásidejű asset lekérés**, amit be kellene állítani, és semmi extrát nem kell átmásolni a public mappádba.
 - **Oldalanként egy példány** — a motor állapota jelenleg modul-szintű singleton, ezért ha ugyanazon az oldalon két `<OdontogramShell>` példányt renderelsz, azok egyetlen diagram állapotát osztanák meg egymással. A több példány támogatása egy jövőbeli kiadásban tervezett.

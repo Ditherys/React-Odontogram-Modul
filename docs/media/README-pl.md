@@ -2,7 +2,7 @@
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
 [![Version](https://img.shields.io/badge/version-2.0.2-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
-[![npm](https://img.shields.io/npm/v/react-odontogram-modul?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-odontogram-modul)
+[![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
 
@@ -23,14 +23,14 @@ Ten projekt to interaktywny edytor odontogramu oparty na przeglądarce, umożliw
 ---
 ![Odontogram – podgląd (polski)](screenshot_pl_odontogram.png)
 
-🔗 **Test URL:** https://react-odontogram-modul.vercel.app/
+🔗 **Test URL:** https://react-advanced-odontogram.vercel.app/
 
 ---
 
 ### 📦 Użycie jako pakiet npm
 
 Odontogram jest dostępny jako samodzielna biblioteka komponentów React na npm:
-[`react-odontogram-modul`](https://www.npmjs.com/package/react-odontogram-modul).
+[`react-advanced-odontogram`](https://www.npmjs.com/package/react-advanced-odontogram).
 
 #### Wymagania
 - **React 18 lub 19** (zadeklarowany jako peer dependency — dostarczany przez Twoją aplikację).
@@ -40,7 +40,7 @@ Odontogram jest dostępny jako samodzielna biblioteka komponentów React na npm:
 #### Instalacja
 
 ```bash
-npm install react-odontogram-modul react react-dom
+npm install react-advanced-odontogram react react-dom
 ```
 
 #### Podstawowe użycie
@@ -48,8 +48,8 @@ npm install react-odontogram-modul react react-dom
 Wyrenderuj `OdontogramShell` i zaimportuj arkusz stylów **raz** w dowolnym miejscu swojej aplikacji:
 
 ```tsx
-import { OdontogramShell } from "react-odontogram-modul";
-import "react-odontogram-modul/style.css";
+import { OdontogramShell } from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
 
 export function Chart() {
   return (
@@ -102,7 +102,7 @@ import {
   registerPlugins, setPluginState, getPluginState,
   startIntroTour,            // uruchamia wprowadzającą wycieczkę
   // …i wiele innych funkcji ustawień setX/getX
-} from "react-odontogram-modul";
+} from "react-advanced-odontogram";
 ```
 
 Pełny zakres API (≈ 44 funkcje + typy takie jak `OdontogramSummary`, `OdontogramThemeConfig`, `OdontogramPlugin`, `FhirExportOptions`, `PerioViewMode`, …) jest w pełni otypowany w dołączonych deklaracjach.
@@ -113,8 +113,8 @@ Komponent działa wyłącznie po stronie klienta, dlatego renderuj go w komponen
 
 ```tsx
 "use client";
-import { OdontogramShell } from "react-odontogram-modul";
-import "react-odontogram-modul/style.css";
+import { OdontogramShell } from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
 
 export default function OdontogramClient() {
   return <OdontogramShell language="pl" numberingSystem="FDI" />;
@@ -125,7 +125,7 @@ Ewentualnie załaduj go za pomocą dynamicznego importu tylko po stronie klienta
 
 #### Ważne uwagi i obecne ograniczenia
 - **Wyłącznie ESM** — pakiet publikuje pojedynczy moduł ES (`dist/odontogram.js`) oraz punkt wejścia deklaracji typów (`dist/index.d.ts`). Jest przeznaczony dla rozwiązywania modułów przez bundler; nie ma builda CommonJS.
-- **Arkusz stylów jest oddzielny** — **musisz** zaimportować `react-odontogram-modul/style.css` raz; nie jest on wstrzykiwany automatycznie. Stylowanie to globalny CSS ograniczony do `.odontogram-root` i sterowany zmiennymi CSS `--odon-*`.
+- **Arkusz stylów jest oddzielny** — **musisz** zaimportować `react-advanced-odontogram/style.css` raz; nie jest on wstrzykiwany automatycznie. Stylowanie to globalny CSS ograniczony do `.odontogram-root` i sterowany zmiennymi CSS `--odon-*`.
 - **SSR / tylko po stronie klienta** — komponent odczytuje DOM przy montowaniu (`document`), więc musi działać w przeglądarce. W frameworkach SSR renderuj go w komponencie klienckim (`"use client"`) lub poprzez dynamiczny import tylko po stronie klienta.
 - **Zasoby są samodzielne** — pliki SVG zębów i ikon są osadzane w pakiecie JavaScript w czasie budowania; **nie ma żadnego pobierania zasobów w czasie działania** do konfigurowania ani niczego dodatkowego do skopiowania do folderu publicznego.
 - **Jedna instancja na stronę** — stan silnika jest obecnie singletonem na poziomie modułu, więc renderowanie dwóch instancji `<OdontogramShell>` na tej samej stronie spowodowałoby współdzielenie przez nie stanu jednego wykresu. Obsługa wielu instancji jest planowana w przyszłej wersji.

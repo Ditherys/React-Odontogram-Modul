@@ -2,7 +2,7 @@
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
 [![Version](https://img.shields.io/badge/version-2.0.2-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
-[![npm](https://img.shields.io/npm/v/react-odontogram-modul?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-odontogram-modul)
+[![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
 
@@ -23,14 +23,14 @@ Tento projekt je interaktívny, prehliadačovo orientovaný editor odontogramu, 
 ---
 ![Odontogram – náhľad (slovenčina)](screenshot_sk_odontogram.png)
 
-🔗 **Test URL:** https://react-odontogram-modul.vercel.app/
+🔗 **Test URL:** https://react-advanced-odontogram.vercel.app/
 
 ---
 
 ### 📦 Použitie ako npm balík
 
 Odontogram sa distribuuje ako samostatná knižnica React komponentov na npm:
-[`react-odontogram-modul`](https://www.npmjs.com/package/react-odontogram-modul).
+[`react-advanced-odontogram`](https://www.npmjs.com/package/react-advanced-odontogram).
 
 #### Požiadavky
 - **React 18 alebo 19** (deklarovaný ako peer dependency — zabezpečuje ho vaša aplikácia).
@@ -40,7 +40,7 @@ Odontogram sa distribuuje ako samostatná knižnica React komponentov na npm:
 #### Inštalácia
 
 ```bash
-npm install react-odontogram-modul react react-dom
+npm install react-advanced-odontogram react react-dom
 ```
 
 #### Základné použitie
@@ -48,8 +48,8 @@ npm install react-odontogram-modul react react-dom
 Vykreslite `OdontogramShell` a **raz** kdekoľvek vo vašej aplikácii importujte hárok štýlov:
 
 ```tsx
-import { OdontogramShell } from "react-odontogram-modul";
-import "react-odontogram-modul/style.css";
+import { OdontogramShell } from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
 
 export function Chart() {
   return (
@@ -102,7 +102,7 @@ import {
   registerPlugins, setPluginState, getPluginState,
   startIntroTour,            // spustenie úvodnej prehliadky
   // …a mnoho ďalších funkcií nastavení setX/getX
-} from "react-odontogram-modul";
+} from "react-advanced-odontogram";
 ```
 
 Celý rozsah (≈ 44 funkcií + typy ako `OdontogramSummary`, `OdontogramThemeConfig`, `OdontogramPlugin`, `FhirExportOptions`, `PerioViewMode`, …) je plne typovaný v priložených deklaráciách.
@@ -113,8 +113,8 @@ Komponent funguje iba na strane klienta, preto ho vykresľujte z klientskeho kom
 
 ```tsx
 "use client";
-import { OdontogramShell } from "react-odontogram-modul";
-import "react-odontogram-modul/style.css";
+import { OdontogramShell } from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
 
 export default function OdontogramClient() {
   return <OdontogramShell language="sk" numberingSystem="FDI" />;
@@ -125,7 +125,7 @@ Alebo ho načítajte pomocou dynamického importu iba na strane klienta: `dynami
 
 #### Dôležité poznámky a súčasné obmedzenia
 - **Iba ESM** — balík publikuje jeden ES modul (`dist/odontogram.js`) plus vstupný bod deklarácie typov (`dist/index.d.ts`). Je cielený na rozlíšenie modulov bundlerom; neexistuje CommonJS zostavenie.
-- **Hárok štýlov je samostatný** — **musíte** raz importovať `react-odontogram-modul/style.css`; nevkladá sa automaticky. Štýlovanie je globálne CSS ohraničené pod `.odontogram-root` a riadené CSS premennými `--odon-*`.
+- **Hárok štýlov je samostatný** — **musíte** raz importovať `react-advanced-odontogram/style.css`; nevkladá sa automaticky. Štýlovanie je globálne CSS ohraničené pod `.odontogram-root` a riadené CSS premennými `--odon-*`.
 - **SSR / iba klient** — komponent pri pripojení číta DOM (`document`), preto musí bežať v prehliadači. V SSR frameworkoch ho vykresľujte v klientskom komponente (`"use client"`) alebo cez dynamický import iba na strane klienta.
 - **Zdroje sú samostatné** — SVG súbory zubov a ikon sú pri zostavení vložené priamo do JavaScriptového balíka; **nie je potrebné konfigurovať žiadne získavanie zdrojov za behu** a nič netreba kopírovať do vášho verejného priečinka.
 - **Jedna inštancia na stránku** — stav enginu je momentálne singleton na úrovni modulu, takže vykreslenie dvoch inštancií `<OdontogramShell>` na tej istej stránke by spôsobilo, že by zdieľali stav jednej karty. Podpora viacerých inštancií je plánovaná pre budúce vydanie.

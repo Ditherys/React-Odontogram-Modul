@@ -2,7 +2,7 @@
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
 [![Version](https://img.shields.io/badge/version-2.0.2-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
-[![npm](https://img.shields.io/npm/v/react-odontogram-modul?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-odontogram-modul)
+[![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
 
@@ -25,14 +25,14 @@
 ---
 ![牙位图 – 预览（简体中文）](screenshot_zh_odontogram.png)
 
-🔗 **测试地址：** https://react-odontogram-modul.vercel.app/
+🔗 **测试地址：** https://react-advanced-odontogram.vercel.app/
 
 ---
 
 ### 📦 作为 npm 包使用
 
 该牙位图作为一个独立自包含的 React 组件库发布在 npm 上：
-[`react-odontogram-modul`](https://www.npmjs.com/package/react-odontogram-modul)。
+[`react-advanced-odontogram`](https://www.npmjs.com/package/react-advanced-odontogram)。
 
 #### 环境要求
 - **React 18 或 19**（声明为 peer dependency —— 由你的应用提供）。
@@ -42,7 +42,7 @@
 #### 安装
 
 ```bash
-npm install react-odontogram-modul react react-dom
+npm install react-advanced-odontogram react react-dom
 ```
 
 #### 基本用法
@@ -50,8 +50,8 @@ npm install react-odontogram-modul react react-dom
 在应用中的任意位置渲染 `OdontogramShell`，并**仅导入一次**样式表：
 
 ```tsx
-import { OdontogramShell } from "react-odontogram-modul";
-import "react-odontogram-modul/style.css";
+import { OdontogramShell } from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
 
 export function Chart() {
   return (
@@ -104,7 +104,7 @@ import {
   registerPlugins, setPluginState, getPluginState,
   startIntroTour,            // launch the onboarding tour
   // …and many more setX/getX settings functions
-} from "react-odontogram-modul";
+} from "react-advanced-odontogram";
 ```
 
 完整的 API 表面（约 44 个函数，以及 `OdontogramSummary`、`OdontogramThemeConfig`、`OdontogramPlugin`、`FhirExportOptions`、`PerioViewMode` 等类型）在随附的声明文件中均有完整的类型定义。
@@ -115,8 +115,8 @@ import {
 
 ```tsx
 "use client";
-import { OdontogramShell } from "react-odontogram-modul";
-import "react-odontogram-modul/style.css";
+import { OdontogramShell } from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
 
 export default function OdontogramClient() {
   return <OdontogramShell language="zh" numberingSystem="FDI" />;
@@ -127,7 +127,7 @@ export default function OdontogramClient() {
 
 #### 重要说明与当前限制
 - **仅支持 ESM** —— 该包发布为单个 ES 模块（`dist/odontogram.js`），并附带一个类型声明入口（`dist/index.d.ts`）。它面向打包工具的模块解析方式；不提供 CommonJS 构建版本。
-- **样式表是独立的** —— 你**必须**导入一次 `react-odontogram-modul/style.css`；它不会被自动注入。样式为全局 CSS，作用域限定在 `.odontogram-root` 下，并由 `--odon-*` CSS 变量驱动。
+- **样式表是独立的** —— 你**必须**导入一次 `react-advanced-odontogram/style.css`；它不会被自动注入。样式为全局 CSS，作用域限定在 `.odontogram-root` 下，并由 `--odon-*` CSS 变量驱动。
 - **SSR / 仅限客户端** —— 该组件在挂载时会读取 DOM（`document`），因此必须在浏览器中运行。在支持 SSR 的框架中，请在 Client Component（`"use client"`）中渲染它，或通过仅限客户端的动态导入方式加载。
 - **资源是自包含的** —— 牙齿和图标的 SVG 在构建时被内联到 JavaScript 包中；**无需配置任何运行时资源请求**，也无需向你的 public 文件夹额外复制任何文件。
 - **每个页面仅限一个实例** —— 引擎状态目前是模块级单例，因此在同一页面渲染两个 `<OdontogramShell>` 实例会导致它们共享同一份图表状态。多实例支持计划在未来版本中提供。

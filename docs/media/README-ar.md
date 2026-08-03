@@ -2,7 +2,7 @@
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
 [![Version](https://img.shields.io/badge/version-2.0.2-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
-[![npm](https://img.shields.io/npm/v/react-odontogram-modul?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-odontogram-modul)
+[![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
 
@@ -25,14 +25,14 @@
 ---
 ![مخطط الأسنان – معاينة (العربية)](screenshot_ar_odontogram.png)
 
-🔗 **رابط الاختبار:** https://react-odontogram-modul.vercel.app/
+🔗 **رابط الاختبار:** https://react-advanced-odontogram.vercel.app/
 
 ---
 
 ### 📦 الاستخدام كحزمة npm
 
 يُشحَن الأودونتوغرام كمكتبة مكوّنات React مستقلة بذاتها على npm:
-[`react-odontogram-modul`](https://www.npmjs.com/package/react-odontogram-modul).
+[`react-advanced-odontogram`](https://www.npmjs.com/package/react-advanced-odontogram).
 
 #### المتطلبات
 - **React 18 أو 19** (مُعلَنة كاعتمادية نظير (peer dependency) — يوفّرها تطبيقك).
@@ -42,7 +42,7 @@
 #### التثبيت
 
 ```bash
-npm install react-odontogram-modul react react-dom
+npm install react-advanced-odontogram react react-dom
 ```
 
 #### الاستخدام الأساسي
@@ -50,8 +50,8 @@ npm install react-odontogram-modul react react-dom
 اعرض `OdontogramShell` واستورد ملف التنسيق **مرة واحدة فقط** في أي مكان من تطبيقك:
 
 ```tsx
-import { OdontogramShell } from "react-odontogram-modul";
-import "react-odontogram-modul/style.css";
+import { OdontogramShell } from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
 
 export function Chart() {
   return (
@@ -104,7 +104,7 @@ import {
   registerPlugins, setPluginState, getPluginState,
   startIntroTour,            // launch the onboarding tour
   // …and many more setX/getX settings functions
-} from "react-odontogram-modul";
+} from "react-advanced-odontogram";
 ```
 
 كامل الواجهة (نحو 44 دالة + أنواع مثل `OdontogramSummary`، `OdontogramThemeConfig`، `OdontogramPlugin`، `FhirExportOptions`، `PerioViewMode`، …) مُنمَّطة بالكامل ضمن التصريحات المرفقة.
@@ -115,8 +115,8 @@ import {
 
 ```tsx
 "use client";
-import { OdontogramShell } from "react-odontogram-modul";
-import "react-odontogram-modul/style.css";
+import { OdontogramShell } from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
 
 export default function OdontogramClient() {
   return <OdontogramShell language="ar" numberingSystem="FDI" />;
@@ -127,7 +127,7 @@ export default function OdontogramClient() {
 
 #### ملاحظات مهمة وقيود حالية
 - **ESM فقط** — تنشر الحزمة وحدة ES واحدة (`dist/odontogram.js`) بالإضافة إلى مدخل تصريحات الأنواع (`dist/index.d.ts`). وهي موجَّهة لاستبانة وحدات حزم التجميع (bundler)؛ لا يوجد بناء CommonJS.
-- **ملف التنسيق منفصل** — **يجب** عليك استيراد `react-odontogram-modul/style.css` مرة واحدة؛ فهو لا يُحقَن تلقائيًا. التنسيق عبارة عن CSS عام محصور ضمن `.odontogram-root` ومُتحكَّم به عبر متغيرات CSS من نوع `--odon-*`.
+- **ملف التنسيق منفصل** — **يجب** عليك استيراد `react-advanced-odontogram/style.css` مرة واحدة؛ فهو لا يُحقَن تلقائيًا. التنسيق عبارة عن CSS عام محصور ضمن `.odontogram-root` ومُتحكَّم به عبر متغيرات CSS من نوع `--odon-*`.
 - **العرض من جهة الخادم / جهة العميل فقط** — يقرأ المكوّن DOM عند التركيب (`document`)، لذا يجب أن يعمل داخل المتصفح. في أطر عمل SSR، اعرضه ضمن مكوّن عميل (`"use client"`) أو عبر استيراد ديناميكي مخصَّص لجهة العميل فقط.
 - **الأصول مكتفية ذاتيًا** — تُدرَج رسومات الأسنان والأيقونات بصيغة SVG ضمن حزمة JavaScript وقت البناء؛ **لا يوجد** أي طلب أصول وقت التشغيل يلزم إعداده، ولا شيء إضافي يلزم نسخه إلى مجلدك العام.
 - **نسخة واحدة لكل صفحة** — حالة المحرك حاليًا هي كائن وحيد (singleton) على مستوى الوحدة (module)، لذا فإن عرض نسختين من `<OdontogramShell>` في الصفحة نفسها سيجعلهما تتشاركان حالة مخطط واحد. دعم النسخ المتعددة مخطَّط له في إصدار مستقبلي.

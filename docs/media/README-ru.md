@@ -2,7 +2,7 @@
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
 [![Version](https://img.shields.io/badge/version-2.0.2-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
-[![npm](https://img.shields.io/npm/v/react-odontogram-modul?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-odontogram-modul)
+[![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
 
@@ -23,14 +23,14 @@
 ---
 ![Одонтограмма — предпросмотр (русский)](screenshot_ru_odontogram.png)
 
-🔗 **Test URL:** https://react-odontogram-modul.vercel.app/
+🔗 **Test URL:** https://react-advanced-odontogram.vercel.app/
 
 ---
 
 ### 📦 Использование в качестве npm-пакета
 
 Одонтограмма поставляется как самодостаточная библиотека React-компонентов на npm:
-[`react-odontogram-modul`](https://www.npmjs.com/package/react-odontogram-modul).
+[`react-advanced-odontogram`](https://www.npmjs.com/package/react-advanced-odontogram).
 
 #### Требования
 - **React 18 или 19** (объявлен как peer-зависимость — предоставляется вашим приложением).
@@ -40,7 +40,7 @@
 #### Установка
 
 ```bash
-npm install react-odontogram-modul react react-dom
+npm install react-advanced-odontogram react react-dom
 ```
 
 #### Базовое использование
@@ -48,8 +48,8 @@ npm install react-odontogram-modul react react-dom
 Отрисуйте `OdontogramShell` и импортируйте таблицу стилей **один раз** в любом месте вашего приложения:
 
 ```tsx
-import { OdontogramShell } from "react-odontogram-modul";
-import "react-odontogram-modul/style.css";
+import { OdontogramShell } from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
 
 export function Chart() {
   return (
@@ -102,7 +102,7 @@ import {
   registerPlugins, setPluginState, getPluginState,
   startIntroTour,            // запустить обучающий тур
   // …и многие другие функции настроек setX/getX
-} from "react-odontogram-modul";
+} from "react-advanced-odontogram";
 ```
 
 Полная поверхность API (≈ 44 функции + типы, такие как `OdontogramSummary`, `OdontogramThemeConfig`, `OdontogramPlugin`, `FhirExportOptions`, `PerioViewMode`, …) полностью типизирована во встроенных объявлениях.
@@ -113,8 +113,8 @@ import {
 
 ```tsx
 "use client";
-import { OdontogramShell } from "react-odontogram-modul";
-import "react-odontogram-modul/style.css";
+import { OdontogramShell } from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
 
 export default function OdontogramClient() {
   return <OdontogramShell language="ru" numberingSystem="FDI" />;
@@ -125,7 +125,7 @@ export default function OdontogramClient() {
 
 #### Важные замечания и текущие ограничения
 - **Только ESM** — пакет публикует единый ES-модуль (`dist/odontogram.js`) плюс точку входа для деклараций типов (`dist/index.d.ts`). Он ориентирован на разрешение модулей сборщиком; сборки CommonJS нет.
-- **Таблица стилей отдельная** — вы **обязаны** импортировать `react-odontogram-modul/style.css` один раз; она не подключается автоматически. Стилизация — это глобальный CSS, ограниченный областью `.odontogram-root` и управляемый CSS-переменными `--odon-*`.
+- **Таблица стилей отдельная** — вы **обязаны** импортировать `react-advanced-odontogram/style.css` один раз; она не подключается автоматически. Стилизация — это глобальный CSS, ограниченный областью `.odontogram-root` и управляемый CSS-переменными `--odon-*`.
 - **SSR / только клиент** — компонент обращается к DOM при монтировании (`document`), поэтому он должен выполняться в браузере. В SSR-фреймворках отрисовывайте его в клиентском компоненте (`"use client"`) или через клиентский динамический импорт.
 - **Ресурсы самодостаточны** — SVG зубов и иконок встраиваются в JavaScript-бандл на этапе сборки; **не требуется** загрузка ресурсов во время выполнения и нечего дополнительно копировать в вашу публичную папку.
 - **Один экземпляр на страницу** — состояние движка в настоящее время является одиночным объектом на уровне модуля, поэтому отрисовка двух экземпляров `<OdontogramShell>` на одной странице приведёт к тому, что они будут использовать общее состояние одной карты. Поддержка нескольких экземпляров запланирована на будущий релиз.
