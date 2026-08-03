@@ -6,15 +6,29 @@
 // Kept SEPARATE from `vite.config.ts` (the demo/GitHub-Pages app build) so
 // `npm run build` keeps emitting the demo site unchanged, while
 // `npm run build:lib` emits the consumable library. React and every runtime
-// dependency are externalized (declared as peer/deps in package.json) so the
-// bundle ships only this component's own code + inlined SVG/CSS — no second
-// copy of React, no duplicated jspdf.
+// dependency are externalized so the bundle ships only this component's own
+// code + inlined SVG/CSS — no second copy of React, no bundled jspdf.
+// vite-plugin-dts (rollupTypes) emits a single bundled dist/index.d.ts.
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import dts from 'vite-plugin-dts'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    dts({
+      // One bundled dist/index.d.ts (via @microsoft/api-extractor) instead of a
+      // tree of per-file .d.ts — hides internal __*ForTest declarations and
+      // resolves cleanly under any moduleResolution (no extensionless relative
+      // imports in the output). NOTE: vite-plugin-dts v5 calls this option
+      // `bundleTypes` (v4 called it `rollupTypes`).
+      bundleTypes: true,
+      tsconfigPath: './tsconfig.build.json',
+      include: ['src'],
+      exclude: ['src/main.tsx', 'src/**/__tests__/**', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
+    }),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -22,7 +36,7 @@ export default defineConfig({
   },
   build: {
     lib: {
-      entry: path.resolve(__dirname, 'src/lib-entry.ts'),
+      entry: path.resolve(__dirname, 'src/index.ts'),
       formats: ['es'],
       fileName: () => 'odontogram.js',
       // Guarantee a stable, single stylesheet name (dist/style.css).
@@ -34,16 +48,14 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      // Do NOT bundle React or runtime deps — the consumer app provides them.
+      // Do NOT bundle React or the one runtime dep — the consumer provides
+      // React (peer) and jspdf (dep, lazy-loaded via dynamic import).
       external: [
         'react',
         'react-dom',
         'react/jsx-runtime',
         'react/jsx-dev-runtime',
         'jspdf',
-        'nanoid',
-        'react-hook-form',
-        'react-router-dom',
       ],
     },
   },

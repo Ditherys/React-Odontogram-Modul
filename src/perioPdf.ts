@@ -22,7 +22,11 @@
 // `src/__tests__/ui3b-export-pdf.test.ts`) — never a real `new jsPDF()`.
 // `exportPdf()`'s real-jsPDF path is a controller/browser-verify item.
 
-import { jsPDF } from "jspdf";
+// jsPDF is NOT imported statically — it is lazy-loaded via a dynamic
+// `import("jspdf")` in `exportPdf()` (see odontogram.ts) so consumers who never
+// export a PDF don't pull jspdf (and its html2canvas/dompurify deps) into their
+// bundle. `assemblePdf` receives a jsPDF-backed `docFactory` from its caller
+// (or an injected fake, in tests) — it never references jsPDF itself.
 import { t } from "./i18n/useI18n";
 
 /** UI-3b Task 6/7: which PDF sections the user opted into. The perio
@@ -138,7 +142,9 @@ function pdfStamp(): string {
 export function assemblePdf(
   opts: PdfExportOptions,
   data: PdfAssembleData,
-  docFactory: () => PdfDocLike = () => new jsPDF() as unknown as PdfDocLike,
+  docFactory: () => PdfDocLike = () => {
+    throw new Error("assemblePdf: a docFactory is required — jsPDF is lazy-loaded by exportPdf()");
+  },
 ): PdfDocLike {
   const doc = docFactory();
   const pageWidth = doc.internal.pageSize.getWidth();

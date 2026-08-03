@@ -1,6 +1,6 @@
 {
   "name": "react-advanced-odontogram",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "license": "MIT",
   "type": "module",
   "description": "Interactive, SVG-based dental odontogram (dental chart) editor for React + TypeScript — multi-surface caries/filling charting, endodontic/prosthetic/periodontal states, FDI/Universal/Palmer numbering, HL7 FHIR R4 export/import, and ICDAS scoring.",
@@ -48,7 +48,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:lib": "vite build --config vite.lib.config.ts && tsc -p tsconfig.build.json",
+    "build:lib": "vite build --config vite.lib.config.ts",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
@@ -63,15 +63,11 @@
     "react-dom": "^18 || ^19"
   },
   "dependencies": {
-    "jspdf": "^4.0.0",
-    "nanoid": "^5.0.7",
-    "react-hook-form": "^7.53.0",
-    "react-router-dom": "^6.26.2"
+    "jspdf": "^4.0.0"
   },
   "devDependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
     "@eslint/js": "^9.39.2",
+    "@microsoft/api-extractor": "^7.58.12",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/fhir": "^0.0.44",
@@ -89,11 +85,14 @@
     "jiti": "^2.6.1",
     "jsdom": "^28.1.0",
     "postcss": "^8.4.45",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tailwindcss": "^3.4.10",
     "typedoc": "^0.28.17",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.53.1",
     "vite": "^7.3.1",
+    "vite-plugin-dts": "^5.0.3",
     "vitest": "^4.0.18"
   }
 }

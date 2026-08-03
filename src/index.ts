@@ -1,17 +1,20 @@
 // Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 //
-// Public library API surface (the package's `types` + JS re-export entry).
+// Public library entry point (the npm package's JS + types entry).
 //
-// This file is intentionally CSS-free so the emitted `dist/index.d.ts` contains
-// no `import "./x.css"` line (which a consumer's `tsc` could not resolve). The
-// stylesheet side-effect lives in `src/lib-entry.ts`, which is the Vite *build*
-// entry; this file is the *types* entry. The demo/dev app boots from
+// Imports the global stylesheet as a side effect so the library build extracts
+// it to a single `dist/style.css` (consumers import it once — see the README).
+// The bundled type declaration (`dist/index.d.ts`, produced by vite-plugin-dts
+// with `rollupTypes`) strips this CSS side-effect import, so a consumer's `tsc`
+// never sees an unresolved `./index.css`. The demo/dev app boots from
 // `src/main.tsx` instead.
 //
 // Re-exports the full public API that already lives on `src/App.tsx` (the
 // `OdontogramShell` component + the imperative state functions, `PerioChart`,
 // `startIntroTour`, and all public types).
+import "./index.css";
+
 import App from "./App";
 
 // The main component, exported both as a default and under an explicit,

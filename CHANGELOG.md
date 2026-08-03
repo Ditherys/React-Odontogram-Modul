@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-08-04
+### Changed
+- **Slimmer install (dependency diet).** Removed three unused runtime
+  dependencies (`react-router-dom`, `react-hook-form`, `nanoid`) — they were
+  never imported by the library (verified against the built bundle). The only
+  remaining runtime dependency is `jspdf`.
+- **`jspdf` is now lazy-loaded.** `exportPdf()` loads jspdf via a dynamic
+  `import("jspdf")` on the PDF-export path instead of a static top-level import,
+  so consumers who never export a PDF no longer pull jspdf (and its
+  html2canvas/dompurify deps) into their main bundle.
+- **Single bundled type declaration.** The build now emits one
+  `dist/index.d.ts` (via `vite-plugin-dts` + `@microsoft/api-extractor`)
+  instead of a tree of per-file `.d.ts` — hides internal `__*ForTest`
+  declarations and resolves cleanly under `node16`/`nodenext` module
+  resolution (no more extensionless-relative-import warnings from
+  are-the-types-wrong).
+- **README restructured for npm.** The root `README.md` is now a concise,
+  npm-friendly landing page with **absolute image URLs** (so screenshots and
+  the DOI badge render on npmjs.com, which does not ship the repo's relative
+  image paths). The full English and Spanish documentation moved to
+  `lang/README-en.md` / `lang/README-es.md`; every language switcher was
+  updated accordingly.
+### Notes
+- No runtime behavior, API, or payload change — full test suite green, SVG
+  parity byte-identical. `jspdf` remains a regular dependency (still installed);
+  only its loading is deferred.
+
 ## [2.0.2] - 2026-08-03
 ### Changed
 - **npm package renamed** from `react-odontogram-modul` to

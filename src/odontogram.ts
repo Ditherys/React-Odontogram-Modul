@@ -27,7 +27,7 @@ import {
 } from "./bridgeOverlay";
 import { derivePerioClassification, type PerioClassification, type PerioDerivationInput, type ToothDerivationInput } from "./perioClassification";
 import { buildPerioSvg } from "./perioExport";
-import { assemblePdf, type PdfExportOptions, type PdfAssembleData } from "./perioPdf";
+import { assemblePdf, type PdfExportOptions, type PdfAssembleData, type PdfDocLike } from "./perioPdf";
 // Tooth-template SVGs are imported with Vite's `?raw` suffix so their markup is
 // INLINED into the JS bundle as string literals at build time — no runtime
 // `fetch()` of an emitted asset URL. This is what makes the built library
@@ -7739,7 +7739,10 @@ export async function exportPdf(opts: PdfExportOptions): Promise<void> {
       perioImageSize,
     };
 
-    assemblePdf(opts, data);
+    // Lazy-load jsPDF only when a PDF is actually exported, so it (and its
+    // html2canvas/dompurify deps) stays out of consumers' main bundle.
+    const { jsPDF } = await import("jspdf");
+    assemblePdf(opts, data, () => new jsPDF() as unknown as PdfDocLike);
     setExportProgress(100, "export.progress.done");
     await new Promise((r) => window.setTimeout(r, 300));
   }finally{
