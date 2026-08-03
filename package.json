@@ -1,9 +1,50 @@
 {
   "name": "react-odontogram-editor-modul",
-  "private": true,
   "version": "1.50.0",
   "license": "MIT",
   "type": "module",
+  "description": "Interactive, SVG-based dental odontogram (dental chart) editor for React + TypeScript — multi-surface caries/filling charting, endodontic/prosthetic/periodontal states, FDI/Universal/Palmer numbering, HL7 FHIR R4 export/import, and ICDAS scoring.",
+  "author": "Zoltán Dul",
+  "homepage": "https://react-odontogram-modul.vercel.app/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZoliQua/React-Odontogram-Modul.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ZoliQua/React-Odontogram-Modul/issues"
+  },
+  "keywords": [
+    "odontogram",
+    "dental-chart",
+    "dental-charting",
+    "dentistry",
+    "dental-records",
+    "react",
+    "typescript",
+    "svg",
+    "fhir",
+    "icdas",
+    "periodontal"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/odontogram.js",
+  "module": "./dist/odontogram.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/odontogram.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -14,17 +55,22 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "parity:capture": "PARITY_CAPTURE=1 vitest run src/__tests__/parity/capture.test.ts",
-    "docs": "typedoc"
+    "docs": "typedoc",
+    "prepublishOnly": "npm run build:lib"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19",
+    "react-dom": "^18 || ^19"
   },
   "dependencies": {
     "jspdf": "^4.0.0",
     "nanoid": "^5.0.7",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.0",
     "react-router-dom": "^6.26.2"
   },
   "devDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "@eslint/js": "^9.39.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
