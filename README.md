@@ -29,14 +29,14 @@ This project is an interactive, browser-based odontogram editor that supports fa
 Install the component and its React peers:
 
 ```bash
-npm install react-odontogram-editor-modul react react-dom
+npm install react-odontogram-modul react react-dom
 ```
 
 Render `OdontogramShell` and import the stylesheet once:
 
 ```tsx
-import { OdontogramShell } from "react-odontogram-editor-modul";
-import "react-odontogram-editor-modul/style.css";
+import { OdontogramShell } from "react-odontogram-modul";
+import "react-odontogram-modul/style.css";
 
 export function Chart() {
   return (
@@ -59,12 +59,12 @@ import {
   exportFhir, exportSvg, exportImage,
   setReadOnly,
   startIntroTour,
-} from "react-odontogram-editor-modul";
+} from "react-odontogram-modul";
 ```
 
 **Notes**
 - **ESM-only**, targeting bundler module resolution (Vite, webpack, Next.js, esbuild, Rollup). React **18 or 19** is a peer dependency, provided by your app.
-- **The stylesheet is separate** — import `react-odontogram-editor-modul/style.css` once; it is not injected automatically.
+- **The stylesheet is separate** — import `react-odontogram-modul/style.css` once; it is not injected automatically.
 - **SSR:** the component is client-only (it touches `document` on mount). In frameworks like Next.js, render it inside a Client Component (`"use client"`) or via a client-only dynamic import.
 - **Assets are self-contained** — the tooth/icon SVGs are inlined into the bundle; there is no runtime asset fetch to configure.
 - **One instance per page** in this release — engine state is a module-level singleton, so two `<OdontogramShell>` instances would share a single chart's state.

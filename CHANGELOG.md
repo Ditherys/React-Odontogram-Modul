@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   green.
 ### Notes
 - Consumers must import the stylesheet once:
-  `import "react-odontogram-editor-modul/style.css"`. The package is
+  `import "react-odontogram-modul/style.css"`. The package is
   **ESM-only** and targets bundler module resolution (Vite/webpack/Next/esbuild).
 - **Known limitation:** engine state is a module-level singleton, so only one
   `<OdontogramShell>` instance per page is supported in this release.
