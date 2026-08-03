@@ -1,7 +1,7 @@
 # 🦷 React Odontogram Modul
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-1.30.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-1.49.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
 
@@ -16,7 +16,7 @@
 
 ## 🇩🇪 Deutsch
 
-*(Deutsche Version des README — übersetzt aus der englischen Ausgangsversion, Stand v1.30.0)*
+*(Deutsche Version des README — übersetzt aus der englischen Ausgangsversion, Stand v1.49.0)*
 
 ### 📋 Übersicht
 Dieses Projekt ist ein interaktiver, browserbasierter Odontogramm-Editor, der eine schnelle Zahnstatuserfassung mit einer übersichtlichen Benutzeroberfläche unterstützt. Es rendert geschichtete SVG-Zahnvorlagen zur Darstellung von Restaurationen, Karies, endodontischem Status, Mobilität und anderen klinischen Details, und bietet Mehrfachauswahl, Auswahlfilter und vordefinierte Statusvorlagen.
@@ -47,7 +47,7 @@ Dieses Projekt ist ein interaktiver, browserbasierter Odontogramm-Editor, der ei
 - 🔢 12 Auswahlfilter (alle, vorhandene, bleibende, Milch, Implantate, fehlende, Ober-/Unterkiefer, Front/Molaren)
 - 📊 Vordefinierte Statusvorlagen (Zurücksetzen, Milchgebiss, Wechselgebiss, zahnlos)
 - 📦 34 vordefinierte Restaurationsvorlagen (Brücken, herausnehmbare Prothesen, Stegprothesen mit Implantaten)
-- 💾 Status-Export/Import in JSON (Version 2.10; Importe akzeptieren weiterhin die Legacy-Versionen 1.4, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8 und 2.9 und werden automatisch migriert, mit Plugin Custom States und per-Zahn Notizen)
+- 💾 Status-Export/Import in JSON (Version 2.19; Importe akzeptieren weiterhin die Legacy-Version 1.4 sowie 2.0 bis 2.18 und werden automatisch migriert, mit Plugin Custom States und per-Zahn Notizen)
 - 🔗 HL7 FHIR R4 Export (Collection-Bundle aus Observations pro Zahn, ISO 3950 Zahnkodierung für das bleibende Gebiss, lokales Codesystem — SNOMED-CT-Mapping geplant)
 - ✚ Kreuz-/Plus-Oberflächenauswahl (B/M/O/D/L) für Karies und Füllungen
 - 🧱 Füllungsmaterialien pro Fläche (gemischte Füllungen, z. B. bukkal Amalgam + distal Komposit)
@@ -67,8 +67,9 @@ Dieses Projekt ist ein interaktiver, browserbasierter Odontogramm-Editor, der ei
 - 🪨 Zahnstein sowie Wurzelresorption, typisiert als intern oder extern-zervikal (`resorptionType`)
 - 📏 Kariestiefe pro Fläche (oberflächlich / Dentin / tief), oder optionales ICDAS-II-Scoring (0–6) via `enableIcdas`
 - 🩹 Kronenrand-Undichtigkeits-Umschalter, nur sichtbar bei Kronen- oder Brückenrestauration
-- 🧰 Vereinheitlichte Topbar-Icon-Leiste mit einem tabbasierten Einstellungsdialog (Allgemein / Panels / Zahndetails / Karies / Pulpa / Notizen — Nummerierung, Notizen, Panel-Sichtbarkeit, ICDAS, Kariestiefe-Umschalter, Wurzel-/Radiologische-Karies-Granularität, Pulpa-Detailstufe, Zahnabrieb-/Verfärbungs-Detailstufe, Zahninformationen)
+- 🧰 Vereinheitlichte Topbar-Icon-Leiste mit einem tabbasierten Einstellungsdialog (Allgemein / Panels / Zahndetails / Karies / Pulpa / Notizen / Parodontal — Nummerierung, Notizen, Panel-Sichtbarkeit, ICDAS, Kariestiefe-Umschalter, Wurzel-/Radiologische-Karies-Granularität, Pulpa-Detailstufe, Zahnabrieb-/Verfärbungs-Detailstufe, Zahninformationen)
 - 🗂️ Einstellungen → Tab „Panels": Ganzmund-Zusammenfassungspanels für Status und Kieferorthopädie unabhängig ein-/ausblenden
+- 🦷🩺 Einstellungen → Tab „Parodontal": 16 Ein-/Ausblend-Umschalter pro Index für die Zeilen des Parodontalstatus-Charts (gruppiert nach Tasche/Hygiene/Mukogingival/Halt/Periimplantär — PD/GM/CAL/BOP, Plaque, PI, GI, CEJ-Sichtbarkeit, Wurzelkonkavität, KG, GT, Furkation, Mobilität, Miller-Klasse, mPI, mBI), jeweils mit einer Beschreibung, sowie eine Option für übersetzte vs. kanonische Indexnamen-Anzeige (kanonisch = ein fester englisch-lateinischer wissenschaftlicher Name in jeder UI-Sprache; Tooltips bleiben unabhängig von dieser Einstellung stets lokalisiert). Beide sind App-weite Einstellungen (wie `perioViewMode`) — nie Teil des Export-Payloads
 - 🩹 Die Sekundärkaries-(CARS-)Einstellungen wurden in den Karies-Tab der Einstellungen zusammengeführt, oberhalb der radiologischen Tiefe positioniert (der separate „Sekundärkaries"-Tab entfällt)
 - 🎚️ Zahndetails-Detailstufe (Einstellungen → Zahndetails): eine einfache/komplexe Einstellung für Zahnabrieb und für Verfärbung. Der einfache Modus zeigt pro Befund einen Ja/Nein-Umschalter (Abrieb an → Attrition/Abrasion, Verfärbung an → Sonstige); der komplexe Modus (Standard) behält die Typ-/Ursache-Dropdowns bei, und der gespeicherte Wert bleibt beim Wechsel der Stufe erhalten
 - 📋 Zahninformationen-Panel: textuelle Live-Zusammenfassung des gesamten Befunds (Zahnzahlen, vorhandene/fehlende Zähne, Karies inkl. Sekundärkaries, Füllungen, Wurzelbehandlungen, Zahnersatz, Implantate, Parodontalstatus) — standardmäßig sichtbar, in den Einstellungen umschaltbar
@@ -89,7 +90,11 @@ Dieses Projekt ist ein interaktiver, browserbasierter Odontogramm-Editor, der ei
 - 🔒 Schreibgeschützter Modus: alle Interaktionen deaktivieren für Druck-/Berichtsansichten
 - ✨ Auswahl-Animationen: pulsierende gestrichelte Umrandung und leuchtender Schatten auf ausgewählten Zähnen (mit Unterstützung für prefers-reduced-motion)
 - 📝 Per-Zahn Notizen: Doppelklick zum Hinzufügen/Bearbeiten, Notiz-Symbol neben der Zahnnummer, Hover-Tooltip mit Notiztext, JSON Export/Import
-- 🧪 864 automatisierte Tests bestanden (1 zusätzlicher Test übersprungen) (Vitest) in 94 Testdateien für Nummerierung, Übersetzungen, Vorlagen, i18n, App-Komponente, Theme, Touch, Plugins, Barrierefreiheit sowie Parität der klinischen Diagnose-Achsen
+- 🔀 Trennung Status- und Plan-Chart: ein `Status | Plan`-Umschalter im Diagramm-Header wechselt zwischen einem aktuellen **Status**-Chart und einem **Plan**-Chart (beabsichtigte Behandlung), jeweils mit eigenen Zahnzuständen; das Plan-Chart startet beim ersten Wechsel dorthin als Kopie des Status-Charts, und Änderungen in einem Chart wirken sich nie auf das andere aus. Export/Import (`exportStatus`/`exportFhir`/Datei-Import) beziehen sich immer auf das Status-Chart; das Plan-Chart wird über eine eigene API separat gelesen/geschrieben (siehe Öffentliche API weiter unten) und ist — sofern es vom Status abweicht — als zusätzlicher `plan`-Abschnitt im JSON-Export enthalten
+- 📝 „Was ändert sich"-Box: sobald sich der Plan vom aktuellen Status unterscheidet, listet eine Box unterhalb des Zahninformationen-Panels jede Abweichung pro Zahn und pro Behandlungsachse (Vorhandensein, Substrat, Restauration, Prothetik, geplante Krone, Kieferorthopädie, Pulpa/Endo, apikal) als `Zahn: Achse  von → nach`-Zeile auf; auch programmatisch über `getPlanChanges()` verfügbar
+- 🩺 Parodontale Erfassung: pro Messstelle **Sondierungstiefe**, **Gingivarand**, **Blutung bei Sondierung** (+ Suppuration) an den sechs Standardmessstellen je Zahn, mit abgeleitetem **klinischem Attachmentniveau (CAL = PD + Gingivarand)**, Rezession und Ganzmund-**%BOP**. Ein **grafisches Ganzmund-Parodontalstatus-Chart** — jeder Kieferbogen als **zwei separate bukkale/palatinale(linguale) SVGs** gezeichnet (unter Wiederverwendung der Zahngrafik mit einheitlicher Kronen-zum-Band-Ausrichtung auf beiden Seiten; eine **Implantatgrafik** für Implantatzähne) mit einer roten **CEJ-Linie**, einem **nummerierten Millimeter-Rasterraster** und einer **Gingivarand-/Taschentiefe-Kurve** über den Zähnen, unterteilt durch ein **zentrales Parodontal-Index-Band** (beschriftet mit `▲ Buccal … Lingual/Palatal ▼`), das die gemeinsamen Indizes pro Zahn trägt — **Miller-Klasse** ganz oben, sowie **Plaque/PI/GI/mPI/mBI**, dargestellt als **anatomische Rauten-Kachel** pro Zahn (bukkale Spitze oben, linguale Spitze unten, mesial/distal in der mittleren Reihe je nach Seite vertauscht, sodass mesial immer zur Zahnbogenmitte zeigt); die Zahlenreihen (vollständige Indexnamen — PD/GM/CAL/BOP + Mobilität + Furkation — in größeren, touch-freundlicheren Zellen) in Spalten ausgerichtet sowie eine Zusammenfassung (Ø PD/CAL, %BOP, PI%), mit **automatischem Tastatur-Weitersprung** bei der Eingabe; das Chart **skaliert dynamisch auf die verfügbare Breite** und ist bei jeder Fenstergröße responsiv. Dargestellt als `Odontogram | Periodontal Status`-**Ansichtsumschalter**, dessen rechtes Panel während dieser Ansicht zu einer **Parodontal-Kontext-Seitenleiste** umfunktioniert wird (Patientendaten, die Klassifikation nach 2017 und die Ganzmund-Zusammenfassung; eine Einstellungsoption schaltet die gesamte Darstellung stattdessen auf ein **Popup** um), und weiterhin eine **eigenständig aufrufbare Komponente** (`PerioChart`-Export), sodass eine Host-App das Parodontalstatus-Chart unabhängig vom Basis-Odontogramm aufrufen kann. Export pro Messstelle via **FHIR** über das LOINC-Parodontal-Panel (`74029-0`; PD `32910-2`, Rezession `32911-0`, CAL `32912-8`)
+- 🅿️ Vorschlags-Darstellung: im Plan-Modus rendern Befunde, die der Plan **gegenüber** dem aktuellen Status **hinzufügt** (geplante Krone, Extraktion, kieferorthopädische Bewegung, Prothetik, …) mit einer unterscheidbaren **gestrichelten, eingefärbten „Vorschlags"-Umrandung**, damit der Plan als Absicht und nicht als Tatsache gelesen wird — mit einer „gestrichelt = vorgeschlagen"-Legende in der Diagramm-Karte. Die Darstellung im Status-Modus ist byte-identisch; die Behandlung existiert nur im Plan und wird beim Zurückwechseln vollständig zurückgesetzt
+- 🧪 1704 automatisierte Tests bestanden (1 zusätzlicher Test übersprungen) (Vitest) in 163 Testdateien für Nummerierung, Übersetzungen, Vorlagen, i18n, App-Komponente, Theme, Touch, Plugins, Barrierefreiheit sowie Parität der klinischen Diagnose-/Befund-Achsen
 - 📖 TypeDoc API-Dokumentation mit JSDoc-Kommentaren für alle öffentlichen Exporte (`npm run docs`)
 
 ### 📦 Module
@@ -259,6 +264,7 @@ Wird über das Zahnrad-Symbol in der Kopfleiste geöffnet; ein fokus-gefangener,
 - **Karies:** ICDAS-II-Scoring-Umschalter (`enableIcdas`), Kariestiefe-Umschalter (`cariesDepthEnabled`), Wurzelkaries-Granularität (`rootCariesMode`: simple/severity), Sekundärkaries-/CARS-Granularität (`secondaryCariesMode`: simple/standard/full), Granularität der radiologischen Tiefe (`radiographicDepthMode`: off/threeLevel/detailed) — der frühere separate „Sekundärkaries"-Tab ist in diesen zusammengeführt, wobei die CARS-Steuerung direkt oberhalb der radiologischen Tiefe positioniert ist
 - **Pulpa:** Pulpa-Detailstufe (`pulpDetailLevel`: simple/AAE/praktisches Latein, Standard AAE) — steuert, welches Vokabular der „Pulpa-/Endo-Status"-Auswähler anbietet; eine Änderung aktualisiert die Ganzmund-Zusammenfassung und jeden geöffneten Tooltip live
 - **Notizen:** Per-Zahn-Notizen aktivieren/deaktivieren (`enableNotes`)
+- **Parodontal:** Ein-/Ausblend-Umschalter pro Index für alle 16 Zeilen des Parodontalstatus-Charts (`perioRowVisibility`, Standard alle sichtbar), gruppiert nach Tasche (PD/GM/CAL/BOP) / Hygiene (Plaque/PI/GI) / Mukogingival (CEJ-Sichtbarkeit/Wurzelkonkavität/KG/GT) / Halt (Furkation/Mobilität/Miller-Klasse) / Periimplantär (mPI/mBI), jede Zeile mit eigener Beschreibung; zusätzlich ein Modus für übersetzte vs. kanonische Indexnamen (`perioIndexNameMode`: `translated` Standard / `canonical` — ein fester englisch-lateinischer wissenschaftlicher Name, angezeigt in jeder UI-Sprache). Nur App-weite Einstellungen (spiegelt `perioViewMode`) — werden nie serialisiert, Tooltips bleiben in beiden Modi lokalisiert
 
 ### 🖼️ SVG-Vorlagensystem
 
@@ -357,7 +363,7 @@ setPluginState(11, "implant-brand", "Straumann");
 
 ### 🧪 Tests
 ```bash
-npm run test           # Alle 864 Tests ausführen (1 zusätzlicher Test übersprungen)
+npm run test           # Alle 1704 Tests ausführen (1 zusätzlicher Test übersprungen)
 npm run test:watch     # Watch-Modus
 npm run test:coverage  # Coverage-Bericht
 ```
@@ -408,15 +414,63 @@ npm run docs           # TypeDoc-Dokumentation in docs/ generieren
 | `getNotesEnabled()` | Aktuellen Notizen-Status abrufen |
 | `setPulpDetailLevel(level)` | Vokabular des Pulpa-Auswählers festlegen — `"simple"`, `"aae"` oder `"latin"` |
 | `getPulpDetailLevel()` | Aktuelle Pulpa-Detailstufe abrufen |
+| `getChartMode()` | Das aktuell aktive Chart abrufen — `"status"` oder `"plan"` |
+| `setChartMode(mode)` | Das aktive Chart auf `"status"` oder `"plan"` umschalten; das Plan-Chart wird beim ersten Betreten als Tiefenkopie des Status-Charts erstellt |
+| `getStatusChart()` | Das Payload des Status-Charts abrufen (`{version, globals, teeth}`), unabhängig davon, welches Chart gerade aktiv ist |
+| `getPlanChart()` | Das Payload des Plan-Charts abrufen (`{version, globals, teeth}`), unabhängig davon, welches Chart gerade aktiv ist |
+| `setPlanChart(payload)` | Die Zähne des Plan-Charts aus einem Payload ersetzen (der Status bleibt unangetastet); markiert das Plan-Chart als initialisiert |
+| `getPlanChanges()` | Den strukturierten Status→Plan-Diff abrufen (`{ toothNo, axis, from, to }[]`) — ein Eintrag pro Zahn und pro Behandlungsachse, die sich zwischen Status- und Plan-Chart unterscheidet; leer, wenn kein Plan existiert. Auch auf `getOdontogramSummary()` als `plannedChanges` verfügbar |
+| `setPerioSite(toothNo, site, patch)` | Parodontale Daten für eine der sechs Messstellen setzen (`patch` = `{ pd?, gm?, bop?, sup? }`); `pd` null/`<1` löscht die Messstelle wieder aus der Erfassung. Validiert + begrenzt (PD 1–15, GM −10…+20) |
+| `getToothPerio(toothNo)` | Den parodontalen Datensatz eines Zahns pro Messstelle abrufen (nur erfasste Messstellen) |
+| `getToothCal(toothNo)` | Das abgeleitete CAL pro Messstelle (`pd + Gingivarand`) für einen Zahn abrufen |
+| `getPerioSummary()` | Ganzmund-parodontale Kennzahlen: Anzahl erfasster Messstellen, Anzahl blutender Stellen, %BOP, schlechtestes CAL, maximale PD |
+| `getPerioChart()` | Die parodontalen Datensätze pro Zahn des aktiven Charts abrufen |
+| `PerioChart` | React-Komponente (benannter Export) — das Ganzmund-Parodontalstatus-Chart-Overlay (`{ open, onClose }`), unabhängig von `OdontogramShell` einbindbar für die Host-Integration |
+| `openPerioOverlay()` / `closePerioOverlay()` / `isPerioOverlayOpen()` | Das Parodontalstatus-Chart-Overlay programmgesteuert öffnen/schließen/abfragen — erlaubt einer Host-App, das Parodontalstatus-Chart getrennt vom Basis-Odontogramm aufzurufen (gemeinsamer Fall-Zustand) |
+| `getPerioViewMode()` / `setPerioViewMode(mode)` | Abrufen/Setzen, wie das Parodontalstatus-Chart dargestellt wird — `"toggle"` (ein `Odontogram \| Dental Chart`-Ansichtsumschalter, Standard) oder `"popup"` (das Overlay) |
+| `getPerioOverlayLayer()` / `setPerioOverlayLayer(layer)` | Das Hervorhebungs-Overlay des Dental Chart abrufen/setzen — `"none"` (Standard) / `"pd"` / `"cal"` / `"gr"` / `"plaque"` / `"bop"` / `"pd5"` / `"pd6"` / `"cairo"`; färbt die Zähne nach diesem Maß neu ein (rein darstellend, über den vorhandenen Daten) |
+| `getToothRecessionType(toothNo)` | Den abgeleiteten **Cairo-Rezessionstyp** abrufen — `"none"` / `"rt1"` / `"rt2"` / `"rt3"` (berechnet aus dem interproximalen vs. bukkalen CAL des Zahns) |
+| `setCejVisibility(toothNo, v)` / `getCejVisibility(toothNo)` | CEJ-Sichtbarkeit pro Zahn — `"none"` / `"detectable"` / `"not-detectable"` |
+| `setRootConcavity(toothNo, v)` / `getRootConcavity(toothNo)` | Wurzeloberflächen-Konkavität pro Zahn — `"none"` / `"mild"` / `"deep"` |
+| `setPlaqueIndex(toothNo, surface, grade)` / `getPlaqueIndex(toothNo, surface)` | Silness-Löe-Plaque-Index-Grad pro Fläche — `0`-`3` |
+| `setGingivalIndex(toothNo, surface, grade)` / `getGingivalIndex(toothNo, surface)` | Löe-Silness-Gingiva-Index-Grad pro Fläche — `0`-`3` |
+| `setKeratinizedWidth(toothNo, mm)` / `getKeratinizedWidth(toothNo)` | Breite der bukkalen keratinisierten Gingiva pro Zahn in mm — `0`-`15`, oder `null`, falls nicht erfasst |
+| `setGingivalThickness(toothNo, v)` / `getGingivalThickness(toothNo)` | Gingivadicke-Phänotyp pro Zahn — `"unknown"` / `"thin"` / `"medium"` / `"thick"` |
+| `setMillerClass(toothNo, v)` / `getMillerClass(toothNo)` | Miller-Rezessionsklasse pro Zahn — `"none"` / `"i"` / `"ii"` / `"iii"` / `"iv"` |
+| `setPeriImplantPlaque(toothNo, surface, grade)` / `getPeriImplantPlaque(toothNo, surface)` | Nur Implantate — Mombelli modifizierter Plaque-Index (mPI) pro Fläche — `0`-`3`; wirkungslos an einem Nicht-Implantatzahn |
+| `setPeriImplantBleeding(toothNo, surface, grade)` / `getPeriImplantBleeding(toothNo, surface)` | Nur Implantate — Mombelli modifizierter Sulkus-Blutungs-Index (mBI) pro Fläche — `0`-`3`; wirkungslos an einem Nicht-Implantatzahn |
+| `furcationEntrances(toothNo)` | Die Furkationseingänge eines Zahns — `["mesial","distal","buccal"]` (obere Molaren), `["buccal","lingual"]` (untere Molaren), `["mesial","distal"]` (obere erste Prämolaren), sonst `[]` |
+| `setFurcation(toothNo, entrance, grade)` / `getToothFurcation(toothNo)` | Furkationsbeteiligung pro Eingang setzen/abrufen (Glickman `1`–`4`; `null` löscht) |
+| `setPlaque(toothNo, surface, present)` / `getToothPlaque(toothNo)` | O'Leary-Plaquevorkommen pro Fläche setzen/abrufen (mesial/distal/bukkal/lingual); speist die Ganzmund-PI% in `getPerioSummary()` |
+| `getCaseMeta()` | Das fallbezogene Metadaten-Objekt abrufen (`{age, smokingStatus, cigarettesPerDay, diabetesStatus, hba1c, toothLossPerio, maxRblPercent, patientName, examDate}`) — ein einziger gemeinsamer Block, nicht pro Zahn/dual-state (spiegelt den obersten `globals`-Payload-Schlüssel); speist die parodontale Staging-/Grading-Klassifikation und die PDF-Berichtskopfzeile |
+| `setPatientName(v)` | Den Patientennamen des Falls setzen (getrimmt; leerer String oder `null` löscht ihn) — nur Identität, fließt nie in die parodontale Ableitung ein |
+| `setExamDate(v)` | Das Untersuchungsdatum des Falls setzen (`YYYY-MM-DD`; ungültig/leer löscht es) |
+| `setCaseAge(v)` | Das Patientenalter des Falls in Jahren setzen — `0`-`120`, oder `null` zum Löschen |
+| `setSmokingStatus(v)` | Den Raucherstatus des Falls setzen — `"unknown"` / `"never"` / `"former"` / `"current"` |
+| `setCigarettesPerDay(v)` | Zigaretten/Tag setzen (nur relevant, wenn der Raucherstatus `"current"` ist) — `0`-`99`, oder `null` zum Löschen |
+| `setDiabetesStatus(v)` | Den Diabetesstatus des Falls setzen — `"unknown"` / `"none"` / `"present"` |
+| `setHba1c(v)` | HbA1c % setzen (nur relevant, wenn der Diabetesstatus `"present"` ist) — `3.0`-`20.0` (eine Nachkommastelle), oder `null` zum Löschen |
+| `setToothLossPerio(v)` | Durch Parodontitis verlorene Zähne setzen — `0`-`32`, oder `null` zum Löschen |
+| `setMaxRblPercent(v)` | Maximalen radiologischen Knochenverlust % setzen — `0`-`100`, oder `null` zum Löschen |
+| `resetCaseMeta()` | Das fallbezogene Metadaten-Objekt auf seine leeren Standardwerte zurücksetzen |
+| `getPerioClassification()` | Die parodontale Klassifikation nach dem World Workshop 2017 abrufen (`{diagnosis, stage, grade, extent, derived, overridden}`) — Diagnose/Stadium/Grad/Ausdehnung werden aus den erfassten parodontalen Daten und den Fall-Metadaten abgeleitet, wobei jede Achse durch eine klinische Übersteuerung ersetzt wird, sobald diese gesetzt ist (`derived` liefert immer die unveränderten berechneten Werte, `overridden` markiert, welche Achsen übersteuert wurden) |
+| `setDiagnosisOverride(v)` | Die abgeleitete parodontale Diagnose übersteuern — `"health"` / `"gingivitis"` / `"periodontitis"`, oder `null` zum Löschen (zurück zum abgeleiteten Wert) |
+| `setStageOverride(v)` | Das abgeleitete parodontale Stadium übersteuern — `"I"` / `"II"` / `"III"` / `"IV"`, oder `null` zum Löschen (zurück zum abgeleiteten Wert) |
+| `setGradeOverride(v)` | Den abgeleiteten parodontalen Grad übersteuern — `"A"` / `"B"` / `"C"`, oder `null` zum Löschen (zurück zum abgeleiteten Wert) |
+| `setExtentOverride(v)` | Die abgeleitete parodontale Ausdehnung übersteuern — `"localized"` / `"generalized"` / `"molar-incisor"`, oder `null` zum Löschen (zurück zum abgeleiteten Wert) |
 | `exportFhir(options?)` | Befund als HL7 FHIR R4 Collection-Bundle exportieren (JSON-Download). Optionale `{ subject }`-Referenz; sonst wird ein Platzhalter-Patient eingebettet |
 | `exportImage(format)` | Befund als Bild herunterladen — `"png"` oder `"jpg"` |
 | `exportSvg()` | Befund als skalierbares SVG (Vektor) herunterladen |
+| `hasAnyPerioData()` | `true`, sofern irgendeine parodontale Achse irgendwo im Mund erfasst ist — steuert das automatische Überspringen beim Parodontal-Export und deaktiviert die Parodontal-Export-Menüpunkte bei einem leeren Chart |
+| `exportPerioSvg()` | Das vollständige Parodontalstatus-Chart (Zahngrafiken + Zahlenreihen + Klassifikation nach 2017) als eigenständiges Vektor-SVG herunterladen, headless aus dem Zustand über `buildPerioSvg()` erstellt |
+| `exportPerioImage(format)` | Das Parodontalstatus-Chart als gerastertes Bild herunterladen — `"png"` oder `"jpg"` |
+| `exportPdf(opts)` | Einen jsPDF-nativen PDF-Bericht herunterladen (`{patientData, odontogram, perioStatus, perioDescription}`, jeder Abschnitt optional) — Vektortext plus gerasterte Zahn-/Parodontalstatus-Chart-Bilder; die beiden Parodontal-Abschnitte werden automatisch übersprungen, sobald `hasAnyPerioData()` `false` ist, unabhängig von `opts` |
 | `importFhirBundle(input)` | Ein von diesem Modul erzeugtes FHIR-R4-Bundle importieren (Objekt oder JSON-String) |
 | `setImportFormat(format)` | Parser für den nächsten Datei-Import festlegen — `"status"` oder `"fhir"` |
 | `startIntroTour()` | Die 12-stufige interaktive Einführungstour starten |
 
 ### 💾 Status Export-/Importformat
-Der Export erzeugt eine JSON-Datei (Version `2.10`; Importe akzeptieren weiterhin die Legacy-Versionen `1.4`, `2.0`, `2.1`, `2.2`, `2.3`, `2.4`, `2.5`, `2.6`, `2.7`, `2.8` und `2.9` und werden automatisch migriert) mit folgenden Feldern:
+Der Export erzeugt eine JSON-Datei (Version `2.19`; Importe akzeptieren weiterhin die Legacy-Version `1.4` sowie `2.0` bis `2.18` und werden automatisch migriert) mit folgenden Feldern:
 
 **Globale Felder:**
 - `wisdomVisible` - Weisheitszähne sichtbar
@@ -473,6 +527,16 @@ Der Export erzeugt eine JSON-Datei (Version `2.10`; Importe akzeptieren weiterhi
 - `customStates` - Plugin Custom States (Objekt, nach Plugin-ID indiziert)
 - `note` - Textnotiz pro Zahn (String, optional — nur vorhanden, wenn nicht leer)
 
+**Oberstes `plan`-Feld (ab Version 2.11):**
+- `plan` - optionales Objekt, gleiche Struktur wie `teeth` (Pro-Zahn-Felder oben), enthält das **Plan**-Chart (beabsichtigte Behandlung). Nur vorhanden, wenn das Plan-Chart initialisiert wurde (der `Status | Plan`-Umschalter wurde mindestens einmal auf Plan gestellt) UND sich sein Inhalt vom Status-Chart unterscheidet — ein reiner Status-Export lässt es vollständig weg und bleibt bis auf die Versionsnummer byte-identisch zu einem Export vor Version 2.11. Beim Import löscht ein fehlendes `plan` das Plan-Chart bzw. macht es uninitialisiert (es lässt niemals einen veralteten Plan von vor dem Import wiederaufleben); ein vorhandenes `plan` stellt das Plan-Chart neben dem Status wieder her. Das Plan-Chart kann auch unabhängig von Export/Import über `getPlanChart()`/`setPlanChart()` gelesen/geschrieben werden (siehe Öffentliche API oben), und `getStatusChart()` liefert unabhängig vom aktiven Chart-Modus immer den status-primären Payload.
+
+### 🖨️ Export
+Über den eigenen Status-JSON-/FHIR-/PNG-/JPG-/SVG-Export des Odontogramms hinaus hat das **Parodontalstatus-Chart** einen eigenen Exportpfad:
+- **Parodontal-SVG/PNG/JPG:** `exportPerioSvg()` / `exportPerioImage("png"|"jpg")` rendern das vollständige Parodontalstatus-Chart (Zahngrafiken + Zahlenreihen + die Klassifikation nach 2017) als ein eigenständiges Vektor-SVG (`buildPerioSvg()`), unabhängig vom gemounteten `PerioChart`-DOM. Die drei Export-Menüpunkte sind deaktiviert, sobald `hasAnyPerioData()` `false` ist (bei einem leeren Chart gibt es nichts Parodontales zu exportieren).
+- **PDF-Bericht:** der Menüpunkt „PDF-Bericht…" im Export-Menü öffnet `ExportOptionsModal` — einen Einstellungsdialog (Felder für Patientenname + Untersuchungsdatum, direkt mit den Fall-Metadaten verknüpft; vier Abschnitts-Checkboxen: Patientendaten, Odontogramm, Parodontalstatus, Parodontal-Beschreibung), bevor `exportPdf(opts)` aufgerufen wird. Das PDF wird jsPDF-nativ zusammengestellt — Vektortext über `.text()`, gerasterte Zahn-/Parodontalstatus-Chart-Bilder über `.addImage()` — **ohne Abhängigkeit von svg2pdf.js**. Die beiden Parodontal-Abschnitte werden automatisch übersprungen, sobald `hasAnyPerioData()` `false` ist, unabhängig von den Checkboxen des Dialogs.
+- **mPI/mBI-Implantat-Gating:** die periimplantären Mombelli-Indizes (mPI/mBI) werden nur als Zeilen in einem Kieferbogen dargestellt, der mindestens einen Implantatzahn enthält — sowohl im laufenden Parodontalstatus-Chart als auch in den SVG-/PDF-Exporten.
+- Patientenname und Untersuchungsdatum sind reine chart-identitätsbezogene Metadaten (Payload `2.19`, additiv) — sie sind **nicht** Teil des FHIR-Exports.
+
 ### 📁 Ordnerstruktur
 - `src/App.tsx` - UI-Hülle, Kopfleisten-Steuerung, Sprach-/Nummerierungs-/Dunkelmodus-/Theme-/Plugin-Umschalter
 - `src/odontogram.ts` - SVG-Schichtungsmotor, Zahnstatusmanagement, Touch-Interaktionen, Plugin-Overlays, UI-Verdrahtung
@@ -484,8 +548,11 @@ Der Export erzeugt eine JSON-Datei (Version `2.10`; Importe akzeptieren weiterhi
 - `src/registry/` - deklaratives Register der klinischen Achsen: FHIR-Feldzuordnungen, SVG-Clear-Set/Boolean-Flag-Aktivierung, Restaurationstyp×Material-Matrix, UI-Optionslisten (eine einzige Quelle der Wahrheit, die Export/Import, FHIR und die Auswähler-UI erzeugt)
 - `src/fhir/` - HL7-FHIR-R4-Export/Import: `toFhir.ts`/`fromFhir.ts`, Codesysteme, Feldzuordnungen, Primitive
 - `src/bridgeOverlay.ts` - Mehrzahn-Brückenspann-Verbinder-Overlay (bogenbewusste Sattelgeometrie)
-- `src/SettingsModal.tsx` - tabbasierter Einstellungsdialog (Allgemein/Panels/Zahndetails/Karies/Pulpa/Notizen)
-- `src/__tests__/` + `src/registry/__tests__/` - Vitest-Testsuite (864 bestandene Tests, 1 übersprungen, in 94 Dateien)
+- `src/SettingsModal.tsx` - tabbasierter Einstellungsdialog (Allgemein/Panels/Zahndetails/Karies/Pulpa/Notizen/Parodontal)
+- `src/perioExport.ts` - `buildPerioSvg()`: das vollständige Parodontalstatus-Chart als ein eigenständiges Vektor-SVG
+- `src/perioPdf.ts` - der reine jsPDF-Berichts-Assembler von `exportPdf()` (`assemblePdf`)
+- `src/ExportOptionsModal.tsx` - der Export-Einstellungsdialog des Menüpunkts „PDF-Bericht…"
+- `src/__tests__/` + `src/registry/__tests__/` - Vitest-Testsuite (1704 bestandene Tests, 1 übersprungen, in 163 Dateien)
 - `src/assets/teeth-svgs/` - SVG-Zahnvorlagen (6 Dateien: Schneide-, Eck-, Prämolaren, Molaren + Okklusionsansichten)
 - `src/assets/icon-svgs/` - Toolbar-Icon-SVGs (5 Dateien)
 
@@ -508,9 +575,14 @@ Der Export erzeugt eine JSON-Datei (Version `2.10`; Importe akzeptieren weiterhi
 
 Wenn Sie dieses Modul in Ihrer Arbeit verwenden, zitieren Sie es bitte.
 
-**Diese Version (v1.10.0):**
-> Dul, Z. (2026). *React Odontogram Modul* (v1.10.0). Zenodo. https://doi.org/10.5281/zenodo.21156788
+**Diese Version (v1.49.0):**
+> Dul, Z. (2026). *React Odontogram Modul* (v1.49.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **Alle Versionen (Konzept-DOI):** https://doi.org/10.5281/zenodo.21156787
+
+> Die obige versionsübergreifende Konzept-DOI verweist immer auf die zuletzt
+> archivierte Version; eine versionsspezifische DOI wird bei jeder Version erst
+> vergeben, wenn diese auf Zenodo archiviert wird. Solange v1.49.0 nicht archiviert
+> ist, zitieren Sie sie bitte über die Konzept-DOI.
 
 Maschinenlesbare Zitationsmetadaten finden Sie in [`CITATION.cff`](../CITATION.cff).
