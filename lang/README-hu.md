@@ -1,7 +1,7 @@
 # 🦷 React Odontogram Modul
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-1.30.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-1.49.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
 
@@ -45,7 +45,7 @@ Ez a projekt egy interaktív, böngészőben futó odontogram szerkesztő, amely
 - 🔢 12 kiválasztási szűrő (összes, jelenlévő, maradó, tej, implantátum, hiányzó, felső/alsó, front/molárisok)
 - 📊 Előre definiált státusz minták (alaphelyzet, tejfogazat, vegyes fogazat, fogatlan)
 - 📦 34 előre definiált restaurációs sablon (hidak, kivehető protézisek, bár protézisek implantátumokkal)
-- 💾 Állapot export/import JSON formátumban (2.10 verzió; az importálás továbbra is elfogadja a korábbi 1.4, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8 és 2.9 verziót, és automatikusan migrálja, plugin egyedi állapotokkal és fogankénti megjegyzésekkel)
+- 💾 Állapot export/import JSON formátumban (2.19 verzió; az importálás továbbra is elfogadja a korábbi 1.4 és 2.0–2.18 verziókat, és automatikusan migrálja, plugin egyedi állapotokkal és fogankénti megjegyzésekkel)
 - 🔗 HL7 FHIR R4 export (collection Bundle fogankénti Observation-ökkel, ISO 3950 fogkódolás a maradó fogazatra, lokális kódrendszer — SNOMED CT megfeleltetés tervezett)
 - ✚ Kereszt/plusz felület-választó UI (B/M/O/D/L) szuvasodáshoz és tömésekhez
 - 🧱 Felületenkénti tömőanyagok (vegyes tömések, pl. bukkális amalgám + disztális kompozit)
@@ -65,8 +65,9 @@ Ez a projekt egy interaktív, böngészőben futó odontogram szerkesztő, amely
 - 🪨 Fogkő, valamint belső vagy külső cervikális típusú gyökérreszorpció (`resorptionType`)
 - 📏 Felületenkénti szuvasodás mélysége (felületes / dentin / mély), vagy opcionális ICDAS II pontozás (0–6) az `enableIcdas` proppal
 - 🩹 Korona szegélyi rés (leakage) kapcsoló, csak korona vagy híd pótlás esetén jelenik meg
-- 🧰 Egységes ikon-fejléc sor lapozott (tabos) Beállítások ablakkal (Általános / Panelek / Fogadatok / Caries / Pulpa / Jegyzetek — számozás, jegyzetek, panel-láthatóság, ICDAS, szuvasodás-mélység kapcsoló, gyökér-/radiológiai szuvasodás részletezettség, pulpa részletezettségi szint, fogkopás/elszíneződés részletezettségi szint, fogadatok)
+- 🧰 Egységes ikon-fejléc sor lapozott (tabos) Beállítások ablakkal (Általános / Panelek / Fogadatok / Caries / Pulpa / Jegyzetek / Periodontal — számozás, jegyzetek, panel-láthatóság, ICDAS, szuvasodás-mélység kapcsoló, gyökér-/radiológiai szuvasodás részletezettség, pulpa részletezettségi szint, fogkopás/elszíneződés részletezettségi szint, fogadatok)
 - 🗂️ Beállítások → "Panelek" fül: a teljes szájüreg Státusz és Ortodoncia összegző panelek egymástól függetlenül elrejthetők/megjeleníthetők
+- 🦷🩺 Beállítások → "Periodontal" fül: 16 index-szintű mutatás/elrejtés kapcsoló a parodontális diagram soraihoz (csoportosítva: tasak/higiénia/mukogingivális/tartás/peri-implantáris — PD/GM/CAL/BOP, plakk, PI, GI, CEJ láthatóság, gyökér-konkavitás, KG, GT, furkáció, mobilitás, Miller-osztály, mPI, mBI), mindegyik saját leírással, valamint egy fordított-vs-kanonikus index-név megjelenítési opcióval (kanonikus = egy rögzített angol/latin tudományos név minden UI-nyelven; a tooltipek ettől a beállítástól függetlenül mindig lokalizáltak maradnak). Mindkettő alkalmazás-szintű beállítás (mint a `perioViewMode`) — sosem része az export payloadnak
 - 🩹 A szekunder caries (CARS) beállítások a Caries beállítási fülbe kerültek, a Radiológiai mélység fölé pozicionálva (a korábban különálló "Szekunder caries" fül megszűnt)
 - 🎚️ Fogadatok részletezettségi szint (Beállítások → Fogadatok): egy egyszerű/összetett beállítás a fogkopásra és az elszíneződésre. Egyszerű mód igen/nem kapcsolót mutat leletenként (kopás be → attrition/abrasion, elszíneződés be → other); az összetett mód (alapértelmezett) megtartja a típus/ok legördülő menüket, és a tárolt érték megmarad a szintek közti váltáskor
 - 📋 Fogadatok panel: élő szöveges összegzés a teljes státuszról (fogszámok, meglévő/hiányzó listák, szuvasodás beleértve a szekundert, tömések, gyökérkezelések, fogpótlások, implantátumok, parodontális státusz) — alaphelyzetben látszik, a Beállításokban kapcsolható
@@ -87,7 +88,11 @@ Ez a projekt egy interaktív, böngészőben futó odontogram szerkesztő, amely
 - 🔒 Csak olvasható mód: összes interakció letiltása nyomtatási/jelentés/megtekintési nézetekhez
 - ✨ Kijelölési animációk: pulzáló szaggatott keret és ragyogó árnyék a kijelölt fogakon (prefers-reduced-motion támogatással)
 - 📝 Fogankénti megjegyzések: dupla kattintás megjegyzés hozzáadásához/szerkesztéséhez, megjegyzés ikon a fogszám mellett, hover tooltip a megjegyzés szövegével, JSON export/import
-- 🧪 864 automatizált teszt (1 további teszt kihagyva) (Vitest) 94 tesztfájlban: számozás, fordítások, presetek, i18n, App komponens, téma, érintés, pluginek, akadálymentesítés és klinikai tengelyek/diagnózisok paritása lefedésére
+- 🔀 Státusz ↔ Terv diagram-felosztás: a diagram fejlécében lévő `Státusz | Terv` kapcsoló egy aktuális **státusz** diagram és egy **terv** (tervezett, kezelés utáni állapot) diagram között vált, mindkettő saját fogállapotokkal; a terv diagram az első váltáskor a státusz másolataként indul, és az egyik diagramon végzett szerkesztés sosem hat a másikra. Az export/import (`exportStatus`/`exportFhir`/fájl import) mindig a státusz diagramot célozza; a terv diagram külön, saját API-n keresztül olvasható/írható (lásd a Nyilvános API-t lentebb), és — ha eltér a státusztól — kiegészítő `plan` szekcióként szerepel a JSON exportban
+- 📝 "Mi változik" doboz: amikor a terv eltér az aktuális státusztól, a Fogadatok panel alatti doboz fogankénti és kezelési tengelyenkénti (jelenlét, szubsztrátum, pótlás, protetika, tervezett korona, ortodoncia, pulpa/endo, apikális) bontásban felsorol minden eltérést `fog: tengely  ettől → erre` sor formájában; programozottan is elérhető a `getPlanChanges()` függvényen keresztül
+- 🩺 Parodontális státuszrögzítés: fogankénti hat standard ponton mért **tasakmélység (probing depth)**, **ínyszél (gingival margin)**, **véreztethetőség szondázásra (bleeding on probing)** (+ suppuráció), levezetett **klinikai tapadásvesztéssel (CAL = PD + ínyszél)**, recesszióval és teljes szájüregi **%BOP**-pal. Egy **grafikus, teljes szájüregre kiterjedő parodontális diagram** — minden fogsor **két külön, bukkális/palatinális(linguális) SVG-ként** rajzolódik (a meglévő fog-grafikát felhasználva, mindkét nézetben egységes korona-a-sáv-felé orientációval; **implantátum grafikával** az implantátum fogakhoz), piros **CEJ-vonallal**, egy **számozott milliméteres segédráccsal**, és egy, a fogak felett húzódó **ínyszél/tasakmélység görbével**, amelyet egy **központi parodontális index-sáv** (felirat: `▲ Buccal … Lingual/Palatal ▼`) oszt ketté, és amely a fogankénti közös indexeket hordozza — a **Miller-osztály** egészen felül, a **Plakk/PI/GI/mPI/mBI** pedig **anatómiai rombusz csempeként** jelenik meg foganként (bukkális csúcs felül, linguális csúcs alul, a középső sor meziális/disztális értékei oldalanként felcserélve, hogy a meziális mindig a fogív középvonala felé mutasson); a számsorok (teljes index-nevekkel — PD/GM/CAL/BOP + mobilitás + furkáció — nagyobb, érintésbarátabb cellákban) oszlopokba rendezve, összegzéssel (átlag PD/CAL, %BOP, PI%), **billentyűzetes automatikus továbblépéssel** történő rögzítéssel; a diagram **dinamikusan a rendelkezésre álló szélességhez igazodik**, bármilyen ablakméretnél reszponzív. Egy `Odontogram | Periodontal Status` **nézetváltóként** jelenik meg, amelynek jobb oldali panelje — amíg ez a nézet aktív — egy **parodontális kontextus oldalsávvá** alakul (páciens adatok, a 2017-es klasszifikáció és a teljes szájüreg összegzés) (egy Beállítás opció visszaváltja az egész megjelenítést **felugró ablakra**), és továbbra is **önállóan meghívható komponens** (`PerioChart` export), így egy befogadó alkalmazás a parodontális diagramot az odontogramtól függetlenül is előhívhatja. Fogankénti **FHIR** export a LOINC parodontális panelen keresztül (`74029-0`; PD `32910-2`, recesszió `32911-0`, CAL `32912-8`)
+- 🅿️ Javasolt (proposed) stílus: Terv módban azok a leletek, amelyeket a terv **hozzáad** az aktuális státuszhoz képest (tervezett korona, extrakció, ortodonciai elmozdulás, protetika, …), egy jellegzetes **szaggatott, színezett "javasolt" körvonallal** jelennek meg, hogy a terv szándékként és ne tényként olvasható — egy "szaggatott = javasolt" jelmagyarázattal a diagram kártyán. A Státusz módú megjelenítés byte-azonos marad; a kezelés csak a tervben létezik, és visszaváltáskor teljesen visszaáll
+- 🧪 1704 automatizált teszt sikeres (1 további teszt kihagyva) (Vitest) 163 tesztfájlban: számozás, fordítások, presetek, i18n, App komponens, téma, érintés, pluginek, akadálymentesítés és klinikai tengelyek/diagnózisok paritása lefedésére
 - 📖 TypeDoc API dokumentáció JSDoc kommentekkel minden publikus exporton (`npm run docs`)
 
 ### 📦 Modulok
@@ -257,6 +262,7 @@ A fejléc fogaskerék ikonjával nyitható; egy focus-trapped, ARIA `dialog` lap
 - **Caries:** ICDAS II pontozás kapcsoló (`enableIcdas`), caries-mélység kapcsoló (`cariesDepthEnabled`), gyökér-caries részletezettség (`rootCariesMode`: simple/severity), szekunder/CARS részletezettség (`secondaryCariesMode`: simple/standard/full), radiológiai-mélység részletezettség (`radiographicDepthMode`: off/threeLevel/detailed) — a korábban különálló "Szekunder caries" fül ebbe olvadt bele, a CARS vezérlő közvetlenül a radiológiai mélység fölé kerülve
 - **Pulpa:** pulpa részletezettségi szint (`pulpDetailLevel`: simple/AAE/gyakorlati latin, alapértelmezett AAE) — meghatározza, hogy a "Pulpa / Endo státusz" választó milyen terminológiát kínál; módosításakor a teljes szájüreg összegzés és minden nyitott tooltip azonnal frissül
 - **Jegyzetek:** fogankénti megjegyzések be/kikapcsolása (`enableNotes`)
+- **Periodontal:** index-szintű mutatás/elrejtés kapcsolók mind a 16 parodontális diagram sorhoz (`perioRowVisibility`, alapértelmezetten mind látható), csoportosítva Tasak (PD/GM/CAL/BOP) / Higiénia (Plakk/PI/GI) / Mukogingivális (CEJ láthatóság/Gyökér-konkavitás/KG/GT) / Tartás (Furkáció/Mobilitás/Miller-osztály) / Peri-implantáris (mPI/mBI) csoportokba, mindegyik saját leírással; valamint egy fordított-vs-kanonikus index-név mód (`perioIndexNameMode`: alapértelmezetten `translated` / `canonical` — egy rögzített angol/latin tudományos név minden UI-nyelven). Csak alkalmazás-szintű beállítások (a `perioViewMode`-ot tükrözve) — sosem szerializálódnak, a tooltipek mindkét módban lokalizáltak maradnak
 
 ### 🖼️ SVG sablon rendszer
 
@@ -355,7 +361,7 @@ setPluginState(11, "implant-brand", "Straumann");
 
 ### 🧪 Tesztelés
 ```bash
-npm run test           # Összes 864 teszt futtatása (1 további teszt kihagyva)
+npm run test           # Összes 1704 teszt futtatása (1 további teszt kihagyva)
 npm run test:watch     # Figyelési mód
 npm run test:coverage  # Lefedettségi jelentés
 ```
@@ -406,15 +412,63 @@ npm run docs           # TypeDoc dokumentáció generálása a docs/ mappába
 | `getNotesEnabled()` | Aktuális megjegyzés-engedélyezés állapot lekérdezése |
 | `setPulpDetailLevel(level)` | A pulpa választó terminológiájának beállítása — `"simple"`, `"aae"` vagy `"latin"` |
 | `getPulpDetailLevel()` | Aktuális pulpa részletezettségi szint lekérdezése |
+| `getChartMode()` | Az aktuálisan aktív diagram lekérdezése — `"status"` vagy `"plan"` |
+| `setChartMode(mode)` | Az aktív diagram átváltása `"status"`-ra vagy `"plan"`-re; a terv diagram az első belépéskor mélymásolatként jön létre a státuszból |
+| `getStatusChart()` | A státusz diagram payloadjának lekérdezése (`{version, globals, teeth}`), függetlenül attól, melyik diagram aktív éppen |
+| `getPlanChart()` | A terv diagram payloadjának lekérdezése (`{version, globals, teeth}`), függetlenül attól, melyik diagram aktív éppen |
+| `setPlanChart(payload)` | A terv diagram fogainak cseréje egy payloadból (a státusz érintetlen marad); a terv diagramot inicializáltnak jelöli |
+| `getPlanChanges()` | A strukturált státusz→terv eltérés lekérdezése (`{ toothNo, axis, from, to }[]`) — egy bejegyzés fogankénti és kezelési tengelyenkénti eltérésre a státusz és terv diagram között; üres, ha nincs terv. A `getOdontogramSummary()`-n is megjelenik `plannedChanges` néven |
+| `setPerioSite(toothNo, site, patch)` | Parodontális adat beállítása a hat pont egyikén (`patch` = `{ pd?, gm?, bop?, sup? }`); a `pd` null/`<1` értéke törli a pont rögzítettségét. Validál és korlátoz (PD 1–15, GM −10…+20) |
+| `getToothPerio(toothNo)` | Egy fog pontonkénti parodontális rekordjának lekérdezése (csak a rögzített pontok) |
+| `getToothCal(toothNo)` | Egy fog pontonkénti, levezetett CAL értékének lekérdezése (`pd + ínyszél`) |
+| `getPerioSummary()` | Teljes szájüregi parodontális összesítők: rögzített pontok száma, vérzések száma, %BOP, legrosszabb CAL, max PD |
+| `getPerioChart()` | Az aktív diagram fogankénti parodontális rekordjainak lekérdezése |
+| `PerioChart` | React komponens (nevesített export) — a teljes szájüregre kiterjedő parodontális diagram overlay (`{ open, onClose }`), amely az `OdontogramShell`-től függetlenül is beágyazható a befogadó alkalmazás integrációjához |
+| `openPerioOverlay()` / `closePerioOverlay()` / `isPerioOverlayOpen()` | A parodontális diagram overlay programozott megnyitása/bezárása/lekérdezése — lehetővé teszi, hogy a befogadó alkalmazás az odontogramtól külön hívja elő a parodontális diagramot (megosztott eset-állapot) |
+| `getPerioViewMode()` / `setPerioViewMode(mode)` | A parodontális diagram megjelenítési módjának lekérdezése/beállítása — `"toggle"` (egy `Odontogram \| Dental Chart` nézetváltó, alapértelmezett) vagy `"popup"` (az overlay) |
+| `getPerioOverlayLayer()` / `setPerioOverlayLayer(layer)` | A Dental Chart kiemelő overlay lekérdezése/beállítása — `"none"` (alapértelmezett) / `"pd"` / `"cal"` / `"gr"` / `"plaque"` / `"bop"` / `"pd5"` / `"pd6"` / `"cairo"`; az adott mérték szerint újrafesti a fogakat (csak megjelenítés, a meglévő adatok felett) |
+| `getToothRecessionType(toothNo)` | A levezetett **Cairo recesszió típus** lekérdezése — `"none"` / `"rt1"` / `"rt2"` / `"rt3"` (a fog interproximális vs. bukkális CAL értékéből számítva) |
+| `setCejVisibility(toothNo, v)` / `getCejVisibility(toothNo)` | Fogankénti CEJ láthatóság — `"none"` / `"detectable"` / `"not-detectable"` |
+| `setRootConcavity(toothNo, v)` / `getRootConcavity(toothNo)` | Fogankénti gyökérfelszíni konkavitás — `"none"` / `"mild"` / `"deep"` |
+| `setPlaqueIndex(toothNo, surface, grade)` / `getPlaqueIndex(toothNo, surface)` | Felületenkénti Silness-Löe Plakk Index fokozat — `0`-`3` |
+| `setGingivalIndex(toothNo, surface, grade)` / `getGingivalIndex(toothNo, surface)` | Felületenkénti Löe-Silness Gingivális Index fokozat — `0`-`3` |
+| `setKeratinizedWidth(toothNo, mm)` / `getKeratinizedWidth(toothNo)` | Fogankénti bukkális keratinizált íny szélesség mm-ben — `0`-`15`, vagy `null`, ha nincs rögzítve |
+| `setGingivalThickness(toothNo, v)` / `getGingivalThickness(toothNo)` | Fogankénti íny vastagsági fenotípus — `"unknown"` / `"thin"` / `"medium"` / `"thick"` |
+| `setMillerClass(toothNo, v)` / `getMillerClass(toothNo)` | Fogankénti Miller recesszió osztály — `"none"` / `"i"` / `"ii"` / `"iii"` / `"iv"` |
+| `setPeriImplantPlaque(toothNo, surface, grade)` / `getPeriImplantPlaque(toothNo, surface)` | Csak implantátumon — felületenkénti Mombelli módosított Plakk Index (mPI) fokozat — `0`-`3`; nem-implantátum fogon hatástalan |
+| `setPeriImplantBleeding(toothNo, surface, grade)` / `getPeriImplantBleeding(toothNo, surface)` | Csak implantátumon — felületenkénti Mombelli módosított Sulcus Vérzési Index (mBI) fokozat — `0`-`3`; nem-implantátum fogon hatástalan |
+| `furcationEntrances(toothNo)` | Egy fog furkáció-bejáratai — `["mesial","distal","buccal"]` (felső őrlők), `["buccal","lingual"]` (alsó őrlők), `["mesial","distal"]` (felső első kis őrlők), egyébként `[]` |
+| `setFurcation(toothNo, entrance, grade)` / `getToothFurcation(toothNo)` | Bejáratonkénti furkáció-érintettség beállítása/lekérdezése (Glickman `1`–`4`; `null` törli) |
+| `setPlaque(toothNo, surface, present)` / `getToothPlaque(toothNo)` | O'Leary plakk-jelenlét beállítása/lekérdezése felületenként (meziális/disztális/bukkális/linguális); a teljes szájüregi PI%-ot táplálja a `getPerioSummary()`-ban |
+| `getCaseMeta()` | Az eset-szintű metaadat objektum lekérdezése (`{age, smokingStatus, cigarettesPerDay, diabetesStatus, hba1c, toothLossPerio, maxRblPercent, patientName, examDate}`) — egyetlen megosztott blokk, nem fogankénti/kettős állapotú (a felső szintű `globals` payload kulcsot tükrözi); a parodontális stádium/grádus klasszifikációt és a PDF jelentés fejlécét táplálja |
+| `setPatientName(v)` | Az eset páciensnevének beállítása (körbevágva; üres string vagy `null` törli) — csak azonosítási adat, sosem kerül be a parodontális levezetésbe |
+| `setExamDate(v)` | Az eset vizsgálati dátumának beállítása (`ÉÉÉÉ-HH-NN`; érvénytelen/üres törli) |
+| `setCaseAge(v)` | Az eset páciens életkorának beállítása években — `0`-`120`, vagy `null` a törléshez |
+| `setSmokingStatus(v)` | Az eset dohányzási státuszának beállítása — `"unknown"` / `"never"` / `"former"` / `"current"` |
+| `setCigarettesPerDay(v)` | Napi cigaretta-szám beállítása (csak `"current"` dohányzási státusz esetén értelmezhető) — `0`-`99`, vagy `null` a törléshez |
+| `setDiabetesStatus(v)` | Az eset diabétesz-státuszának beállítása — `"unknown"` / `"none"` / `"present"` |
+| `setHba1c(v)` | HbA1c % beállítása (csak `"present"` diabétesz-státusz esetén értelmezhető) — `3.0`-`20.0` (egy tizedesjeggyel), vagy `null` a törléshez |
+| `setToothLossPerio(v)` | Parodontitis miatt elveszített fogak számának beállítása — `0`-`32`, vagy `null` a törléshez |
+| `setMaxRblPercent(v)` | Maximális radiológiai csontveszteség %-ának beállítása — `0`-`100`, vagy `null` a törléshez |
+| `resetCaseMeta()` | Az eset-szintű metaadat objektum visszaállítása üres alapértékekre |
+| `getPerioClassification()` | A 2017-es World Workshop parodontális klasszifikáció lekérdezése (`{diagnosis, stage, grade, extent, derived, overridden}`) — a diagnózis/stádium/grádus/kiterjedtség a rögzített parodontális adatokból és az eset metaadatokból van levezetve, mindegyik tengelyt a klinikus felülbírálása vált fel, ha be van állítva (a `derived` mindig az érintetlen számított értékeket adja, az `overridden` jelzi, mely tengelyek lettek felülbírálva) |
+| `setDiagnosisOverride(v)` | A levezetett parodontális diagnózis felülbírálása — `"health"` / `"gingivitis"` / `"periodontitis"`, vagy `null` a törléshez (visszaáll a levezetett értékre) |
+| `setStageOverride(v)` | A levezetett parodontális stádium felülbírálása — `"I"` / `"II"` / `"III"` / `"IV"`, vagy `null` a törléshez (visszaáll a levezetett értékre) |
+| `setGradeOverride(v)` | A levezetett parodontális grádus felülbírálása — `"A"` / `"B"` / `"C"`, vagy `null` a törléshez (visszaáll a levezetett értékre) |
+| `setExtentOverride(v)` | A levezetett parodontális kiterjedtség felülbírálása — `"localized"` / `"generalized"` / `"molar-incisor"`, vagy `null` a törléshez (visszaáll a levezetett értékre) |
 | `exportFhir(options?)` | Az odontogram exportálása HL7 FHIR R4 collection Bundle-ként (JSON letöltés). Opcionális `{ subject }` referencia; egyébként placeholder Patient kerül be |
 | `exportImage(format)` | Az odontogram letöltése képként — `"png"` vagy `"jpg"` |
 | `exportSvg()` | Az odontogram letöltése méretezhető SVG-ként (vektoros) |
+| `hasAnyPerioData()` | `true`, ha bármely parodontális tengely rögzítve van bárhol a szájüregben — ez vezérli a parodontális export automatikus kihagyását, és üres diagram esetén letiltja a parodontális export-menüpontokat |
+| `exportPerioSvg()` | A teljes parodontális diagram (fog-grafikák + számsorok + 2017-es klasszifikáció) letöltése egyetlen önálló vektoros SVG-ként, amely az állapotból, DOM nélkül épül fel a `buildPerioSvg()` segítségével |
+| `exportPerioImage(format)` | A parodontális diagram letöltése raszterizált képként — `"png"` vagy `"jpg"` |
+| `exportPdf(opts)` | Egy jsPDF-natív PDF jelentés letöltése (`{patientData, odontogram, perioStatus, perioDescription}`, mindegyik szekció opcionális) — vektoros szöveg plusz raszterizált fog-/parodontális diagram képek; a két parodontális szekció automatikusan kimarad, amikor a `hasAnyPerioData()` hamis, függetlenül az `opts`-tól |
 | `importFhirBundle(input)` | A modul által készített FHIR R4 Bundle importálása (objektum vagy JSON szöveg) |
 | `setImportFormat(format)` | A következő fájlimport értelmezőjének beállítása — `"status"` vagy `"fhir"` |
 | `startIntroTour()` | A 12 lépéses interaktív bemutató túra indítása |
 
 ### 💾 Állapot Export/Import formátum
-Az export egy JSON fájlt hoz létre (`2.10` verziójú; az importálás továbbra is elfogadja a korábbi `1.4`, `2.0`, `2.1`, `2.2`, `2.3`, `2.4`, `2.5`, `2.6`, `2.7`, `2.8` és `2.9` verziókat, és automatikusan migrálja őket), amely tartalmazza:
+Az export egy JSON fájlt hoz létre (`2.19` verziójú; az importálás továbbra is elfogadja a korábbi `1.4` és `2.0`–`2.18` verziókat, és automatikusan migrálja őket), amely tartalmazza:
 
 **Globális mezők:**
 - `wisdomVisible` - bölcsességfogak láthatók
@@ -471,6 +525,19 @@ Az export egy JSON fájlt hoz létre (`2.10` verziójú; az importálás tovább
 - `customStates` - plugin egyedi állapotok (objektum, plugin azonosító szerint kulcsozva)
 - `note` - fogankénti szöveges megjegyzés (szöveg, opcionális — csak ha nem üres)
 
+**Felső szintű `plan` mező (2.11-es verziótól):**
+- `plan` - opcionális objektum, ugyanolyan alakú, mint a `teeth` (a fenti fogankénti mezők), amely a **terv** (tervezett, kezelés utáni állapot) diagramot tartalmazza. Csak akkor jelenik meg, ha a terv diagram inicializálva lett (a `Státusz | Terv` kapcsolót legalább egyszer Tervre váltották) ÉS tartalma eltér a státusz diagramtól — egy csak-státusz export teljesen kihagyja, és a verziószámon kívül byte-azonos marad egy 2.11 előtti exporttal. Importáláskor a `plan` hiánya törli/deinicializálja a terv diagramot (sosem éleszt fel egy, az import előttről megmaradt elavult tervet); a jelenlévő `plan` a státusszal együtt visszaállítja a terv diagramot is. A terv diagram az import/export mezőtől függetlenül is olvasható/írható a `getPlanChart()`/`setPlanChart()` függvényekkel (lásd a Nyilvános API-t fentebb), és a `getStatusChart()` mindig a státusz-elsődleges payloadot adja vissza, függetlenül az aktív diagram módtól.
+
+**Felső szintű `case` objektum (2.17-es verziótól, bővítve 2.18-ban és 2.19-ben):**
+- `case` - opcionális, eset-szintű metaadat objektum — NEM fogankénti és NEM kettős állapotú (ugyanaz az objektum osztott a státusz és a terv diagram között, a felső szintű `globals` payload kulcsot tükrözve). Tartalmazza a páciens életkorát (`age`, 0-120), a dohányzási státuszt (`smokingStatus`: unknown/never/former/current, `cigarettesPerDay` 0-99 értékkel), a diabétesz-státuszt (`diabetesStatus`: unknown/none/present, `hba1c` 3.0-20.0 értékkel), két parodontális kimenet-összegző mutatót (`toothLossPerio` 0-32 és `maxRblPercent` 0-100), a 2017-es parodontális klasszifikáció klinikusi felülbírálásait (`diagnosisOverride`/`stageOverride`/`gradeOverride`/`extentOverride`), valamint két eset-azonosító mezőt — `patientName` (körbevágott szöveg vagy `null`) és `examDate` (`ÉÉÉÉ-HH-NN` vagy `null`) — amelyeket kizárólag a PDF jelentés fejléce használ, máshol nem; egyik sem része a FHIR exportnak. Az üres mezők kihagyásával szerializálódik, és a teljes `case` objektum hiányzik, ha minden mezője az alapértékén van. A `getCaseMeta()`/`resetCaseMeta()` és az egyedi setterek kezelik (lásd a Nyilvános API-t fentebb).
+
+### 🖨️ Export
+Az odontogram saját Státusz JSON / FHIR / PNG / JPG / SVG exportján túl a **parodontális diagramnak** saját export útvonala van:
+- **Parodontális SVG/PNG/JPG:** az `exportPerioSvg()` / `exportPerioImage("png"|"jpg")` a teljes parodontális diagramot (fog-grafikák + számsorok + a 2017-es klasszifikáció) egyetlen önálló vektoros SVG-ként rendereli (`buildPerioSvg()`), a beágyazott `PerioChart` DOM-tól függetlenül. A három export-menüpont le van tiltva, amikor a `hasAnyPerioData()` hamis (egy üres diagramnak nincs mit exportálnia parodontálisan).
+- **PDF jelentés:** az export menü "PDF report…" pontja megnyitja az `ExportOptionsModal`-t — egy beállítás-ablakot (páciensnév + vizsgálati dátum mezők, közvetlenül az eset metaadatokhoz kötve; négy szekció-jelölőnégyzet: páciens adatok, odontogram, parodontális státusz, parodontális leírás), mielőtt meghívná az `exportPdf(opts)`-ot. A PDF jsPDF-natívan épül fel — vektoros szöveg `.text()`-tel, raszterizált fog-/parodontális diagram képek `.addImage()`-dzsel — **svg2pdf.js függőség nélkül**. A két parodontális szekció automatikusan kimarad, amikor a `hasAnyPerioData()` hamis, függetlenül az ablak jelölőnégyzeteitől.
+- **mPI/mBI implantátum-szűrés:** a peri-implantáris Mombelli indexek (mPI/mBI) csak olyan fogsorban jelennek meg sorként, amely tartalmaz legalább egy implantátum fogat — mind az élő parodontális diagramon, mind az SVG/PDF exportokban.
+- A páciensnév és a vizsgálati dátum csak diagram-azonosító metaadat (payload `2.19`, additív) — **nem** része a FHIR exportnak.
+
 ### 📁 Mappastruktúra
 - `src/App.tsx` - UI váz, fejléc vezérlők, nyelv/számozás/sötét mód/téma/plugin választó
 - `src/odontogram.ts` - SVG rétegelő motor, fog állapotkezelés, érintéses interakciók, plugin fedvények, UI összekötés
@@ -482,8 +549,11 @@ Az export egy JSON fájlt hoz létre (`2.10` verziójú; az importálás tovább
 - `src/registry/` - deklaratív klinikai-tengely registry: FHIR mezőmegfeleltetések, SVG-törlési-halmaz/logikai-jelző aktiválás, pótlás típus×anyag mátrix, UI opciólisták (egyetlen forrás, amely generálja az export/import, FHIR és a választó UI-t)
 - `src/fhir/` - HL7 FHIR R4 export/import: `toFhir.ts`/`fromFhir.ts`, kódrendszerek, mezőmegfeleltetések, primitívek
 - `src/bridgeOverlay.ts` - több fogra kiterjedő híd-csatlakozó overlay (ívhez igazodó nyereg-geometria)
-- `src/SettingsModal.tsx` - lapozott (tabos) Beállítások ablak (Általános/Panelek/Fogadatok/Caries/Pulpa/Jegyzetek)
-- `src/__tests__/` + `src/registry/__tests__/` - Vitest tesztcsomag (864 teszt sikeres, 1 kihagyva, 94 fájlban)
+- `src/SettingsModal.tsx` - lapozott (tabos) Beállítások ablak (Általános/Panelek/Fogadatok/Caries/Pulpa/Jegyzetek/Periodontal)
+- `src/perioExport.ts` - `buildPerioSvg()`: a teljes parodontális diagram egyetlen önálló vektoros SVG-ként
+- `src/perioPdf.ts` - az `exportPdf()` tiszta jsPDF jelentés-összeállítója (`assemblePdf`)
+- `src/ExportOptionsModal.tsx` - a "PDF report…" export-beállítási ablak
+- `src/__tests__/` + `src/registry/__tests__/` - Vitest tesztcsomag (1704 teszt sikeres, 1 kihagyva, 163 fájlban)
 - `src/assets/teeth-svgs/` - SVG fogsablonok (6 fájl: metszők, szemfogak, kis őrlők, nagy őrlők + okkluzális nézetek)
 - `src/assets/icon-svgs/` - eszköztár ikon SVG-k (5 fájl)
 
@@ -508,10 +578,15 @@ Az export egy JSON fájlt hoz létre (`2.10` verziójú; az importálás tovább
 
 Ha ezt a modult használod a munkádban, kérlek hivatkozz rá.
 
-**Ez a verzió (v1.10.0):**
-> Dul, Z. (2026). *React Odontogram Modul* (v1.10.0). Zenodo. https://doi.org/10.5281/zenodo.21156788
+**Ez a verzió (v1.49.0):**
+> Dul, Z. (2026). *React Odontogram Modul* (v1.49.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **Összes verzió (koncepció DOI):** https://doi.org/10.5281/zenodo.21156787
+
+> A fenti, összes verzióra vonatkozó koncepció DOI mindig a legutóbb archivált
+> kiadásra mutat; egy verzió-specifikus DOI minden kiadáshoz akkor jön létre,
+> amikor azt archiválják a Zenodón. Amíg a v1.49.0 nincs archiválva, a koncepció
+> DOI-val hivatkozz rá.
 
 A géppel olvasható hivatkozási metaadatok a [`CITATION.cff`](../CITATION.cff) fájlban találhatók.
 
