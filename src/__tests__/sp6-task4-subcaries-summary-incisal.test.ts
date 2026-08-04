@@ -74,7 +74,7 @@ describe("surfaceLabelKey (spec §8 anterior label swap)", () => {
     expect(surfaceLabelKey("nonsense")).toBe("nonsense");
   });
   it("surface.incisal resolves to a real translation in every UI language", () => {
-    for (const lang of ["hu", "en", "de", "es", "it", "sk", "pl", "ru", "pt-br", "zh", "ar"] as const) {
+    for (const lang of ["hu", "en", "de", "es", "it", "sk", "pl", "ru", "pt-br", "zh", "ar", "fr"] as const) {
       const label = t("surface.incisal", lang);
       expect(label).not.toBe("surface.incisal"); // not a raw leaked key
       expect(label.length).toBeGreaterThan(0);

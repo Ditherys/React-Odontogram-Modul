@@ -169,6 +169,7 @@ const LANGUAGE_OPTIONS: { value: Language; labelKey: string }[] = [
   { value: "pt-br", labelKey: "language.pt-br" },
   { value: "zh", labelKey: "language.zh" },
   { value: "ar", labelKey: "language.ar" },
+  { value: "fr", labelKey: "language.fr" },
 ];
 
 /**

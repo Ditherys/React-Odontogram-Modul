@@ -8,7 +8,7 @@
 [![React](https://img.shields.io/badge/React-18%20%7C%2019-61DAFB?style=for-the-badge&logo=react)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 
-An interactive, SVG-based **dental odontogram (dental chart) editor** for **React + TypeScript** — with a full **periodontal charting module**, multi-surface caries/restorations, endodontic/prosthetic states, FDI/Universal/Palmer numbering, **HL7 FHIR R4** export/import, optional ICDAS scoring, and an 11-language UI.
+An interactive, SVG-based **dental odontogram (dental chart) editor** for **React + TypeScript** — with a full **periodontal charting module**, multi-surface caries/restorations, endodontic/prosthetic states, FDI/Universal/Palmer numbering, **HL7 FHIR R4** export/import, optional ICDAS scoring, and a 12-language UI.
 
 🔗 **Live demo:** https://react-advanced-odontogram.vercel.app/ · 📚 **API docs:** https://zoliqua.github.io/React-Odontogram-Modul/
 
@@ -66,13 +66,13 @@ Per-site probing depth, gingival margin, bleeding on probing (+ suppuration) at 
 - 🩺 Full periodontal module (see above) + 2017 classification
 - 🔗 **HL7 FHIR R4** export/import; JSON export/import with migrations
 - 🖼️ PNG / JPG / SVG chart export and a **PDF report** (jsPDF, lazy-loaded)
-- 🔢 FDI / Universal / Palmer numbering · 🌐 11 UI languages (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH, Arabic RTL) · 🎨 theming via `--odon-*` CSS variables · 🧩 plugin system · ⌨️ keyboard accessibility
+- 🔢 FDI / Universal / Palmer numbering · 🌐 12 UI languages (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR, Arabic RTL) · 🎨 theming via `--odon-*` CSS variables · 🧩 plugin system · ⌨️ keyboard accessibility
 
 ## 📖 Documentation
 
 Full documentation is available per language:
 
-🇬🇧 [English](lang/README-en.md) · 🇪🇸 [Español](lang/README-es.md) · 🇩🇪 [Deutsch](lang/README-de.md) · 🇭🇺 [Magyar](lang/README-hu.md) · 🇮🇹 [Italiano](lang/README-it.md) · 🇸🇰 [Slovenčina](lang/README-sk.md) · 🇵🇱 [Polski](lang/README-pl.md) · 🇷🇺 [Русский](lang/README-ru.md) · 🇧🇷 [Português (BR)](lang/README-pt-br.md) · 🇸🇦 [العربية](lang/README-ar.md) · 🇨🇳 [简体中文](lang/README-zh.md)
+🇬🇧 [English](lang/README-en.md) · 🇪🇸 [Español](lang/README-es.md) · 🇩🇪 [Deutsch](lang/README-de.md) · 🇭🇺 [Magyar](lang/README-hu.md) · 🇮🇹 [Italiano](lang/README-it.md) · 🇸🇰 [Slovenčina](lang/README-sk.md) · 🇵🇱 [Polski](lang/README-pl.md) · 🇷🇺 [Русский](lang/README-ru.md) · 🇧🇷 [Português (BR)](lang/README-pt-br.md) · 🇸🇦 [العربية](lang/README-ar.md) · 🇨🇳 [简体中文](lang/README-zh.md) · 🇫🇷 [Français](lang/README-fr.md)
 
 📚 **API reference (TypeDoc):** https://zoliqua.github.io/React-Odontogram-Modul/
 
