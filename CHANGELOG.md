@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-08-05
+
+### Added
+
+- Export `initOdontogram` and `destroyOdontogram` from public API
+- Export `getStatusChart`, `getPlanChart`, and `setPlanChart` for programmatic state
+  hydration
+- Export `getChartMode` and `setChartMode` for chart-mode lifecycle control
+- Export `setNumberingSystem` from public API
+- Export `getPlanChanges` for status-vs-plan diff
+- Export `openPerioOverlay`, `closePerioOverlay`, `isPerioOverlayOpen` for
+  programmatic perio-chart control
+- Export `hasAnyPerioData` for perio data presence check
+- Export `exportStatus` and `importStatus` for JSON export/import
+- Export `exportPdf`, `exportPerioImage`, `exportPerioSvg` for periodontal export
+  formats
+
+### Fixed
+
+- `exportStatus` and `importStatus` were module-private despite being fully
+  implemented — added missing `export` keyword
+
 ## [2.1.0] - 2026-08-04
 ### Changed
 - **Slimmer install (dependency diet).** Removed three unused runtime
