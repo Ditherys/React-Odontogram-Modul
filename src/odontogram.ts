@@ -7771,7 +7771,7 @@ function buildOdontogramProseText(summary: OdontogramSummary): string {
   return parts.join("\n");
 }
 
-function exportStatus(){
+export function exportStatus(){
   downloadJson(collectExportPayload(), "odontogram-status");
 }
 
@@ -7863,7 +7863,7 @@ function resetActiveChartToStatusAfterImport(): void {
   toothState = charts.status;
 }
 
-function importStatus(data: Any){
+export function importStatus(data: Any){
   if(!data || typeof data !== "object") return;
   hydrateImportedCharts(data);
   resetActiveChartToStatusAfterImport();
