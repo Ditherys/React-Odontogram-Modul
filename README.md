@@ -10,11 +10,12 @@
 
 **📖 Full documentation is available per language:**
 
-🇬🇧 [English](lang/README-en.md) · 🇪🇸 [Español](lang/README-es.md) · 🇩🇪 [Deutsch](lang/README-de.md) · 🇭🇺 [Magyar](lang/README-hu.md) · 🇮🇹 [Italiano](lang/README-it.md) · 🇸🇰 [Slovenčina](lang/README-sk.md) · 🇵🇱 [Polski](lang/README-pl.md) · 🇷🇺 [Русский](lang/README-ru.md) · 🇧🇷 [Português (BR)](lang/README-pt-br.md) · 🇸🇦 [العربية](lang/README-ar.md) · 🇨🇳 [简体中文](lang/README-zh.md) · 🇫🇷 [Français](lang/README-fr.md)
+🇬🇧 [English](lang/README-en.md) · 🇩🇪 [Deutsch](lang/README-de.md) · 🇪🇸 [Español](lang/README-es.md) · 🇫🇷 [Français](lang/README-fr.md) · 🇮🇹 [Italiano](lang/README-it.md) · 🇭🇺 [Magyar](lang/README-hu.md) · 🇵🇱 [Polski](lang/README-pl.md) · 🇧🇷 [Português (BR)](lang/README-pt-br.md) · 🇸🇰 [Slovenčina](lang/README-sk.md) · 🇷🇺 [Русский](lang/README-ru.md) · 🇸🇦 [العربية](lang/README-ar.md) · 🇨🇳 [简体中文](lang/README-zh.md)
 
 An interactive, SVG-based **dental odontogram (dental chart) editor** for **React + TypeScript** — with a full **periodontal charting module**, multi-surface caries/restorations, endodontic/prosthetic states, FDI/Universal/Palmer numbering, **HL7 FHIR R4** export/import, optional ICDAS scoring, and a 12-language UI.
 
-🔗 **Live demo:** https://react-odontogram-modul.vercel.app/ · 📚 **API docs:** https://zoliqua.github.io/React-Odontogram-Modul/
+🔗 **Live demo:** https://react-odontogram-modul.vercel.app/ \
+📚 **API docs:** https://zoliqua.github.io/React-Odontogram-Modul/
 
 ![Odontogram editor preview](https://raw.githubusercontent.com/ZoliQua/React-Odontogram-Modul/main/lang/screenshot_en_odontogram.png)
 
