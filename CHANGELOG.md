@@ -5,10 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.1.1] - 2026-08-05
+## [2.2.0] - 2026-08-06
 
 ### Added
 
+- **French (`fr`) UI language** — 12 UI languages total (machine-translated,
+  native-speaker review pending). Contributed via PR #13.
 - Export `initOdontogram` and `destroyOdontogram` from public API
 - Export `getStatusChart`, `getPlanChart`, and `setPlanChart` for programmatic state
   hydration
@@ -26,6 +28,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `exportStatus` and `importStatus` were module-private despite being fully
   implemented — added missing `export` keyword
+
+### Security
+
+- Upgraded `jspdf` 4.1.0 → 4.2.1, resolving 3 high-severity advisories
+  (SNYK-JS-JSPDF-15322679 / -15322681 / -15322684). Based on Snyk PR #11.
+
+### Changed
+
+- README restructured for npm: the per-language documentation links moved to the
+  top of the root README; fixed the demo URL (`react-odontogram-modul.vercel.app`);
+  French added across every language switcher and enumeration.
 
 ## [2.1.0] - 2026-08-04
 ### Changed

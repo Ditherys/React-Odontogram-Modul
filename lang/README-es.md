@@ -1,7 +1,7 @@
 # 🦷 React Odontogram Modul
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.1.1-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.2.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -23,7 +23,7 @@ Este proyecto es un editor de odontograma interactivo basado en navegador que pe
 ---
 ![Editor de odontograma — vista previa en español](screenshot_es_odontogram.png)
 
-🔗 **Test URL:** https://react-advanced-odontogram.vercel.app/
+🔗 **Test URL:** https://react-odontogram-modul.vercel.app/
 
 ---
 
@@ -54,7 +54,7 @@ import "react-advanced-odontogram/style.css";
 export function Chart() {
   return (
     <OdontogramShell
-      language="es"          // hu | en | de | es | it | sk | pl | ru | pt-br | ar | zh
+      language="es"          // hu | en | de | es | it | sk | pl | ru | pt-br | ar | zh | fr
       numberingSystem="FDI"  // FDI | Universal | Palmer
       darkMode={false}
     />
@@ -182,7 +182,7 @@ O cárgalo con un import dinámico solo de cliente: `dynamic(() => import("./Odo
 - ⏳ Superposición de progreso durante la exportación de imagen
 - 🎓 Tour interactivo de introducción de 12 pasos
 - 🔢 Tres sistemas de numeración (FDI, Universal, Palmer)
-- 🌐 I18n — 11 idiomas de interfaz (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH) con selector de idioma; el árabe muestra la interfaz de derecha a izquierda, con los odontogramas periodontal y dental fijados de izquierda a derecha (AR/ZH son traducciones automáticas, pendientes de revisión por hablantes nativos)
+- 🌐 I18n — 12 idiomas de interfaz (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR) con selector de idioma; el árabe muestra la interfaz de derecha a izquierda, con los odontogramas periodontal y dental fijados de izquierda a derecha (AR/ZH/FR son traducciones automáticas, pendientes de revisión por hablantes nativos)
 - 🌗 Modo oscuro con botón de alternancia (independiente o controlado por la aplicación principal)
 - 🎨 Configuración de tema personalizado (prop `themeConfig`) con CSS custom properties (`--odon-*`)
 - 📱 UX táctil móvil: popover de zoom al tocar, menú contextual con pulsación larga, zoom con pellizco, áreas táctiles WCAG 44px, navegación por arcada
@@ -209,7 +209,7 @@ O cárgalo con un import dinámico solo de cliente: `dynamic(() => import("./Odo
 - 🎛️ Panel de controles y estado
 - 🎨 Motor de capas SVG y plantillas
 - 🔢 Numeración dental y mapeo de etiquetas (FDI/Universal/Palmer)
-- 🌐 Localización — 11 idiomas de interfaz (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH), incluyendo árabe (RTL)
+- 🌐 Localización — 12 idiomas de interfaz (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR), incluyendo árabe (RTL)
 - 💾 Exportación/importación de estado
 - 📋 Extras de estado: plantillas de restauración predefinidas
 - 🎨 Configuración de tema: paleta de colores personalizable mediante propiedades CSS `--odon-*`
@@ -225,7 +225,7 @@ O cárgalo con un import dinámico solo de cliente: `dynamic(() => import("./Odo
 ### 🛠️ Controles de interfaz
 
 **🔝 Barra superior:**
-- Selector de idioma (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH desplegable)
+- Selector de idioma (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR desplegable)
 - Botón de modo oscuro (icono sol/luna, alterna entre tema claro y oscuro)
 - Selector de sistema de numeración (FDI/Universal/Palmer desplegable)
 - Botones Exportar estado / Importar estado
@@ -486,7 +486,7 @@ npm run docs           # Generar documentación TypeDoc en docs/
 
 | Prop | Tipo | Predeterminado | Descripción |
 |---|---|---|---|
-| `language` | `string` | `'hu'` | Idioma de la UI (hu/en/de/es/it/sk/pl/ru/pt-br/ar/zh) |
+| `language` | `string` | `'hu'` | Idioma de la UI (hu/en/de/es/it/sk/pl/ru/pt-br/ar/zh/fr) |
 | `onLanguageChange` | `(lang) => void` | — | Callback cuando cambia el idioma |
 | `numberingSystem` | `string` | `'FDI'` | Sistema de numeración (FDI/Universal/Palmer) |
 | `onNumberingChange` | `(system) => void` | — | Callback cuando cambia la numeración |
@@ -653,7 +653,7 @@ Además de la propia exportación de Estado JSON / FHIR / PNG / JPG / SVG del od
 - `src/plugin.ts` - tipo `OdontogramPlugin`, `PluginLayer`, `getQuadrant()`, prioridades Z `LAYER_Z`
 - `src/theme.ts` - tipo `OdontogramThemeConfig` y función `applyThemeConfig()`
 - `src/status_extras.ts` - 34 plantillas de restauración predefinidas (puentes, prótesis, construcciones con barra)
-- `src/i18n/` - traducciones (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH) y hook i18n
+- `src/i18n/` - traducciones (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR) y hook i18n
 - `src/utils/numbering.ts` - conversión de numeración FDI, Universal, Palmer
 - `src/registry/` - registro declarativo de ejes clínicos: mapeos de campos FHIR, conjunto de limpieza SVG/activación de indicadores booleanos, matriz tipo×material de restauración, listas de opciones de UI (fuente única de verdad que genera la UI de exportación/importación, FHIR y de selectores)
 - `src/fhir/` - exportación/importación HL7 FHIR R4: `toFhir.ts`/`fromFhir.ts`, sistemas de códigos, mapeos de campos, primitivas

@@ -1,7 +1,7 @@
 # 🦷 React Odontogram Modul
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.1.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.2.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -25,7 +25,7 @@ Dieses Projekt ist ein interaktiver, browserbasierter Odontogramm-Editor, der ei
 ---
 ![Odontogram – Vorschau (Deutsch)](screenshot_de_odontogram.png)
 
-🔗 **Test URL:** https://react-advanced-odontogram.vercel.app/
+🔗 **Test URL:** https://react-odontogram-modul.vercel.app/
 
 ---
 
@@ -56,7 +56,7 @@ import "react-advanced-odontogram/style.css";
 export function Chart() {
   return (
     <OdontogramShell
-      language="de"          // hu | en | de | es | it | sk | pl | ru | pt-br | ar | zh
+      language="de"          // hu | en | de | es | it | sk | pl | ru | pt-br | ar | zh | fr
       numberingSystem="FDI"  // FDI | Universal | Palmer
       darkMode={false}
     />
