@@ -63,7 +63,7 @@
     "react-dom": "^18 || ^19"
   },
   "dependencies": {
-    "jspdf": "^4.0.0"
+    "jspdf": "^4.2.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
