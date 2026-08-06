@@ -1,4 +1,4 @@
-// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 
 // UI-1 Task 1: extract `PerioSidebar` out of `PerioChart.tsx` (the whole-mouth
@@ -270,13 +270,19 @@ describe("UI-1 Task 1: <App/> right panel view-gate", () => {
     expect(document.getElementById("caseMetaPanel")).toBeNull();
   });
 
-  it("perio (Dental Chart) view: shows the perio sidebar, not the odontogram controls", async () => {
+  it("perio (Dental Chart) view: shows the perio sidebar; odontogram controls stay mounted but hidden", async () => {
     await mountApp();
     fireEvent.click(document.getElementById("appViewDentalChart")!);
     expect(document.getElementById("caseMetaPanel")).toBeTruthy();
     expect(document.getElementById("perio-fg-summary-avgpd")).toBeTruthy();
-    expect(document.getElementById("statusCard")).toBeNull();
-    expect(document.getElementById("toothSelect")).toBeNull();
+    // The odontogram control panel is NOT unmounted (that would drop its
+    // one-time wireControls() listeners and break editing after toggling back —
+    // see App.tsx). It stays in the DOM, hidden via CSS.
+    const controls = document.querySelector(".panel-odontogram-controls") as HTMLElement | null;
+    expect(controls).toBeTruthy();
+    expect(controls!.style.display).toBe("none");
+    expect(document.getElementById("statusCard")).toBeTruthy();
+    expect(document.getElementById("toothSelect")).toBeTruthy();
   });
 
   it("switching back to the odontogram view restores the odontogram controls", async () => {

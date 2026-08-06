@@ -1,12 +1,14 @@
-// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 
 import { useCallback, useEffect, useRef, useState, useId } from "react";
 import {
   exportPdf,
   hasAnyPerioData,
+  hasAnyToothNote,
   getCaseMeta,
   setPatientName,
+  setPatientDob,
   setExamDate,
   onStateChange,
 } from "./odontogram";
@@ -50,11 +52,24 @@ export default function ExportOptionsModal({
   const titleId = useId();
 
   const [patientData, setPatientDataOpt] = useState(true);
-  const [odontogram, setOdontogramOpt] = useState(true);
+  // 2.2.1: the former combined "Odontogram + description" option is split into
+  // two independently-selectable checkboxes, plus a third for per-tooth notes.
+  const [odontogramChart, setOdontogramChartOpt] = useState(true);
+  const [odontogramDescription, setOdontogramDescriptionOpt] = useState(true);
+  const [individualNotes, setIndividualNotesOpt] = useState(true);
   const [perioStatus, setPerioStatusOpt] = useState(true);
   const [perioDescription, setPerioDescriptionOpt] = useState(true);
   const [hasPerio, setHasPerio] = useState(false);
+  // 2.2.1: whether any tooth carries a note — drives the notes checkbox's
+  // `disabled` state (mirrors `hasPerio`/the perio checkboxes).
+  const [hasNotes, setHasNotes] = useState(false);
   const [caseMeta, setCaseMetaState] = useState(getCaseMeta());
+  // Local, decoupled buffer for the patient-name input. `setPatientName` trims
+  // on every call, and the `onStateChange` re-sync below would snap a
+  // just-typed trailing space back — making it impossible to type a space
+  // ("John Doe"). So the input is driven by this local buffer and only
+  // committed (trimmed) on blur and at export time, never per keystroke.
+  const [nameInput, setNameInput] = useState(getCaseMeta().patientName ?? "");
 
   // Capture the opener + move focus into the dialog when it opens; restore
   // focus to the opener when it closes/unmounts. Also (re)read hasPerio +
@@ -63,7 +78,14 @@ export default function ExportOptionsModal({
     if (!open) return;
     openerRef.current = (document.activeElement as HTMLElement | null) ?? null;
     setHasPerio(hasAnyPerioData());
+    setHasNotes(hasAnyToothNote());
+    // 2.2.1: exam date defaults to today (still editable) when the case has
+    // none — so a fresh report is dated without the user having to fill it in.
+    if (getCaseMeta().examDate === null) {
+      setExamDate(new Date().toISOString().slice(0, 10));
+    }
     setCaseMetaState(getCaseMeta());
+    setNameInput(getCaseMeta().patientName ?? "");
     const dialog = dialogRef.current;
     const first = dialog?.querySelector<HTMLElement>(FOCUSABLE);
     (first ?? dialog)?.focus();
@@ -80,6 +102,7 @@ export default function ExportOptionsModal({
     return onStateChange(() => {
       setCaseMetaState(getCaseMeta());
       setHasPerio(hasAnyPerioData());
+      setHasNotes(hasAnyToothNote());
     });
   }, [open]);
 
@@ -114,9 +137,12 @@ export default function ExportOptionsModal({
   if (!open) return null;
 
   const handleExport = () => {
+    setPatientName(nameInput.trim() === "" ? null : nameInput);
     const opts: PdfExportOptions = {
       patientData,
-      odontogram,
+      odontogramChart,
+      odontogramDescription,
+      individualNotes: individualNotes && hasNotes,
       perioStatus: perioStatus && hasPerio,
       perioDescription: perioDescription && hasPerio,
     };
@@ -153,8 +179,21 @@ export default function ExportOptionsModal({
             id="exportOptionsPatientName"
             className="case-meta-input"
             type="text"
-            value={caseMeta.patientName ?? ""}
-            onChange={(e) => setPatientName(e.target.value === "" ? null : e.target.value)}
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            onBlur={() => setPatientName(nameInput.trim() === "" ? null : nameInput)}
+          />
+        </div>
+        <div className="case-meta-row">
+          <label className="case-meta-row-label" htmlFor="exportOptionsPatientDob">
+            {t("case.patientDob")}
+          </label>
+          <input
+            id="exportOptionsPatientDob"
+            className="case-meta-input"
+            type="date"
+            value={caseMeta.patientDob ?? ""}
+            onChange={(e) => setPatientDob(e.target.value === "" ? null : e.target.value)}
           />
         </div>
         <div className="case-meta-row">
@@ -181,10 +220,27 @@ export default function ExportOptionsModal({
         <label>
           <input
             type="checkbox"
-            checked={odontogram}
-            onChange={(e) => setOdontogramOpt(e.target.checked)}
+            checked={odontogramChart}
+            onChange={(e) => setOdontogramChartOpt(e.target.checked)}
           />
-          <span>{t("export.options.odontogram")}</span>
+          <span>{t("export.options.odontogramChart")}</span>
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={odontogramDescription}
+            onChange={(e) => setOdontogramDescriptionOpt(e.target.checked)}
+          />
+          <span>{t("export.options.odontogramDescription")}</span>
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={individualNotes}
+            disabled={!hasNotes}
+            onChange={(e) => setIndividualNotesOpt(e.target.checked)}
+          />
+          <span>{t("toothInfo.notes")}</span>
         </label>
         <label>
           <input

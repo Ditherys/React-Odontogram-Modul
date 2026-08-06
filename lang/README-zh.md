@@ -1,7 +1,7 @@
-# 🦷 React Odontogram Modul
+# 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.2.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.2.1-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -153,7 +153,7 @@ export default function OdontogramClient() {
 - 🔢 12 个选择过滤器（全部、现有、恒牙、乳牙、种植体、缺失、上/下颌、前牙/磨牙）
 - 📊 预设状态模板（重置、乳牙列、混合牙列、无牙颌）
 - 📦 34 种预定义修复体模板（桥、可摘义齿、带种植体的杆卡义齿）
-- 💾 JSON 格式的状态导出/导入（版本 2.19；导入仍接受旧版 1.4 及 2.0 至 2.18 版本，并自动迁移，包含插件自定义状态及每颗牙齿的备注）
+- 💾 JSON 格式的状态导出/导入（版本 2.20；导入仍接受旧版 1.4 及 2.0 至 2.19 版本，并自动迁移，包含插件自定义状态及每颗牙齿的备注）
 - 🔗 HL7 FHIR R4 导出（每颗牙齿一个 Observation 组成的 collection Bundle，恒牙列采用 ISO 3950 牙位编码，使用本地代码系统——SNOMED CT 映射计划中）
 - ✚ 十字/加号式牙面选择界面（B/M/O/D/L）用于龋齿和充填记录
 - 🧱 每个牙面独立的修复材料（混合充填，例如颊侧银汞合金 + 远中复合树脂）
@@ -195,7 +195,7 @@ export default function OdontogramClient() {
 - ♿ 键盘无障碍访问（WCAG）：ARIA listbox/option 角色、回车/空格键选择、方向键导航、focus-visible 轮廓
 - 🔒 只读模式：为打印/报告/查看场景禁用所有交互
 - ✨ 选中动画：选中牙齿呈现脉动虚线边框和发光阴影效果（支持 prefers-reduced-motion）
-- 📝 每颗牙齿的备注：双击添加/编辑备注，牙号旁显示备注图标，悬停提示显示备注文字，支持 JSON 导出/导入
+- 📝 每颗牙齿的备注：双击添加/编辑备注，牙号旁显示备注图标，悬停提示显示备注文字，全口摘要面板中新增一行“个别备注”，并纳入 PDF 报告，支持 JSON 导出/导入
 - 🔀 现状 ↔ 计划图表切换：图表标题栏中的 `Status | Plan`（现状 | 计划）切换开关可在**现状**图表与**计划**（拟定治疗后）图表之间切换，二者各自拥有独立的牙齿状态；首次切换到计划图表时，它会以现状图表为初始副本，此后一个图表中的编辑不会影响另一个图表。导出/导入（`exportStatus`/`exportFhir`/文件导入）始终针对现状图表；计划图表通过其自身的 API 单独读写（见下文“公共 API”）——当其与现状不同时，会作为附加的 `plan` 区块包含在 JSON 导出中
 - 📝 “变更内容”提示框：只要计划与当前现状存在差异，牙齿信息面板下方的一个提示框会按牙位、按治疗轴（存在与否、基质、修复体、可摘修复、拟定牙冠、正畸、牙髓/根管、根尖）逐条列出差异，格式为 `牙位: 轴  从 → 到`；也可通过 `getPlanChanges()` 以编程方式获取
 
@@ -203,7 +203,8 @@ export default function OdontogramClient() {
 
 - 🩺 牙周记录：每颗牙齿六个标准位点的**探诊深度**、**龈缘位置**、**探诊出血**（+溢脓），并推算出**临床附着水平（CAL = 探诊深度 + 龈缘位置）**、牙龈退缩量，以及全口**探诊出血百分比（%BOP）**。**图形化全口牙周图**——每侧牙弓分别绘制为**两张独立的颊侧/腭（舌）侧 SVG 图**（复用牙齿美术资源，在两个面上统一采用“牙冠朝向一致”的方向；种植牙位使用**种植体图形**），配有红色的**CEJ 线**、**带毫米刻度编号的参考网格**，以及贯穿各牙的**龈缘/牙周袋深度曲线**，并由一条**中央牙周指标带**（标注为 `▲ 颊侧 … 舌/腭侧 ▼`）将其分隔，该指标带承载共用的按牙位指标——最上方为 **Miller 分级**，**菌斑/PI/GI/mPI/mBI** 则以每颗牙齿一个**解剖学菱形方块**呈现（颊侧尖朝上，舌侧尖朝下，中间行的近中/远中根据左右侧对调，使近中始终指向牙弓中线）；数值行（完整指标名称——PD/GM/CAL/BOP + 松动度 + 根分叉——采用更大、更适合触控的单元格）按列对齐，并附一份摘要（平均 PD/CAL、%BOP、PI%），支持**键盘自动前进**式录入；图表会**动态缩放以填满可用宽度**，在任意窗口尺寸下均具响应式效果。以 `Odontogram | Periodontal Status`（牙位图 | 牙周状态）**视图切换开关**呈现，该视图激活时右侧面板会转用为**牙周情境侧栏**（患者数据、2017 年分类结果及全口摘要），设置选项可将整体呈现方式切回**弹窗**形式；`PerioChart` 依然是一个**可独立调用的组件**（具名导出），使宿主应用可以独立于基础牙位图单独调起牙周图表。按位点的 **FHIR** 导出通过 LOINC 牙周面板代码（`74029-0`；探诊深度 `32910-2`、牙龈退缩 `32911-0`、CAL `32912-8`）
 - 🅿️ 拟定样式：在计划模式下，计划相对当前现状**新增**的发现（拟定牙冠、拔牙、正畸移动、修复体等）会以醒目的**虚线、着色“拟定”轮廓**渲染，使计划呈现为意向而非既成事实——图表卡片中附有“虚线 = 拟定”图例说明。现状模式下的渲染保持逐字节一致；治疗方案仅存在于计划图表中，切回现状时会完全重置
-- 🧪 1704 个自动化测试通过（另有 1 个测试被跳过）（Vitest），覆盖 163 个测试文件，涵盖编号系统、翻译、预设模板、国际化、App 组件、主题、触控、插件、无障碍访问及临床轴/诊断一致性
+- 🚦 计划模式限定：计划图表仅显示牙医实际可以**执行**的操作——基础选择器仅提供缺失 / 恒牙 / 种植体，且仅适用于现状的发现项（龋齿、牙齿磨耗、变色，以及整个牙周区块——松动度、六位点探诊网格、炎症/牙周修饰项、牙石、种植体周状态）均被隐藏；牙髓/根管控件保留根管**治疗**操作（根管治疗/桩钉/根尖切除/髓旁钉），同时隐藏牙髓/根尖**诊断**及牙根吸收。修复体、可摘修复、正畸、需要牙冠/更换牙冠及拔牙计划仍可纳入计划
+- 🧪 1746 个自动化测试通过（另有 1 个测试被跳过）（Vitest），覆盖 164 个测试文件（共 165 个），涵盖编号系统、翻译、预设模板、国际化、App 组件、主题、触控、插件、无障碍访问及临床轴/诊断一致性
 - 📖 基于 JSDoc 注释、面向所有公共导出项生成的 TypeDoc API 文档（`npm run docs`）
 
 ### 📦 模块组成
@@ -551,8 +552,9 @@ npm run docs           # 在 docs/ 目录生成 TypeDoc 文档
 | `furcationEntrances(toothNo)` | 获取某颗牙齿的根分叉入口位置——`["mesial","distal","buccal"]`（上颌磨牙）、`["buccal","lingual"]`（下颌磨牙）、`["mesial","distal"]`（上颌第一前磨牙），其余为 `[]` |
 | `setFurcation(toothNo, entrance, grade)` / `getToothFurcation(toothNo)` | 设置/获取按入口位置记录的根分叉受累程度（Glickman `1`–`4`；`null` 表示清除） |
 | `setPlaque(toothNo, surface, present)` / `getToothPlaque(toothNo)` | 设置/获取按牙面记录的 O'Leary 菌斑存在情况（近中/远中/颊侧/舌侧）；用于计算 `getPerioSummary()` 中的全口 PI% |
-| `getCaseMeta()` | 获取病例级元数据对象（`{age, smokingStatus, cigarettesPerDay, diabetesStatus, hba1c, toothLossPerio, maxRblPercent, patientName, examDate}`）——一个共享的独立数据块，非按牙位、非双状态（与顶层的 `globals` 数据键类似）；用于牙周分期/分级分类及 PDF 报告标题 |
+| `getCaseMeta()` | 获取病例级元数据对象（`{age, smokingStatus, cigarettesPerDay, diabetesStatus, hba1c, toothLossPerio, maxRblPercent, patientName, patientDob, examDate}`）——一个共享的独立数据块，非按牙位、非双状态（与顶层的 `globals` 数据键类似）；用于牙周分期/分级分类及 PDF 报告标题 |
 | `setPatientName(v)` | 设置病例的患者姓名（自动去除首尾空格；空字符串或 `null` 表示清除）——仅为身份标识信息，不参与牙周分类推算 |
+| `setPatientDob(v)` | 设置病例的患者出生日期（`YYYY-MM-DD`；无效或空值表示清除）——仅用于 PDF 报告身份信息 |
 | `setExamDate(v)` | 设置病例的检查日期（`YYYY-MM-DD`；无效或空值表示清除） |
 | `setCaseAge(v)` | 设置病例的患者年龄（岁）——`0`-`120`，`null` 表示清除 |
 | `setSmokingStatus(v)` | 设置病例的吸烟状况——`"unknown"` / `"never"` / `"former"` / `"current"` |
@@ -573,13 +575,13 @@ npm run docs           # 在 docs/ 目录生成 TypeDoc 文档
 | `hasAnyPerioData()` | 只要口腔中任意位置记录了任意牙周轴数据即为 `true`——用于驱动牙周导出的自动跳过逻辑，并在空白图表上禁用牙周导出菜单项 |
 | `exportPerioSvg()` | 通过 `buildPerioSvg()` 从状态无头（headless）构建，将完整的牙周图表（牙齿图形 + 数值行 + 2017 年分类结果）下载为一份独立的矢量 SVG |
 | `exportPerioImage(format)` | 将牙周图表下载为栅格化图像——`"png"` 或 `"jpg"` |
-| `exportPdf(opts)` | 下载一份 jsPDF 原生生成的 PDF 报告（`{patientData, odontogram, perioStatus, perioDescription}`，各区块均为可选）——矢量文字加栅格化的牙齿/牙周图表图像；只要 `hasAnyPerioData()` 为 false，两个牙周区块就会自动跳过，与 `opts` 设置无关 |
+| `exportPdf(opts)` | 下载一份 jsPDF 原生生成的 PDF 报告（`{patientData, odontogramChart, odontogramDescription, individualNotes, perioStatus, perioDescription}`，各区块均为可选）——矢量文字加栅格化的牙齿/牙周图表图像；只要没有任何牙齿记录备注，“个别备注”区块就会自动跳过；只要 `hasAnyPerioData()` 为 false，两个牙周区块也会自动跳过，二者均与 `opts` 设置无关 |
 | `importFhirBundle(input)` | 导入由本模块生成的 FHIR R4 Bundle（对象或 JSON 字符串） |
 | `setImportFormat(format)` | 设置下一次文件导入所用的解析器——`"status"` 或 `"fhir"` |
 | `startIntroTour()` | 启动 12 步交互式新手导览 |
 
 ### 💾 状态导出/导入格式
-导出会生成一个 JSON 文件（版本 `2.19`；导入同时也接受旧版 `1.4` 及 `2.0` 至 `2.18`，并自动迁移），其中包含：
+导出会生成一个 JSON 文件（版本 `2.20`；导入同时也接受旧版 `1.4` 及 `2.0` 至 `2.19`，并自动迁移），其中包含：
 
 **全局字段：**
 - `wisdomVisible` - 智齿是否可见
@@ -639,15 +641,15 @@ npm run docs           # 在 docs/ 目录生成 TypeDoc 文档
 **顶层 `plan` 字段（版本 2.11+）：**
 - `plan` - 可选对象，结构与 `teeth`（上述按牙位字段）相同，保存**计划**（拟定治疗后）图表。仅当计划图表已被初始化（`Status | Plan` 切换开关至少切换到过“计划”一次）**且**其内容与现状图表不同时才会出现——纯现状导出会完全省略此字段，除版本号外与 2.11 之前的导出保持逐字节一致。导入时，若 `plan` 字段缺失，则会清除/取消初始化计划图表（绝不会复活导入前遗留的旧计划）；若 `plan` 字段存在，则在恢复现状图表的同时一并恢复计划图表。计划图表也可以通过 `getPlanChart()`/`setPlanChart()`（见上文“公共 API”）独立于导入/导出进行读写，而 `getStatusChart()` 始终返回以现状为主的数据，与当前激活哪个图表模式无关。
 
-**顶层 `case` 字段（版本 2.17+，在 2.18 和 2.19 中扩展）：**
-- `case` - 可选对象，保存病例级（非按牙位）元数据，由现状图表和计划图表共享（与顶层的 `globals` 键类似）。空值省略：当所有字段均为默认值时该字段完全不出现，因此无病例数据的导出除版本号外保持逐字节一致。各字段（在默认值时均被省略）：`age`（年龄）；`smokingStatus`（吸烟状况，+ `cigarettesPerDay`）；`diabetesStatus`（糖尿病状况，+ `hba1c`）；`toothLossPerio`（牙周炎致失牙数）；`maxRblPercent`（最大影像学骨吸收百分比）；2017 年分类的四个按轴临床医生覆盖值 `diagnosisOverride` / `stageOverride` / `gradeOverride` / `extentOverride`；以及（版本 2.19）`patientName` / `examDate`。该字段用于牙周分期/分级分类及 PDF 报告标题；通过 `getCaseMeta()` 及 `setCase*` 系列设置函数读写（见上文“公共 API”）。患者姓名与检查日期仅为图表身份标识元数据——**不**属于 FHIR 导出的一部分。
+**顶层 `case` 字段（版本 2.17+，在 2.18、2.19 和 2.20 中扩展）：**
+- `case` - 可选对象，保存病例级（非按牙位）元数据，由现状图表和计划图表共享（与顶层的 `globals` 键类似）。空值省略：当所有字段均为默认值时该字段完全不出现，因此无病例数据的导出除版本号外保持逐字节一致。各字段（在默认值时均被省略）：`age`（年龄）；`smokingStatus`（吸烟状况，+ `cigarettesPerDay`）；`diabetesStatus`（糖尿病状况，+ `hba1c`）；`toothLossPerio`（牙周炎致失牙数）；`maxRblPercent`（最大影像学骨吸收百分比）；2017 年分类的四个按轴临床医生覆盖值 `diagnosisOverride` / `stageOverride` / `gradeOverride` / `extentOverride`；以及（版本 2.19）`patientName` / `examDate`；以及（版本 2.20）`patientDob`。该字段用于牙周分期/分级分类及 PDF 报告标题；通过 `getCaseMeta()` 及 `setCase*` 系列设置函数读写（见上文“公共 API”）。患者姓名、出生日期与检查日期仅为图表身份标识元数据——**不**属于 FHIR 导出的一部分。
 
 ### 🖨️ 导出
 除了牙位图自身的状态 JSON / FHIR / PNG / JPG / SVG 导出外，**牙周图表**还拥有自己的一套导出路径：
 - **牙周图 SVG/PNG/JPG：** `exportPerioSvg()` / `exportPerioImage("png"|"jpg")` 将完整的牙周图表（牙齿图形 + 数值行 + 2017 年分类结果）渲染为一份独立的矢量 SVG（`buildPerioSvg()`），不依赖已挂载的 `PerioChart` DOM。只要 `hasAnyPerioData()` 为 false（空白图表没有可导出的牙周数据），这三个导出菜单项就会被禁用。
-- **PDF 报告：** 导出菜单中的“PDF report…”（PDF 报告……）项会先打开 `ExportOptionsModal`——一个设置弹窗（患者姓名和检查日期字段直接绑定到病例元数据；四个区块复选框：患者数据、牙位图、牙周状态、牙周描述），然后再调用 `exportPdf(opts)`。该 PDF 采用 jsPDF 原生方式组装——矢量文字通过 `.text()`，栅格化的牙齿/牙周图表图像通过 `.addImage()`——**不依赖 svg2pdf.js**。只要 `hasAnyPerioData()` 为 false，两个牙周区块都会被自动跳过，与弹窗中的复选框状态无关。
+- **PDF 报告：** 导出菜单中的“PDF report…”（PDF 报告……）项会先打开 `ExportOptionsModal`——一个设置弹窗（患者姓名 + 出生日期 + 检查日期字段，直接绑定到病例元数据，检查日期默认为当天；区块复选框：患者数据、牙位图、牙位图说明、个别备注——未有任何牙齿记录备注时禁用——牙周状态、牙周描述），然后再调用 `exportPdf(opts)`。身份信息字段留空时会回退为占位符（“John Doe” / “1980-01-01”），确保导出始终成功。该 PDF 采用 jsPDF 原生方式组装——矢量文字通过 `.text()`，栅格化的牙齿/牙周图表图像通过 `.addImage()`——**不依赖 svg2pdf.js**。当没有任何牙齿记录备注时，“个别备注”区块会自动跳过；只要 `hasAnyPerioData()` 为 false，两个牙周区块也会自动跳过，二者均与弹窗中的复选框状态无关。
 - **mPI/mBI 种植体限定：** 种植体周 Mombelli 指数（mPI/mBI）仅在包含至少一颗种植牙的牙弓中作为行渲染——无论是在实时牙周图表还是 SVG/PDF 导出中均如此。
-- 患者姓名与检查日期仅为图表身份标识元数据（数据版本 `2.19`，附加字段）——**不**属于 FHIR 导出的一部分。
+- 患者姓名、出生日期与检查日期仅为图表身份标识元数据（数据版本 `2.20`，附加字段）——**不**属于 FHIR 导出的一部分。
 
 ### 📁 目录结构
 - `src/App.tsx` - 外壳界面、顶部工具栏控件、语言/编号/深色模式/主题/插件切换器
@@ -688,7 +690,7 @@ npm run docs           # 在 docs/ 目录生成 TypeDoc 文档
 如果您在工作中使用了本模块，请引用它。
 
 **本版本（v1.49.0）：**
-> Dul, Z. (2026). *React Odontogram Modul* (v1.49.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
+> Dul, Z. (2026). *React Advanced Odontogram* (v1.49.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **所有版本（概念 DOI）：** https://doi.org/10.5281/zenodo.21156787
 

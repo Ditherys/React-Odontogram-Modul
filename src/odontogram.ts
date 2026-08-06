@@ -1,4 +1,4 @@
-// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 
 import { STATUS_EXTRAS } from "./status_extras";
@@ -476,13 +476,16 @@ type CaseMeta = {
   /** UI-3b: PDF-report identity — patient display name + exam date (ISO
    *  `YYYY-MM-DD`). Additive caseMeta fields; NOT emitted to FHIR. */
   patientName: string | null;
+  /** 2.2.1: patient date of birth (ISO `YYYY-MM-DD`). PDF-report identity
+   *  only, like patientName/examDate — additive, NOT emitted to FHIR. */
+  patientDob: string | null;
   examDate: string | null;
 };
 function defaultCaseMeta(): CaseMeta {
   return { age: null, smokingStatus: "unknown", cigarettesPerDay: null,
     diabetesStatus: "unknown", hba1c: null, toothLossPerio: null, maxRblPercent: null,
     diagnosisOverride: null, stageOverride: null, gradeOverride: null, extentOverride: null,
-    patientName: null, examDate: null };
+    patientName: null, patientDob: null, examDate: null };
 }
 let caseMeta: CaseMeta = defaultCaseMeta();
 const VALID_SMOKING = new Set(["unknown", "never", "former", "current"]);
@@ -561,12 +564,21 @@ export function setExamDate(v: string | null): void {
   const next = v.trim();
   if(next !== caseMeta.examDate){ caseMeta.examDate = next; notifyStateChange(); }
 }
+/** 2.2.1: patient date-of-birth setter — same ISO-validate/null-clear contract
+ *  as {@link setExamDate}; malformed values are a silent no-op. */
+export function setPatientDob(v: string | null): void {
+  if(v === null){ if(caseMeta.patientDob !== null){ caseMeta.patientDob = null; notifyStateChange(); } return; }
+  if(v.trim() === ""){ if(caseMeta.patientDob !== null){ caseMeta.patientDob = null; notifyStateChange(); } return; }
+  if(!ISO_DATE.test(v.trim())) return;  // malformed → no-op
+  const next = v.trim();
+  if(next !== caseMeta.patientDob){ caseMeta.patientDob = next; notifyStateChange(); }
+}
 export function resetCaseMeta(): void { caseMeta = defaultCaseMeta(); }
 function caseMetaIsEmpty(c: CaseMeta): boolean {
   return c.age === null && c.smokingStatus === "unknown" && c.cigarettesPerDay === null
     && c.diabetesStatus === "unknown" && c.hba1c === null && c.toothLossPerio === null && c.maxRblPercent === null
     && c.diagnosisOverride === null && c.stageOverride === null && c.gradeOverride === null && c.extentOverride === null
-    && c.patientName === null && c.examDate === null;
+    && c.patientName === null && c.patientDob === null && c.examDate === null;
 }
 function serializeCaseMeta(c: CaseMeta): Record<string, unknown> {
   const o: Record<string, unknown> = {};
@@ -582,6 +594,7 @@ function serializeCaseMeta(c: CaseMeta): Record<string, unknown> {
   if(c.gradeOverride !== null) o.gradeOverride = c.gradeOverride;
   if(c.extentOverride !== null) o.extentOverride = c.extentOverride;
   if(c.patientName !== null) o.patientName = c.patientName;
+  if(c.patientDob !== null) o.patientDob = c.patientDob;
   if(c.examDate !== null) o.examDate = c.examDate;
   return o;
 }
@@ -600,6 +613,7 @@ function hydrateCaseMeta(raw: Any): void {
   caseMeta.gradeOverride = VALID_GRADE.has(raw.gradeOverride) ? raw.gradeOverride : null;
   caseMeta.extentOverride = VALID_EXTENT.has(raw.extentOverride) ? raw.extentOverride : null;
   caseMeta.patientName = (typeof raw.patientName === "string" && raw.patientName.trim() !== "") ? raw.patientName.trim() : null;
+  caseMeta.patientDob = (typeof raw.patientDob === "string" && ISO_DATE.test(raw.patientDob.trim())) ? raw.patientDob.trim() : null;
   caseMeta.examDate = (typeof raw.examDate === "string" && ISO_DATE.test(raw.examDate.trim())) ? raw.examDate.trim() : null;
 }
 /** P4a Task 2: builds the compact, labelled case-context fragment
@@ -848,6 +862,9 @@ export function setChartMode(mode: ChartMode): void {
     updateToothTileNumber(toothNo);
     updateToothLabelNoteIcon(toothNo);
   }
+  // 2.2.1: the tooth-base picker's option set is mode-dependent (Plan omits
+  // milk/subgingival) — rebuild it whenever the mode changes.
+  refreshToothSelectOptions();
   if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
   notifyStateChange();
   syncChartModeUi();
@@ -1688,7 +1705,18 @@ function getBrokenCrownVariant(state: Any){
 }
 
 function getToothSelectOptions(){
-  return optionsFor("toothSelection").map(o => ({ value: o.value, label: t(o.labelKey) }));
+  const all = optionsFor("toothSelection").map(o => ({ value: o.value, label: t(o.labelKey) }));
+  if(getChartMode() !== "plan") return all;
+  // 2.2.1 Plan-mode: a plan records what a dentist will DO, so the only base
+  // states that make sense as a PLAN are extract (Missing), keep/restore a
+  // permanent tooth, or place an Implant. Primary (milk) teeth and subgingival
+  // remnants are status-only findings — omit them from the Plan base picker.
+  // The active tooth's CURRENT base is always kept in the list so an
+  // already-charted milk/under-gum tooth still displays (never silently blank).
+  const allowed = new Set(["none", "tooth-base", "implant"]);
+  const current = activeTooth ? toothState.get(activeTooth)?.toothSelection : undefined;
+  if(current) allowed.add(current);
+  return all.filter(o => allowed.has(o.value));
 }
 
 function getStatusExtras(){
@@ -1977,7 +2005,7 @@ export function pulpEndoDisplayValue(state: Any): string {
 // SP7 Task 4: build/refresh the grouped #pulpEndoSelect. Two <optgroup>s: vital
 // pulp diagnoses (at the active detail level) and treated endo options
 // (non-"none", milktooth-filtered). Selection is applied by pulpEndoOnSelect.
-export function buildPulpEndoSelect(sel: Any, isMilktooth: boolean, selected: string): void {
+export function buildPulpEndoSelect(sel: Any, isMilktooth: boolean, selected: string, omitPulpDx: boolean = false): void {
   if(!sel) return;
   sel.innerHTML = "";
   const mkGroup = (labelKey: string, opts: { value: string; label: string }[]) => {
@@ -1990,14 +2018,39 @@ export function buildPulpEndoSelect(sel: Any, isMilktooth: boolean, selected: st
     }
     sel.appendChild(g);
   };
-  mkGroup("pulpEndo.groupVital", getPulpOptions());
-  mkGroup("pulpEndo.groupTreated", getEndoOptions(isMilktooth).filter(o => o.value !== "none"));
-  sel.value = selected;
+  if(!omitPulpDx){
+    // Status: the vital-pulp DIAGNOSIS group + the treated-endo group.
+    mkGroup("pulpEndo.groupVital", getPulpOptions());
+    mkGroup("pulpEndo.groupTreated", getEndoOptions(isMilktooth).filter(o => o.value !== "none"));
+    sel.value = selected;
+  }else{
+    // 2.2.1 Plan-mode: an ENDO TREATMENT picker only — the vital-pulp diagnosis
+    // group (pulpitis/necrosis) is a status finding, out of scope for a plan.
+    // A standalone "none" (no endo planned) plus the treated-endo options; the
+    // displayed value collapses any non-endo (healthy/diseased-pulp) state to
+    // "none" so a plan never shows a pulp diagnosis.
+    const endoOpts = getEndoOptions(isMilktooth);
+    const none = endoOpts.find(o => o.value === "none");
+    if(none){
+      const el = document.createElement("option");
+      el.value = none.value; el.textContent = none.label;
+      sel.appendChild(el);
+    }
+    mkGroup("pulpEndo.groupTreated", endoOpts.filter(o => o.value !== "none"));
+    sel.value = isEndoValue(selected) ? selected : "none";
+  }
 }
 
 // SP7 Task 4: apply a merged-selector choice, enforcing the mutual-exclusion
 // invariant (mirrors the hydrate-time normalize at s.endo assignment, above).
 export function pulpEndoOnSelect(s: Any, value: string): void {
+  if(value === "none"){
+    // 2.2.1 Plan-mode "no endo planned": clear the endo treatment, leave the
+    // (Plan-hidden) pulp diagnosis untouched. In Status the vital group's
+    // healthy option is used instead, so this branch is Plan-only in practice.
+    s.endo = "none";
+    return;
+  }
   if(isEndoValue(value)){
     s.endo = value;
     s.pulpDx = "normal";
@@ -3633,6 +3686,13 @@ export function __buildPerioGridForTest(container: Element): void {
 }
 
 function syncControlsFromState(state: Any){
+  // 2.2.1 Plan-mode gating: the Plan chart records TREATMENT ("what a dentist
+  // will DO"), so diagnosis-only / status-only controls are hidden while in
+  // Plan. Woven into the individual show/hide predicates below (Base picker,
+  // caries, wear, discoloration, pulp/apical/resorption diagnosis, and the
+  // whole perio block) rather than a single post-hoc sweep, so each control's
+  // Status behavior is untouched. See the tagged sites for specifics.
+  const isPlan = getChartMode() === "plan";
   // SP4 Task 5: apical (AAE) diagnosis picker.
   setSelectOptions($("#apicalDxSelect"), getApicalDxOptions(), state.apicalDx);
   if($("#apicalDxSelect").value !== state.apicalDx){
@@ -3732,7 +3792,7 @@ function syncControlsFromState(state: Any){
   // handler (wireControls) routes selection through pulpEndoOnSelect, which
   // enforces the mutual-exclusion invariant, so no post-sync normalization is
   // needed here (unlike the old #endoSelect block this replaces).
-  buildPulpEndoSelect($("#pulpEndoSelect"), isMilktooth, pulpEndoDisplayValue(state));
+  buildPulpEndoSelect($("#pulpEndoSelect"), isMilktooth, pulpEndoDisplayValue(state), isPlan);
   setSelectOptions($("#fillingSelect"), getFillingOptions(isMilktooth), state.fillingMaterial);
   if($("#fillingSelect").value !== state.fillingMaterial){
     state.fillingMaterial = $("#fillingSelect").value;
@@ -3749,7 +3809,7 @@ function syncControlsFromState(state: Any){
   // periodontal, still toggleable) — for those, keep the pre-SP4 behaviour and
   // show the subtype row when the inflammation mod is set, so the lesion subtype
   // stays authorable (regression fix).
-  $("#periapicalTypeRow").classList.toggle("hidden", !periapicalRowVisible(state));
+  $("#periapicalTypeRow").classList.toggle("hidden", !periapicalRowVisible(state) || isPlan);
   setSelectOptions($("#periapicalTypeSelect"), getPeriapicalTypeOptions(), state.periapicalType);
   if($("#periapicalTypeSelect").value !== state.periapicalType){
     state.periapicalType = $("#periapicalTypeSelect").value;
@@ -3788,7 +3848,7 @@ function syncControlsFromState(state: Any){
 
   // Depth selector at the top sets the DEFAULT depth for newly tapped surfaces.
   // SP5 Task 5: the whole visual caries-depth UI is gated by `cariesDepthEnabled`.
-  $("#cariesDepthRow").classList.toggle("hidden", !cariesDepthEnabled);
+  $("#cariesDepthRow").classList.toggle("hidden", !cariesDepthEnabled || isPlan);
   setSelectOptions($("#cariesDepthSelect"), getCariesDepthOptions(), state.cariesActiveDepth);
   if($("#cariesDepthSelect").value !== String(state.cariesActiveDepth)){
     state.cariesActiveDepth = Number($("#cariesDepthSelect").value);
@@ -3799,7 +3859,7 @@ function syncControlsFromState(state: Any){
   // NEVER written back (non-collapsing — widening the mode reveals it again).
   // Shown only on a present tooth (mirrors the endo/pulp per-tooth controls).
   setSelectOptions($("#rootCariesSelect"), rootCariesOptions(), rootCariesDisplayValue(rootCariesMode, state.rootCaries));
-  $("#rootCariesRow").classList.toggle("hidden", !isToothPresent(state.toothSelection));
+  $("#rootCariesRow").classList.toggle("hidden", !isToothPresent(state.toothSelection) || isPlan);
 
   // filling surfaces
   $$("#fillingSurfaceChecks input[type=checkbox]").forEach(c => {
@@ -3845,7 +3905,10 @@ function syncControlsFromState(state: Any){
   const noneSelected = selectedArr.length > 0 && selectedArr.some(tn => toothState.get(tn)?.toothSelection === "none");
   const hideByNone = state.toothSelection === "none" || noneSelected;
   const hideByRadix = state.toothSubstrate === "radix";
-  $("#cariesSection").classList.toggle("hidden", hideByBase || hideByRadix);
+  // 2.2.1 Plan-mode: caries is a status finding (a diagnosis), so the whole
+  // caries section is hidden in Plan — a filling/restoration is still plannable
+  // via the Fillings + Restoration controls, which stay visible.
+  $("#cariesSection").classList.toggle("hidden", hideByBase || hideByRadix || isPlan);
   const hideFillingsByCrown = state.toothSelection === "tooth-base" && hasCrown;
   $("#fillingSection").classList.toggle("hidden", hideByBase || hideFillingsByCrown);
   // Combined restoration dropdown: available on a present permanent tooth and on
@@ -3864,8 +3927,20 @@ function syncControlsFromState(state: Any){
   // #inflammationSection predicate (hideByNone); the card itself only
   // collapses away when BOTH blocks would be empty.
   $("#rpRootBlock").classList.toggle("hidden", hideByBase);
-  $("#rpPerioBlock").classList.toggle("hidden", hideByNone);
-  $("#rootPeriodontiumSection").classList.toggle("hidden", hideByBase && hideByNone);
+  // 2.2.1 Plan-mode: the entire periodontal block (mobility, 6-site probing
+  // grid, inflammation/parodontal mods, calculus, peri-implant status) is
+  // status-only diagnosis — hidden in Plan. The root block stays visible so
+  // endo TREATMENT remains plannable.
+  $("#rpPerioBlock").classList.toggle("hidden", hideByNone || isPlan);
+  // Section collapses only when BOTH blocks are gone; in Plan the root block
+  // still shows, so the section stays (unless the base already hides it).
+  $("#rootPeriodontiumSection").classList.toggle("hidden", hideByBase && (hideByNone || isPlan));
+  // 2.2.1 Plan-mode: inside the still-visible root block, hide the diagnosis-
+  // only rows (apical diagnosis, periapical lesion subtype above, root
+  // resorption). Endo TREATMENT (root canal/post via #pulpEndoSelect,
+  // apicoectomy, parapulpal pin) stays plannable.
+  $("#apicalDxRow").classList.toggle("hidden", isPlan);
+  $("#resorptionRow").classList.toggle("hidden", isPlan);
   const selectedList = selectedArr.length > 0 ? selectedArr : (activeTooth ? [activeTooth] : []);
   const contactAllowed = selectedList.length > 0 && selectedList.every(tn => {
     const s = toothState.get(tn);
@@ -3874,14 +3949,16 @@ function syncControlsFromState(state: Any){
     if(s.toothSelection === "tooth-base" && s.restorationType !== "none") return false;
     return true;
   });
-  const bruxismAllowed = selectedList.length > 0 && selectedList.every(tn => {
+  // 2.2.1 Plan-mode: tooth wear is a status finding — not plannable treatment.
+  const bruxismAllowed = !isPlan && selectedList.length > 0 && selectedList.every(tn => {
     const s = toothState.get(tn);
     return s && wearRowAllowed(s);
   });
   // SP12 Task 3: #discolorationRow visibility gate — reuses the same
   // discolorationAllowed predicate the render tint and tooltip use, so the
   // dropdown's visibility never contradicts the chart (SP9/10/11 lesson).
-  const discolorationRowAllowed = selectedList.length > 0 && selectedList.every(tn => {
+  // 2.2.1 Plan-mode: discoloration is a status finding — hidden in Plan.
+  const discolorationRowAllowed = !isPlan && selectedList.length > 0 && selectedList.every(tn => {
     const s = toothState.get(tn);
     return s && discolorationAllowed(s);
   });
@@ -5899,7 +5976,7 @@ function collectExportPayload(){
   const planTeeth = planInitialized ? collectTeeth(charts.plan) : null;
   const planDiffers = planTeeth !== null && JSON.stringify(planTeeth) !== JSON.stringify(statusTeeth);
   return {
-    version: "2.19",
+    version: "2.20",
     globals: collectGlobals(),
     teeth: statusTeeth,
     ...(caseMetaIsEmpty(caseMeta) ? {} : { case: serializeCaseMeta(caseMeta) }),
@@ -5929,7 +6006,7 @@ export function getStatusChart(): Any {
  */
 export function getPlanChart(): Any {
   return {
-    version: "2.19",
+    version: "2.20",
     globals: collectGlobals(),
     teeth: collectTeeth(charts.plan),
     ...(caseMetaIsEmpty(caseMeta) ? {} : { case: serializeCaseMeta(caseMeta) }),
@@ -6894,6 +6971,18 @@ export function hasAnyPerioData(): boolean {
   return false;
 }
 
+/** 2.2.1: `true` iff at least one tooth on the ACTIVE chart carries a
+ *  non-blank free-text note AND the notes feature is enabled — mirrors the
+ *  same gate the tooltip / whole-mouth summary use. Drives the PDF export
+ *  dialog's "individual notes" checkbox (disabled when this is false). */
+export function hasAnyToothNote(): boolean {
+  if(!notesEnabled) return false;
+  for(const s of toothState.values()){
+    if(s.note && s.note.trim() !== "") return true;
+  }
+  return false;
+}
+
 /** Per-tooth perio for every tooth on the active chart that has at least one
  *  charted site (an uncharted tooth is OMITTED, not present with empty
  *  maps — mirrors the same "absence = not charted" convention the payload's
@@ -7696,8 +7785,8 @@ export async function exportPdf(opts: PdfExportOptions): Promise<void> {
   showExportOverlay();
   setExportProgress(10, "export.progress.preparing");
   try{
-    const odontoBuilt = opts.odontogram ? buildOdontogramSvg() : null;
-    if(opts.odontogram && !odontoBuilt) throw new Error("Odontogram grid not found");
+    const odontoBuilt = opts.odontogramChart ? buildOdontogramSvg() : null;
+    if(opts.odontogramChart && !odontoBuilt) throw new Error("Odontogram grid not found");
     setExportProgress(30, "export.progress.rendering");
     const odontogramPng = odontoBuilt
       ? await rasterizeSvgToPng(odontoBuilt.xml, odontoBuilt.width, odontoBuilt.height)
@@ -7733,6 +7822,9 @@ export async function exportPdf(opts: PdfExportOptions): Promise<void> {
       caseMeta: getCaseMeta(),
       odontogramPng,
       odontogramSummaryText: buildOdontogramProseText(odontoSummary),
+      individualNotesText: odontoSummary.individualNotes
+        ? odontoSummary.individualNotes.items.join("\n")
+        : "",
       odontogramImageSize: odontoBuilt ? { width: odontoBuilt.width, height: odontoBuilt.height } : undefined,
       perioPng,
       perioSummaryText,
@@ -9096,6 +9188,10 @@ export type OdontogramSummary = {
    *  list. The "What changes" box in App.tsx renders from this field only
    *  when it's non-empty. */
   plannedChanges: PlanChange[];
+  /** 2.2.1: per-tooth free-text notes — one "&lt;tooth&gt;: &lt;note&gt;" line per tooth
+   *  that carries a note (gated on the notes-enabled setting, like the tooltip).
+   *  `null` when no tooth has a note, so the panel/PDF omit the section entirely. */
+  individualNotes: { heading: string; items: string[] } | null;
 };
 
 const SUMMARY_SURFACE_ORDER = ["buccal", "mesial", "occlusal", "distal", "lingual", "subcrown"];
@@ -9156,10 +9252,15 @@ export function getOdontogramSummary(): OdontogramSummary {
   const wear: string[] = [];
   const discoloration: string[] = [];
   const orthodontics: string[] = [];
+  const notes: string[] = [];
 
   for(const toothNo of ALL_TEETH){
     const s = toothState.get(toothNo);
     if(!s) continue;
+    // 2.2.1: per-tooth free-text note — gated on the notes-enabled setting,
+    // mirroring the hover tooltip so a disabled feature never surfaces notes.
+    if(notesEnabled && s.note && s.note.trim() !== "")
+      notes.push(`${formatToothLabel(toothNo)}: ${s.note.trim()}`);
     const sel = s.toothSelection;
     const isMissing = sel === "none";
     const isImplant = sel === "implant";
@@ -9385,6 +9486,10 @@ export function getOdontogramSummary(): OdontogramSummary {
     ? { heading: t("toothInfo.implants"), text: implants.map(lbl).join(", ") }
     : null;
 
+  const individualNotes = notes.length
+    ? { heading: t("toothInfo.notes"), items: notes }
+    : null;
+
   return {
     overview,
     permanentList,
@@ -9394,6 +9499,7 @@ export function getOdontogramSummary(): OdontogramSummary {
     periodontalTitle: t("toothInfo.periodontalTitle"),
     periodontalText,
     plannedChanges: getPlanChanges(),
+    individualNotes,
   };
 }
 

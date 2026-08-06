@@ -1,4 +1,4 @@
-// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 
 import { useEffect, useRef, useState } from "react";
@@ -699,6 +699,16 @@ export default function App({
             <p className="tooth-info-overview">{summary.overview}</p>
             {summary.permanentList && <p className="tooth-info-list">{summary.permanentList}</p>}
             {summary.missingList && <p className="tooth-info-list">{summary.missingList}</p>}
+            {summary.individualNotes && (
+              <div id="toothInfoNotes" className="tooth-info-notes">
+                <span className="tooth-info-heading">{summary.individualNotes.heading}:</span>
+                {summary.individualNotes.items.map((n, i) => (
+                  <p key={i} className="tooth-info-note-item">
+                    {n}
+                  </p>
+                ))}
+              </div>
+            )}
             {summary.sections.map((sec) => (
               <p key={sec.key} className="tooth-info-line">
                 <span className="tooth-info-heading">{sec.heading}:</span>{" "}
@@ -736,10 +746,14 @@ export default function App({
           </div>
         )}
         <aside className="panel">
-          {isPerioView ? (
-            <PerioSidebar />
-          ) : (
-            <>
+          {/* Keep the odontogram control panel ALWAYS mounted, toggling only
+              its visibility with CSS. Unmounting it on the perio toggle
+              produced fresh DOM nodes whose one-time wireControls() listeners
+              were never re-attached, silently breaking odontogram editing after
+              a round-trip through Periodontal Status. PerioSidebar stays a
+              plain conditional (mounted only in the perio view). */}
+          {isPerioView && <PerioSidebar />}
+          <div className="panel-odontogram-controls" style={isPerioView ? { display: "none" } : undefined}>
           <div className="panel-header">
             <div>
               <div className="panel-title-row">
@@ -1008,8 +1022,7 @@ export default function App({
             </section>
 
           </div>
-            </>
-          )}
+          </div>
         </aside>
       </main>
 

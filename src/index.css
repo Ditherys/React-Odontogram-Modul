@@ -1184,6 +1184,8 @@ select:focus{
 .tooth-info-line{margin:6px 0 0; font-size:13px; line-height:1.5}
 .tooth-info-heading{font-weight:700}
 .tooth-info-empty{color:var(--muted); font-style:italic}
+.tooth-info-notes{margin:6px 0 0; font-size:13px; line-height:1.5}
+.tooth-info-note-item{margin:2px 0 0 12px}
 /* R2-B Task 2: "What changes" box — a tinted panel that visually separates
    the status->plan diff from the descriptive summary sections above it.
    Reuses the same accent-blue "plan" visual language as .plan-badge/
@@ -1869,7 +1871,7 @@ select:focus{
    (never a data row, never gated by row visibility) marking which edge of
    the band is buccal vs. lingual/palatal. */
 .perio-fullgrid-band-label{
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: center;
   gap: 8px;
   padding: 4px 10px;
   font-size: 13px; font-weight: 700; letter-spacing: .01em;
@@ -1881,9 +1883,6 @@ select:focus{
 .perio-fullgrid-band-label-buccal,
 .perio-fullgrid-band-label-lingual{
   white-space: nowrap;
-}
-.perio-fullgrid-band-label-lingual{
-  margin-inline-start: auto;
 }
 .perio-fullgrid-cell{
   display: flex; align-items: center; justify-content: center;

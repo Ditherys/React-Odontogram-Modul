@@ -1,7 +1,7 @@
-# 🦷 React Odontogram Modul
+# 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.2.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.2.1-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -151,7 +151,7 @@ Or load it with a client-only dynamic import: `dynamic(() => import("./Odontogra
 - 🔢 12 selection filters (all, present, permanent, milk, implants, missing, upper/lower, front/molars)
 - 📊 Predefined status presets (reset, primary dentition, mixed dentition, edentulous)
 - 📦 34 predefined restoration templates (bridges, removable dentures, bar dentures with implants)
-- 💾 Status export/import in JSON (version 2.19; imports still accept legacy 1.4 and 2.0 through 2.18 and migrate automatically, with plugin custom states and per-tooth notes)
+- 💾 Status export/import in JSON (version 2.20; imports still accept legacy 1.4 and 2.0 through 2.19 and migrate automatically, with plugin custom states and per-tooth notes)
 - 🔗 HL7 FHIR R4 export (collection Bundle of per-tooth Observations, ISO 3950 tooth coding for permanent dentition, local code system — SNOMED CT mapping planned)
 - ✚ Cross/plus surface selection UI (B/M/O/D/L) for caries and fillings
 - 🧱 Per-surface restoration materials (mixed fillings, e.g. buccal amalgam + distal composite)
@@ -193,7 +193,7 @@ Or load it with a client-only dynamic import: `dynamic(() => import("./Odontogra
 - ♿ Keyboard accessibility (WCAG): ARIA listbox/option roles, Enter/Space selection, arrow key navigation, focus-visible outlines
 - 🔒 Read-only mode: disable all interactions for print/report/view use cases
 - ✨ Selection animations: pulsing dashed border and glowing drop-shadow on selected teeth (with prefers-reduced-motion support)
-- 📝 Per-tooth notes: double-click to add/edit notes, note icon next to tooth number, hover tooltip with note text, JSON export/import
+- 📝 Per-tooth notes: double-click to add/edit notes, note icon next to tooth number, hover tooltip with note text, an "Individual notes" line in the whole-mouth summary panel, inclusion in the PDF report, JSON export/import
 - 🔀 Status ↔ Plan chart split: a `Status | Plan` toggle in the chart header switches between a current-**status** chart and a **plan** (intended post-treatment) chart, each with its own tooth states; the plan chart starts as a copy of status the first time you switch to it, and edits in one chart never affect the other. Export/import (`exportStatus`/`exportFhir`/file import) always target the status chart; the plan chart is read/written separately via its own API (see Public API below) and — when it differs from status — is included as an additive `plan` section in the JSON export
 - 📝 "What changes" box: whenever the plan differs from the current status, a box under the Tooth-information panel lists every difference per tooth and per treatment axis (presence, substrate, restoration, prosthesis, planned crown, orthodontics, pulp/endo, apical) as a `tooth: axis  from → to` line; also available programmatically via `getPlanChanges()`
 
@@ -201,7 +201,8 @@ Or load it with a client-only dynamic import: `dynamic(() => import("./Odontogra
 
 - 🩺 Periodontal charting: per-site **probing depth**, **gingival margin**, **bleeding on probing** (+ suppuration) at the six standard sites per tooth, with derived **clinical attachment level (CAL = PD + gingival margin)**, recession, and whole-mouth **%BOP**. A **graphical full-mouth perio chart** — each arch drawn as **two separate buccal/palatal(lingual) SVGs** (reusing the tooth artwork with a uniform crowns-to-band orientation on both aspects; an **implant graphic** for implant teeth) with a red **CEJ line**, a **numbered millimeter guide grid**, and a **gingival-margin / pocket-depth curve** over the teeth, split by a **central perio index band** (labeled `▲ Buccal … Lingual/Palatal ▼`) that carries the shared per-tooth indices — **Miller class** at the very top, and **Plaque/PI/GI/mPI/mBI** rendered as an **anatomical diamond tile** per tooth (buccal tip up, lingual tip down, mesial/distal on the middle row swapped per side so mesial always points toward the arch midline); the number rows (full index names — PD/GM/CAL/BOP + mobility + furcation — in larger, more touch-friendly cells) aligned in columns and a summary (avg PD/CAL, %BOP, PI%), with **keyboard auto-advance** entry; the chart **dynamically scales to fill the available width**, responsive at any window size. Presented as an `Odontogram | Periodontal Status` **view toggle**, whose right panel is repurposed into a **perio-context sidebar** (patient data, the 2017 classification, and the whole-mouth summary) while that view is active (a Settings option switches the whole presentation back to a **popup**), and still a **separately-invocable component** (`PerioChart` export) so a host app can call up the perio chart independently of the base odontogram. Per-site **FHIR** export via the LOINC periodontal panel (`74029-0`; PD `32910-2`, recession `32911-0`, CAL `32912-8`)
 - 🅿️ Proposed styling: in Plan mode, findings the plan **adds** vs the current status (planned crown, extraction, orthodontic movement, prosthesis, …) render with a distinct **dashed, tinted "proposed" outline** so the plan reads as intent, not fact — with a "dashed = proposed" legend in the chart card. Status-mode rendering is byte-identical; the treatment is plan-only and fully reset on switching back
-- 🧪 1721 automated tests passing (1 additional test skipped) (Vitest) across 163 test files (164 total) covering numbering, translations, presets, i18n, App component, theme, touch, plugins, accessibility, and clinical-axis/diagnosis parity
+- 🚦 Plan-mode gating: the Plan chart shows only what a dentist can *do* — the base picker offers only Missing / Permanent / Implant, and status-only findings (caries, tooth wear, discoloration, and the whole periodontal block — mobility, six-site probing grid, inflammation/parodontal mods, calculus, peri-implant status) are hidden; the pulp/endo control keeps endodontic **treatment** (root canal / post / apicoectomy / parapulpal pin) while hiding pulp/apical **diagnosis** and root resorption. Restoration, prosthesis, orthodontics, crown-need/replace and extraction-plan stay plannable
+- 🧪 1746 automated tests passing (1 additional test skipped) (Vitest) across 164 test files (165 total) covering numbering, translations, presets, i18n, App component, theme, touch, plugins, accessibility, and clinical-axis/diagnosis parity
 - 📖 TypeDoc API documentation with JSDoc comments on all public exports (`npm run docs`)
 
 ### 📦 Modules
@@ -549,8 +550,9 @@ npm run docs           # Generate TypeDoc docs in docs/
 | `furcationEntrances(toothNo)` | The furcation entrances for a tooth — `["mesial","distal","buccal"]` (upper molars), `["buccal","lingual"]` (lower molars), `["mesial","distal"]` (upper first premolars), else `[]` |
 | `setFurcation(toothNo, entrance, grade)` / `getToothFurcation(toothNo)` | Set/get per-entrance furcation involvement (Glickman `1`–`4`; `null` clears) |
 | `setPlaque(toothNo, surface, present)` / `getToothPlaque(toothNo)` | Set/get O'Leary plaque presence per surface (mesial/distal/buccal/lingual); feeds the whole-mouth PI% in `getPerioSummary()` |
-| `getCaseMeta()` | Get the case-level metadata object (`{age, smokingStatus, cigarettesPerDay, diabetesStatus, hba1c, toothLossPerio, maxRblPercent, patientName, examDate}`) — a single shared block, not per-tooth/dual-state (mirrors the top-level `globals` payload key); feeds the periodontal staging/grading classification and the PDF report header |
+| `getCaseMeta()` | Get the case-level metadata object (`{age, smokingStatus, cigarettesPerDay, diabetesStatus, hba1c, toothLossPerio, maxRblPercent, patientName, patientDob, examDate}`) — a single shared block, not per-tooth/dual-state (mirrors the top-level `globals` payload key); feeds the periodontal staging/grading classification and the PDF report header |
 | `setPatientName(v)` | Set the case's patient name (trimmed; empty string or `null` clears it) — identity-only, never fed into the periodontal derivation |
+| `setPatientDob(v)` | Set the case's patient date of birth (`YYYY-MM-DD`; invalid/empty clears it) — PDF-report identity only |
 | `setExamDate(v)` | Set the case's exam date (`YYYY-MM-DD`; invalid/empty clears it) |
 | `setCaseAge(v)` | Set the case's patient age in years — `0`-`120`, or `null` to clear |
 | `setSmokingStatus(v)` | Set the case's smoking status — `"unknown"` / `"never"` / `"former"` / `"current"` |
@@ -571,13 +573,13 @@ npm run docs           # Generate TypeDoc docs in docs/
 | `hasAnyPerioData()` | `true` iff any periodontal axis is charted anywhere in the mouth — drives the perio export auto-skip and disables the perio export-menu items on a blank chart |
 | `exportPerioSvg()` | Download the full periodontal chart (tooth graphics + numeric rows + 2017 classification) as one standalone vector SVG, built headlessly from state via `buildPerioSvg()` |
 | `exportPerioImage(format)` | Download the periodontal chart as a rasterized image — `"png"` or `"jpg"` |
-| `exportPdf(opts)` | Download a jsPDF-native PDF report (`{patientData, odontogram, perioStatus, perioDescription}`, each section optional) — vector text plus raster tooth/perio-chart images; the two perio sections auto-skip whenever `hasAnyPerioData()` is false, regardless of `opts` |
+| `exportPdf(opts)` | Download a jsPDF-native PDF report (`{patientData, odontogramChart, odontogramDescription, individualNotes, perioStatus, perioDescription}`, each section optional) — vector text plus raster tooth/perio-chart images; the individual-notes section auto-skips when no tooth has a note, and the two perio sections auto-skip whenever `hasAnyPerioData()` is false, regardless of `opts` |
 | `importFhirBundle(input)` | Import a FHIR R4 Bundle (object or JSON string) produced by this module |
 | `setImportFormat(format)` | Set the next file import's parser — `"status"` or `"fhir"` |
 | `startIntroTour()` | Launch the 12-step interactive intro tour |
 
 ### 💾 Status Export/Import Format
-The export creates a JSON file (version `2.19`; imports also accept legacy `1.4` and `2.0` through `2.18` and migrate automatically) containing:
+The export creates a JSON file (version `2.20`; imports also accept legacy `1.4` and `2.0` through `2.19` and migrate automatically) containing:
 
 **Global fields:**
 - `wisdomVisible` - wisdom teeth visible
@@ -637,15 +639,15 @@ The export creates a JSON file (version `2.19`; imports also accept legacy `1.4`
 **Top-level `plan` field (version 2.11+):**
 - `plan` - optional object, same shape as `teeth` (per-tooth fields above), holding the **plan** (intended post-treatment) chart. Present only when the plan chart has been initialized (the `Status | Plan` toggle has been switched to Plan at least once) AND its content differs from the status chart — a status-only export omits it entirely and stays byte-identical to a pre-2.11 export apart from the version number. On import, an absent `plan` clears/uninitializes the plan chart (it never resurrects a stale plan left over from before the import); a present `plan` restores the plan chart alongside status. The plan chart can also be read/written independently of import/export via `getPlanChart()`/`setPlanChart()` (see Public API above), and `getStatusChart()` always returns the status-primary payload regardless of the active chart mode.
 
-**Top-level `case` field (version 2.17+, extended in 2.18 and 2.19):**
-- `case` - optional object holding case-level (not per-tooth) metadata, shared by both the status and plan charts (mirrors the top-level `globals` key). Omit-when-empty: absent entirely when every field is at its default, so a case-less export stays byte-identical apart from the version number. Fields (each omitted when at its default): `age`; `smokingStatus` (+ `cigarettesPerDay`); `diabetesStatus` (+ `hba1c`); `toothLossPerio`; `maxRblPercent`; the four 2017-classification per-axis clinician overrides `diagnosisOverride` / `stageOverride` / `gradeOverride` / `extentOverride`; and (version 2.19) `patientName` / `examDate`. It feeds the periodontal staging/grading classification and the PDF report header; read/written via `getCaseMeta()` and the `setCase*` setters (see Public API above). Patient name and exam date are chart-identity metadata only — they are **not** part of the FHIR export.
+**Top-level `case` field (version 2.17+, extended in 2.18, 2.19 and 2.20):**
+- `case` - optional object holding case-level (not per-tooth) metadata, shared by both the status and plan charts (mirrors the top-level `globals` key). Omit-when-empty: absent entirely when every field is at its default, so a case-less export stays byte-identical apart from the version number. Fields (each omitted when at its default): `age`; `smokingStatus` (+ `cigarettesPerDay`); `diabetesStatus` (+ `hba1c`); `toothLossPerio`; `maxRblPercent`; the four 2017-classification per-axis clinician overrides `diagnosisOverride` / `stageOverride` / `gradeOverride` / `extentOverride`; (version 2.19) `patientName` / `examDate`; and (version 2.20) `patientDob`. It feeds the periodontal staging/grading classification and the PDF report header; read/written via `getCaseMeta()` and the `setCase*` setters (see Public API above). Patient name, date of birth and exam date are chart-identity metadata only — they are **not** part of the FHIR export.
 
 ### 🖨️ Export
 Beyond the odontogram's own Status JSON / FHIR / PNG / JPG / SVG export, the **periodontal chart** has its own export path:
 - **Perio SVG/PNG/JPG:** `exportPerioSvg()` / `exportPerioImage("png"|"jpg")` render the full perio chart (tooth graphics + numeric rows + the 2017 classification) as one standalone vector SVG (`buildPerioSvg()`), independent of the mounted `PerioChart` DOM. The three export-menu items are disabled whenever `hasAnyPerioData()` is false (a blank chart has nothing perio to export).
-- **PDF report:** the export menu's "PDF report…" item opens `ExportOptionsModal` — a settings dialog (patient name + exam date fields, wired straight to the case metadata; four section checkboxes: patient data, odontogram, perio status, perio description) before calling `exportPdf(opts)`. The PDF is assembled jsPDF-natively — vector text via `.text()`, raster tooth/perio-chart images via `.addImage()` — with **no svg2pdf.js dependency**. The two perio sections are auto-skipped whenever `hasAnyPerioData()` is false, regardless of the dialog's checkboxes.
+- **PDF report:** the export menu's "PDF report…" item opens `ExportOptionsModal` — a settings dialog (patient name + date of birth + exam date fields, wired straight to the case metadata, with exam date defaulting to today; section checkboxes: patient data, odontogram chart, odontogram description, individual notes — disabled when no tooth has a note — perio status, perio description) before calling `exportPdf(opts)`. Empty identity fields fall back to placeholders ("John Doe" / "1980-01-01") so export always succeeds. The PDF is assembled jsPDF-natively — vector text via `.text()`, raster tooth/perio-chart images via `.addImage()` — with **no svg2pdf.js dependency**. The individual-notes section is auto-skipped when no tooth has a note, and the two perio sections whenever `hasAnyPerioData()` is false, regardless of the dialog's checkboxes.
 - **mPI/mBI implant-gating:** the peri-implant Mombelli indices (mPI/mBI) only render as rows in an arch that contains at least one implant tooth — on both the live perio chart and the SVG/PDF exports.
-- Patient name and exam date are chart-identity metadata only (payload `2.19`, additive) — they are **not** part of the FHIR export.
+- Patient name, date of birth and exam date are chart-identity metadata only (payload `2.20`, additive) — they are **not** part of the FHIR export.
 
 ### 📁 Folder Structure
 - `src/App.tsx` - shell UI, topbar controls, language/numbering/dark mode/theme/plugin switcher
@@ -686,7 +688,7 @@ Beyond the odontogram's own Status JSON / FHIR / PNG / JPG / SVG export, the **p
 If you use this module in your work, please cite it.
 
 **This version (v1.49.0):**
-> Dul, Z. (2026). *React Odontogram Modul* (v1.49.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
+> Dul, Z. (2026). *React Advanced Odontogram* (v1.49.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **All versions (concept DOI):** https://doi.org/10.5281/zenodo.21156787
 

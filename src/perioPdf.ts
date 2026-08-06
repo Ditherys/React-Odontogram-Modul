@@ -1,4 +1,4 @@
-// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 //
 // UI-3b Task 6: `exportPdf()` — jsPDF-native PDF report assembler (vector
@@ -35,7 +35,17 @@ import { t } from "./i18n/useI18n";
  *  chart never gets an empty "Periodontal status" page. */
 export interface PdfExportOptions {
   patientData: boolean;
-  odontogram: boolean;
+  /** 2.2.1: the odontogram chart IMAGE. Split out of the former combined
+   *  `odontogram` flag so the chart and its prose description are independently
+   *  selectable in the export dialog. */
+  odontogramChart: boolean;
+  /** 2.2.1: the whole-mouth odontogram summary PROSE (was bundled with the
+   *  chart image under the old `odontogram` flag). */
+  odontogramDescription: boolean;
+  /** 2.2.1: the per-tooth "Individual notes" section — omitted whenever no
+   *  tooth carries a note (`data.individualNotesText` empty), regardless of
+   *  this flag. */
+  individualNotes: boolean;
   perioStatus: boolean;
   perioDescription: boolean;
 }
@@ -48,6 +58,8 @@ export interface PdfExportOptions {
  *  perioPdf.ts). */
 export interface PdfCaseIdentity {
   patientName: string | null;
+  /** 2.2.1: patient date of birth (ISO `YYYY-MM-DD`), shown 2nd in the header. */
+  patientDob: string | null;
   examDate: string | null;
 }
 
@@ -70,6 +82,10 @@ export interface PdfAssembleData {
   caseMeta: PdfCaseIdentity;
   odontogramPng: string;
   odontogramSummaryText: string;
+  /** 2.2.1: pre-flattened per-tooth notes ("<tooth>: <note>" lines, one per
+   *  line). Empty string when no tooth has a note — the notes section is then
+   *  omitted no matter what `opts.individualNotes` asks for. */
+  individualNotesText: string;
   odontogramImageSize?: PdfImageSize;
   perioPng: string;
   perioSummaryText: string;
@@ -123,17 +139,26 @@ function pdfStamp(): string {
   return new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
 }
 
+/** Today as ISO `YYYY-MM-DD` — the exam-date fallback when the case has none
+ *  (the export dialog pre-fills today, so this is belt-and-suspenders for a
+ *  programmatic caller that left examDate null). */
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 /**
  * Assemble the PDF report from pre-rendered `data`, gated by `opts`. PURE —
  * no I/O, no rasterization; `docFactory` defaults to a real `new jsPDF()`
  * but tests always inject a fake (see the jsdom note above).
  *
- * Section order: (1) header (patient name + exam date) when
- * `opts.patientData`; (2) odontogram image + summary prose when
- * `opts.odontogram`; (3) perio chart image when `data.hasPerio &&
- * opts.perioStatus`; (4) perio summary/classification text + the
- * explanatory abbreviation-legend footer when `data.hasPerio &&
- * opts.perioDescription` — the footer is tied to `perioDescription`
+ * Section order: (1) header (patient name + DOB + exam date, with
+ * placeholder fallbacks) when `opts.patientData`; (2) odontogram — chart image
+ * (`opts.odontogramChart`) and/or summary prose (`opts.odontogramDescription`),
+ * independently selectable under one heading; (3) per-tooth notes when
+ * `opts.individualNotes` AND `data.individualNotesText` is non-empty; (4) perio
+ * chart image when `data.hasPerio && opts.perioStatus`; (5) perio
+ * summary/classification text + the explanatory abbreviation-legend footer when
+ * `data.hasPerio && opts.perioDescription` — the footer is tied to `perioDescription`
  * (mirrors the export dialog's "Perio description + footer" grouping) not
  * to "any perio section shown", so enabling only the perio graphic
  * (`perioStatus`) without the description never prints a legend for text
@@ -196,16 +221,30 @@ export function assemblePdf(
 
   if(opts.patientData){
     heading(t("pdf.section.patientData"));
-    const name = data.caseMeta.patientName ?? t("pdf.field.notSpecified");
-    const examDate = data.caseMeta.examDate ?? t("pdf.field.notSpecified");
+    // 2.2.1: export must succeed even with empty identity fields — fall back to
+    // placeholder name/DOB (and today's date) rather than a "not specified"
+    // note, so the report always reads like a complete document.
+    const name = data.caseMeta.patientName ?? "John Doe";
+    const dob = data.caseMeta.patientDob ?? "1980-01-01";
+    const examDate = data.caseMeta.examDate ?? todayIso();
     paragraph(`${t("pdf.field.patientName")}: ${name}`);
+    paragraph(`${t("pdf.field.patientDob")}: ${dob}`);
     paragraph(`${t("pdf.field.examDate")}: ${examDate}`);
   }
 
-  if(opts.odontogram){
+  // 2.2.1: the odontogram chart image and its prose summary are now
+  // independently selectable; a single "Dental chart" heading covers whichever
+  // of the two is requested.
+  if(opts.odontogramChart || opts.odontogramDescription){
     heading(t("pdf.section.odontogram"));
-    image(data.odontogramPng, data.odontogramImageSize);
-    paragraph(data.odontogramSummaryText);
+    if(opts.odontogramChart) image(data.odontogramPng, data.odontogramImageSize);
+    if(opts.odontogramDescription) paragraph(data.odontogramSummaryText);
+  }
+
+  // 2.2.1: per-tooth individual notes — omitted when no tooth carries a note.
+  if(opts.individualNotes && data.individualNotesText){
+    heading(t("toothInfo.notes"));
+    paragraph(data.individualNotesText);
   }
 
   if(data.hasPerio && opts.perioStatus){

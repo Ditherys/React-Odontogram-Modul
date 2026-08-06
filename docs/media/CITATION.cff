@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
-title: "React Odontogram Modul"
+title: "React Advanced Odontogram"
 abstract: >-
   An interactive, SVG-based dental odontogram (dental chart) editor for React
   and TypeScript. Supports multi-surface caries and filling charting, endodontic,

@@ -1,4 +1,4 @@
-# React Odontogram Editor
+# React Advanced Odontogram
 
 ## Critical Defaults
 - This is a **standalone React library** — it must work independently of DentalQuoteCreator

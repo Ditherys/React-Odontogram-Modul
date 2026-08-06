@@ -1,4 +1,4 @@
-// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -1288,17 +1288,14 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   //     `getPerioRowVisibility()` and never shows up in a row-label-text
   //     collection alongside the real index rows. ---
   arch.appendChild(mkRowLabelCell(""));
-  const bandLabel = mkEl("div", "perio-fullgrid-band-label");
-  bandLabel.style.gridColumn = "2 / -1";
-  bandLabel.setAttribute("role", "note");
-  bandLabel.setAttribute("aria-label", t("perio.band.title"));
+  const bandLabelTop = mkEl("div", "perio-fullgrid-band-label");
+  bandLabelTop.style.gridColumn = "2 / -1";
+  bandLabelTop.setAttribute("role", "note");
+  bandLabelTop.setAttribute("aria-label", t("perio.band.title"));
   const bandBuccal = mkEl("span", "perio-fullgrid-band-label-buccal");
-  bandBuccal.textContent = `▲ ${t("perio.band.buccal")}`;
-  const bandLingual = mkEl("span", "perio-fullgrid-band-label-lingual");
-  bandLingual.textContent = `${t("perio.band.lingual")} ▼`;
-  bandLabel.appendChild(bandBuccal);
-  bandLabel.appendChild(bandLingual);
-  arch.appendChild(bandLabel);
+  bandBuccal.textContent = `▲ ${t("perio.band.buccal")} ▲`;
+  bandLabelTop.appendChild(bandBuccal);
+  arch.appendChild(bandLabelTop);
 
   // --- Central perio index band: Plaque -> PI -> GI -> mPI -> mBI, between
   //     the buccal and palatal graphics (UI-3a Task 2). ---
@@ -1343,6 +1340,19 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
       arch.appendChild(buildGradeCell(toothNo, "mbi", registry.get(toothNo)!, handlers));
     }
   }
+
+  // --- Band-orientation legend (bottom): the lingual/palatal edge of the
+  //     central index band, adjacent to the palatal graphic below. Centered,
+  //     mirroring the buccal legend at the top of the band. ---
+  arch.appendChild(mkRowLabelCell(""));
+  const bandLabelBottom = mkEl("div", "perio-fullgrid-band-label");
+  bandLabelBottom.style.gridColumn = "2 / -1";
+  bandLabelBottom.setAttribute("role", "note");
+  bandLabelBottom.setAttribute("aria-label", t("perio.band.title"));
+  const bandLingual = mkEl("span", "perio-fullgrid-band-label-lingual");
+  bandLingual.textContent = `▼ ${t("perio.band.lingual")} ▼`;
+  bandLabelBottom.appendChild(bandLingual);
+  arch.appendChild(bandLabelBottom);
 
   // --- PALATAL tooth-row graphic cell: spans all tooth columns, crown-UP,
   //     filled by the graphic effect once the template cache loads. ---

@@ -1,4 +1,4 @@
-// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 
 import type { OdontogramExportPayload, ToothRecord } from "../fhir/types";
@@ -143,5 +143,5 @@ export function parseFhirBundleFromRegistry(bundle: unknown): OdontogramExportPa
     for (const surf of Object.keys(rec.secondaryCaries)) delete rec.cariesSeverity[surf];
     if (Object.keys(rec.cariesSeverity).length === 0) delete rec.cariesSeverity;
   }
-  return { version: "2.19", globals, teeth };
+  return { version: "2.20", globals, teeth };
 }

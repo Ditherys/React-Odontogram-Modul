@@ -5,6 +5,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2026-08-06
+
+### Added
+
+- **Per-tooth notes surfaced in the Tooth-information panel and the PDF report.**
+  A new "Individual notes" row (above Caries, one line per tooth that carries a
+  note) appears in the whole-mouth summary and, as its own section, in the PDF
+  export — both gated on the notes-enabled setting and hidden when no tooth has
+  a note. `getOdontogramSummary()` gains an `individualNotes` field;
+  `hasAnyToothNote()` is exported.
+- **PDF export dialog: patient date of birth.** New `patientDob` case-identity
+  field (`setPatientDob`, ISO `YYYY-MM-DD`), shown 2nd in the header (after
+  name, before exam date). Payload version **2.19 → 2.20** (additive,
+  omit-when-empty).
+
+### Changed
+
+- **PDF export options split.** The former combined "Odontogram + description"
+  checkbox is now two independently-selectable options (chart image /
+  description), plus a third for the individual-notes section (disabled when no
+  tooth has a note). The exam date now defaults to today (still editable), and
+  the report renders with placeholder identity ("John Doe" / "1980-01-01") when
+  fields are left empty, so export always succeeds.
+- **Plan mode shows only plannable treatment.** Clinically status-only findings
+  are hidden while the Plan chart is active: the base picker offers only
+  Missing / Permanent / Implant; the Caries section, tooth wear, discoloration,
+  and the whole periodontal block (mobility, 6-site probing grid,
+  inflammation/parodontal mods, calculus, peri-implant status) are hidden; the
+  pulp/endo picker keeps endodontic TREATMENT (root canal / post / apicoectomy /
+  parapulpal pin) but hides pulp-diagnosis, apical-diagnosis, periapical-lesion,
+  and root-resorption. Restoration, prosthesis, orthodontics, crown-need/replace
+  and extraction-plan remain plannable.
+- **Lower-arch bridge saddle geometry** re-anchored to the true geometric mirror
+  of the (well-fitting) upper value (`1 - SADDLE_Y_FRACTION`) so both arches are
+  consistent by construction.
+- Module brand name is now **React Advanced Odontogram** (npm package name and
+  GitHub repository unchanged).
+
+### Fixed
+
+- **Periodontal Status → Odontogram view no longer becomes unresponsive.** The
+  odontogram control panel is kept mounted (CSS-hidden) while the Periodontal
+  Status view is active, instead of being unmounted and re-mounted, so its
+  one-shot event wiring survives the round-trip.
+- **PDF export patient-name field now accepts spaces** (the input is buffered
+  locally and committed on blur/export instead of being trimmed per keystroke).
+- **Periodontal Status band labels** are centered — "▲ Buccal ▲" above the
+  central index band and a new "▼ Lingual / Palatal ▼" below it, on both arches.
+
 ## [2.2.0] - 2026-08-06
 
 ### Added
@@ -487,7 +536,7 @@ Tooth-information panel, dynamic subtitle, crown-prep type, SVG/z-order fixes, a
 - ~40 new i18n keys × 8 languages (tooth-info panel, dynamic subtitle, implants, crown-prep label reuse).
 
 ### Changed
-- Renamed the app to **React Odontogram Modul** (from "…Editor Modul") across all languages.
+- Renamed the app to **React Advanced Odontogram** (from "…Editor Modul") across all languages.
 - Re-normalized the tooth 14 SVG to the current layer format (typed periapical glyphs, calculus, subcaries, resorption, fissure sealing).
 - Refined the Hungarian endodontic wording to precise clinical terms.
 - CHANGELOG brought up to date (1.5.0–1.10.0); README rigorously reviewed to match current behavior.
@@ -743,7 +792,7 @@ Multi-language expansion and README overhaul.
 
 ## [1.0.0] - 2026-02-21
 
-First stable release of the React Odontogram Module — an interactive, SVG-based dental chart editor.
+First stable release of the React Advanced Odontogram — an interactive, SVG-based dental chart editor.
 
 ### Added
 

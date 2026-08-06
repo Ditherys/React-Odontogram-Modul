@@ -11,7 +11,7 @@
     "src/plugin.ts"
   ],
   "out": "docs",
-  "name": "React Odontogram Module",
+  "name": "React Advanced Odontogram",
   "readme": "README.md",
   "tsconfig": "tsconfig.json",
   "excludePrivate": true,

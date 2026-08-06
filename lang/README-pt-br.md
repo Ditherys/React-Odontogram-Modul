@@ -1,7 +1,7 @@
-# 🦷 React Odontogram Modul
+# 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.2.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.2.1-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -196,7 +196,7 @@ Ou carregue-o com um import dinâmico somente client-side: `dynamic(() => import
 - 🔒 Modo somente leitura: desativa todas as interações para casos de impressão/laudo/visualização
 - ✨ Animações de seleção: borda tracejada pulsante e sombra brilhante nos dentes selecionados (com suporte a prefers-reduced-motion)
 - 📝 Anotações por dente: clique duplo para adicionar/editar anotações, ícone de anotação ao lado do número do dente, dica ao passar o mouse com o texto da anotação, exportação/importação em JSON
-- 🧪 864 testes automatizados aprovados (1 teste adicional ignorado) (Vitest) em 94 arquivos de teste cobrindo numeração, traduções, predefinições, i18n, componente App, tema, toque, plugins, acessibilidade e paridade dos eixos clínicos/diagnósticos
+- 🧪 1746 testes automatizados aprovados (1 teste adicional ignorado) (Vitest) em 164 arquivos de teste (165 no total) cobrindo numeração, traduções, predefinições, i18n, componente App, tema, toque, plugins, acessibilidade e paridade dos eixos clínicos/diagnósticos
 - 📖 Documentação de API em TypeDoc com comentários JSDoc em todos os exports públicos (`npm run docs`)
 
 ### 📦 Módulos
@@ -616,7 +616,7 @@ A exportação cria um arquivo JSON (versão `2.10`; as importações também ac
 Se você usar este módulo em seu trabalho, cite-o.
 
 **Esta versão (v1.10.0):**
-> Dul, Z. (2026). *React Odontogram Modul* (v1.10.0). Zenodo. https://doi.org/10.5281/zenodo.21156788
+> Dul, Z. (2026). *React Advanced Odontogram* (v1.10.0). Zenodo. https://doi.org/10.5281/zenodo.21156788
 
 **Todas as versões (DOI do conceito):** https://doi.org/10.5281/zenodo.21156787
 

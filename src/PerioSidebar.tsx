@@ -1,4 +1,4 @@
-// Part of React Odontogram Modul - https://github.com/ZoliQua/React-Odontogram-Modul
+// Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 
 import { useEffect, useState } from "react";
@@ -87,6 +87,7 @@ const EMPTY_CASE_META: CaseMetaData = {
   gradeOverride: null,
   extentOverride: null,
   patientName: null,
+  patientDob: null,
   examDate: null,
 };
 

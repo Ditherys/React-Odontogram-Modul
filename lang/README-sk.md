@@ -1,7 +1,7 @@
-# 🦷 React Odontogram Modul
+# 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.2.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.2.1-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -151,7 +151,7 @@ Alebo ho načítajte pomocou dynamického importu iba na strane klienta: `dynami
 - 🔢 12 filtrov výberu (všetky, prítomné, trvalé, mliečne, implantáty, chýbajúce, horné/dolné, predné/moláre)
 - 📊 Preddefinované stavové predvoľby (obnoviť, mliečny chrup, zmiešaný chrup, bezzubý)
 - 📦 34 preddefinovaných šablón reštaurácií (mostíky, snímateľné protézy, stegové protézy s implantátmi)
-- 💾 Export/import stavu v JSON (verzia 2.19; import stále akceptuje staršie verzie 1.4 a 2.0 až 2.18 a automaticky ich migruje, s vlastnými stavmi pluginov a poznámkami ku každému zubu)
+- 💾 Export/import stavu v JSON (verzia 2.20; import stále akceptuje staršie verzie 1.4 a 2.0 až 2.19 a automaticky ich migruje, s vlastnými stavmi pluginov a poznámkami ku každému zubu)
 - 🔗 Export HL7 FHIR R4 (kolekcia Bundle s Observations pre každý zub, kódovanie zubov ISO 3950 pre trvalý chrup, lokálny systém kódov — mapovanie SNOMED CT plánované)
 - ✚ Krížový výber plôch (B/M/O/D/L) pre kaz a výplne
 - 🧱 Materiály reštaurácie pre každú plochu (zmiešané výplne, napr. bukálny amalgám + distálny kompozit)
@@ -193,7 +193,7 @@ Alebo ho načítajte pomocou dynamického importu iba na strane klienta: `dynami
 - ♿ Klávesnicová prístupnosť (WCAG): ARIA role listbox/option, výber klávesmi Enter/Medzera, navigácia šípkami, obrysy focus-visible
 - 🔒 Režim iba na čítanie: zakázanie všetkých interakcií pre prípady tlače/správ/prezerania
 - ✨ Animácie výberu: pulzujúci prerušovaný okraj a žiariaci tieň na vybraných zuboch (s podporou prefers-reduced-motion)
-- 📝 Poznámky ku každému zubu: dvojklik pre pridanie/úpravu poznámok, ikona poznámky vedľa čísla zuba, tooltip pri najetí s textom poznámky, export/import JSON
+- 📝 Poznámky ku každému zubu: dvojklik pre pridanie/úpravu poznámok, ikona poznámky vedľa čísla zuba, tooltip pri najetí s textom poznámky, riadok „Individuálne poznámky" v súhrnnom paneli za celé ústa, zahrnutie do PDF správy, export/import JSON
 - 🔀 Rozdelenie grafu Stav ↔ Plán: prepínač `Status | Plan` v hlavičke grafu prepína medzi aktuálnym grafom **stavu** (status) a grafom **plánu** (plan, zamýšľaný stav po ošetrení), pričom každý má vlastné stavy zubov; graf plánu sa pri prvom prepnutí naň vytvorí ako kópia stavu a úpravy v jednom grafe nikdy neovplyvnia druhý. Export/import (`exportStatus`/`exportFhir`/import súboru) sa vždy vzťahuje na graf stavu; graf plánu sa číta/zapisuje samostatne cez vlastné API (pozri Verejné API nižšie) a — keď sa líši od stavu — je zahrnutý ako doplnková sekcia `plan` v exporte JSON
 - 📝 Rámček „Čo sa zmenilo": kedykoľvek sa plán líši od aktuálneho stavu, rámček pod panelom informácií o zuboch vypíše každý rozdiel podľa zuba a osi ošetrenia (prítomnosť, substrát, náhrada, protetika, plánovaná korunka, ortodoncia, dreň/endo, apikálna) ako riadok `zub: os  z → na`; dostupné aj programovo cez `getPlanChanges()`
 
@@ -201,7 +201,8 @@ Alebo ho načítajte pomocou dynamického importu iba na strane klienta: `dynami
 
 - 🩺 Parodontálne vyšetrenie: pre každé miesto **hĺbka sondáže (PD)**, **gingiválny okraj**, **krvácanie pri sondáži** (+ supurácia) na šiestich štandardných miestach na zub, s odvodenou **klinickou úrovňou prichytenia (CAL = PD + gingiválny okraj)**, recesiou a celoústnym **%BOP**. **Grafický parodontálny graf pre celé ústa** — každý oblúk je vykreslený ako **dve samostatné bukálne/palatinálne(linguálne) SVG** (opätovne využívajúce ilustráciu zuba s jednotnou orientáciou korunky smerom k pásu na oboch stranách; **grafika implantátu** pre implantátové zuby) s červenou **CEJ čiarou**, **číslovanou milimetrovou vodiacou mriežkou** a **krivkou gingiválneho okraja / hĺbky vačku** nad zubmi, oddelenou **centrálnym pásom parodontálnych indexov** (s popiskom `▲ Buccal … Lingual/Palatal ▼`), ktorý nesie spoločné indexy pre každý zub — **Millerova trieda** úplne navrchu a **Plak/PI/GI/mPI/mBI** vykreslené ako **anatomická dlaždica v tvare diamantu** pre každý zub (bukálny hrot hore, linguálny dole, meziálna/distálna strana v strednom riadku prehodené podľa strany, takže meziálna vždy smeruje k stredovej línii oblúka); riadky s číslami (plné názvy indexov — PD/GM/CAL/BOP + mobilita + furkácia — vo väčších, dotyku prívetivejších bunkách) zarovnané do stĺpcov a súhrn (priemerné PD/CAL, %BOP, PI%), so zadávaním s **automatickým posunom klávesnicou**; graf sa **dynamicky prispôsobuje dostupnej šírke**, responzívny pri akejkoľvek veľkosti okna. Prezentovaný ako **prepínač zobrazenia** `Odontogram | Periodontal Status`, ktorého pravý panel sa počas tohto zobrazenia mení na **bočný panel parodontálneho kontextu** (údaje pacienta, klasifikácia 2017 a súhrn za celé ústa) (voľba v Nastaveniach prepína celé zobrazenie späť na **vyskakovacie okno**), a stále ide o **samostatne vyvolateľný komponent** (export `PerioChart`), takže hostiteľská aplikácia môže vyvolať parodontálny graf nezávisle od základného odontogramu. Export **FHIR** pre každé miesto cez parodontálny panel LOINC (`74029-0`; PD `32910-2`, recesia `32911-0`, CAL `32912-8`)
 - 🅿️ Navrhovaný štýl: v režime Plán sa nálezy, ktoré plán **pridáva** oproti aktuálnemu stavu (plánovaná korunka, extrakcia, ortodontický pohyb, protetika, …), vykresľujú s výrazným prerušovaným, tónovaným „navrhovaným" obrysom, aby bolo zrejmé, že ide o zámer, nie fakt — s legendou „prerušovane = navrhované" na karte grafu. Vykresľovanie v režime Stav je bajtovo identické; ošetrenie existuje iba v pláne a pri prepnutí späť sa úplne resetuje
-- 🧪 1704 prebiehajúcich automatizovaných testov (1 ďalší test preskočený) (Vitest) v 163 testovacích súboroch pokrývajúcich číslovanie, preklady, predvoľby, i18n, komponent App, tému, dotyk, pluginy, prístupnosť a paritu klinických osí/diagnóz
+- 🚦 Obmedzenie v režime Plán: graf Plán zobrazuje iba to, čo zubár môže *vykonať* — základný výber ponúka iba Chýbajúci / Trvalý / Implantát a nálezy iba pre stav (kaz, opotrebenie zuba, zafarbenie a celý parodontálny blok — mobilita, šesťmiestna sondovacia mriežka, modifikácie zápalu/parodontu, zubný kameň, stav peri-implantátu) sú skryté; ovládací prvok drene/endo ponecháva endodontické **ošetrenie** (koreňový kanálik / kolík / apikektómia / parapulpálny kolík), pričom skrýva **diagnózu** drene/apikálnej oblasti a resorpciu koreňa. Náhrada, protetika, ortodoncia, potreba/výmena korunky a plán extrakcie zostávajú plánovateľné
+- 🧪 1746 prebiehajúcich automatizovaných testov (1 ďalší test preskočený) (Vitest) v 164 testovacích súboroch (165 spolu) pokrývajúcich číslovanie, preklady, predvoľby, i18n, komponent App, tému, dotyk, pluginy, prístupnosť a paritu klinických osí/diagnóz
 - 📖 Dokumentácia API TypeDoc s komentármi JSDoc pre všetky verejné exporty (`npm run docs`)
 
 ### 📦 Moduly
@@ -549,8 +550,9 @@ npm run docs           # Generovať dokumentáciu TypeDoc v docs/
 | `furcationEntrances(toothNo)` | Vstupy do furkácie pre daný zub — `["mesial","distal","buccal"]` (horné moláre), `["buccal","lingual"]` (dolné moláre), `["mesial","distal"]` (horné prvé premoláre), inak `[]` |
 | `setFurcation(toothNo, entrance, grade)` / `getToothFurcation(toothNo)` | Nastaviť/získať postihnutie furkácie pre jednotlivé vstupy (Glickman `1`–`4`; `null` vymaže) |
 | `setPlaque(toothNo, surface, present)` / `getToothPlaque(toothNo)` | Nastaviť/získať prítomnosť plaku podľa O'Learyho pre každú plochu (mesial/distal/buccal/lingual); vstupuje do celoústneho PI% v `getPerioSummary()` |
-| `getCaseMeta()` | Získať objekt metadát na úrovni prípadu (`{age, smokingStatus, cigarettesPerDay, diabetesStatus, hba1c, toothLossPerio, maxRblPercent, patientName, examDate}`) — jeden zdieľaný blok, nie na úrovni zuba/dvojstavový (zrkadlí kľúč `globals` na najvyššej úrovni payloadu); vstupuje do parodontálnej klasifikácie štádia/stupňa a hlavičky PDF správy |
+| `getCaseMeta()` | Získať objekt metadát na úrovni prípadu (`{age, smokingStatus, cigarettesPerDay, diabetesStatus, hba1c, toothLossPerio, maxRblPercent, patientName, patientDob, examDate}`) — jeden zdieľaný blok, nie na úrovni zuba/dvojstavový (zrkadlí kľúč `globals` na najvyššej úrovni payloadu); vstupuje do parodontálnej klasifikácie štádia/stupňa a hlavičky PDF správy |
 | `setPatientName(v)` | Nastaviť meno pacienta v prípade (orezané; prázdny reťazec alebo `null` ho vymaže) — iba identifikačný údaj, nikdy nevstupuje do parodontálnej derivácie |
+| `setPatientDob(v)` | Nastaviť dátum narodenia pacienta v prípade (`YYYY-MM-DD`; neplatný/prázdny ho vymaže) — iba identifikačný údaj pre PDF správu |
 | `setExamDate(v)` | Nastaviť dátum vyšetrenia prípadu (`YYYY-MM-DD`; neplatný/prázdny ho vymaže) |
 | `setCaseAge(v)` | Nastaviť vek pacienta v prípade v rokoch — `0`-`120`, alebo `null` na vymazanie |
 | `setSmokingStatus(v)` | Nastaviť fajčiarsky stav prípadu — `"unknown"` / `"never"` / `"former"` / `"current"` |
@@ -571,13 +573,13 @@ npm run docs           # Generovať dokumentáciu TypeDoc v docs/
 | `hasAnyPerioData()` | `true`, ak je v ústach kdekoľvek zaznamenaná aspoň jedna parodontálna os — riadi automatické preskočenie parodontálneho exportu a deaktivuje položky ponuky parodontálneho exportu pri prázdnom grafe |
 | `exportPerioSvg()` | Stiahnuť celý parodontálny graf (grafika zubov + číselné riadky + klasifikácia 2017) ako jeden samostatný vektorový SVG, zostavený bez zobrazenia priamo zo stavu cez `buildPerioSvg()` |
 | `exportPerioImage(format)` | Stiahnuť parodontálny graf ako rastrovaný obrázok — `"png"` alebo `"jpg"` |
-| `exportPdf(opts)` | Stiahnuť PDF správu natívne cez jsPDF (`{patientData, odontogram, perioStatus, perioDescription}`, každá sekcia voliteľná) — vektorový text plus rastrové obrázky zuba/parodontálneho grafu; obe parodontálne sekcie sa automaticky preskočia, keď je `hasAnyPerioData()` false, bez ohľadu na `opts` |
+| `exportPdf(opts)` | Stiahnuť PDF správu natívne cez jsPDF (`{patientData, odontogramChart, odontogramDescription, individualNotes, perioStatus, perioDescription}`, každá sekcia voliteľná) — vektorový text plus rastrové obrázky zuba/parodontálneho grafu; sekcia individuálnych poznámok sa automaticky preskočí, keď žiadny zub nemá poznámku, a obe parodontálne sekcie sa automaticky preskočia, keď je `hasAnyPerioData()` false, bez ohľadu na `opts` |
 | `importFhirBundle(input)` | Importovať FHIR R4 Bundle (objekt alebo reťazec JSON) produkovaný týmto modulom |
 | `setImportFormat(format)` | Nastaviť analyzátor pre nasledujúci import súboru — `"status"` alebo `"fhir"` |
 | `startIntroTour()` | Spustiť 12-krokový interaktívny úvodný sprievodca |
 
 ### 💾 Formát exportu/importu stavu
-Export vytvorí súbor JSON (verzia `2.19`; import tiež akceptuje staršie verzie `1.4` a `2.0` až `2.18` a automaticky ich migruje) obsahujúci:
+Export vytvorí súbor JSON (verzia `2.20`; import tiež akceptuje staršie verzie `1.4` a `2.0` až `2.19` a automaticky ich migruje) obsahujúci:
 
 **Globálne polia:**
 - `wisdomVisible` - zuby múdrosti viditeľné
@@ -637,15 +639,15 @@ Export vytvorí súbor JSON (verzia `2.19`; import tiež akceptuje staršie verz
 **Pole `plan` na najvyššej úrovni (verzia 2.11+):**
 - `plan` - voliteľný objekt s rovnakým tvarom ako `teeth` (polia pre každý zub vyššie), obsahujúci graf **plánu** (plan, zamýšľaný stav po ošetrení). Prítomný iba vtedy, keď bol graf plánu inicializovaný (prepínač `Status | Plan` bol aspoň raz prepnutý na Plan) A jeho obsah sa líši od grafu stavu — export iba so stavom ho úplne vynechá a zostáva bajtovo identický s exportom pred verziou 2.11 okrem čísla verzie. Pri importe chýbajúce `plan` vymaže/zruší inicializáciu grafu plánu (nikdy neobnoví zastaraný plán ponechaný spred importu); prítomné `plan` obnoví graf plánu popri stave. Graf plánu je možné čítať/zapisovať aj nezávisle od exportu/importu cez `getPlanChart()`/`setPlanChart()` (pozri Verejné API vyššie), a `getStatusChart()` vždy vracia payload primárne založený na stave, bez ohľadu na aktívny režim grafu.
 
-**Pole `case` na najvyššej úrovni (verzia 2.17+, rozšírené vo verziách 2.18 a 2.19):**
-- `case` - voliteľný objekt s metadátami na úrovni prípadu (nie na úrovni zuba), zdieľaný grafom stavu aj plánu (zrkadlí kľúč `globals` na najvyššej úrovni). Vynechaný, keď je prázdny: úplne chýba, keď je každé pole na svojej predvolenej hodnote, takže export bez údajov o prípade zostáva bajtovo identický okrem čísla verzie. Polia (každé vynechané pri predvolenej hodnote): `age`; `smokingStatus` (+ `cigarettesPerDay`); `diabetesStatus` (+ `hba1c`); `toothLossPerio`; `maxRblPercent`; štyri klinické prepísania podľa jednotlivých osí klasifikácie 2017 `diagnosisOverride` / `stageOverride` / `gradeOverride` / `extentOverride`; a (verzia 2.19) `patientName` / `examDate`. Vstupuje do parodontálnej klasifikácie štádia/stupňa a do hlavičky PDF správy; čítaný/zapisovaný cez `getCaseMeta()` a settery `setCase*` (pozri Verejné API vyššie). Meno pacienta a dátum vyšetrenia sú iba identifikačné metadáta grafu — **nie sú** súčasťou exportu FHIR.
+**Pole `case` na najvyššej úrovni (verzia 2.17+, rozšírené vo verziách 2.18, 2.19 a 2.20):**
+- `case` - voliteľný objekt s metadátami na úrovni prípadu (nie na úrovni zuba), zdieľaný grafom stavu aj plánu (zrkadlí kľúč `globals` na najvyššej úrovni). Vynechaný, keď je prázdny: úplne chýba, keď je každé pole na svojej predvolenej hodnote, takže export bez údajov o prípade zostáva bajtovo identický okrem čísla verzie. Polia (každé vynechané pri predvolenej hodnote): `age`; `smokingStatus` (+ `cigarettesPerDay`); `diabetesStatus` (+ `hba1c`); `toothLossPerio`; `maxRblPercent`; štyri klinické prepísania podľa jednotlivých osí klasifikácie 2017 `diagnosisOverride` / `stageOverride` / `gradeOverride` / `extentOverride`; (verzia 2.19) `patientName` / `examDate`; a (verzia 2.20) `patientDob`. Vstupuje do parodontálnej klasifikácie štádia/stupňa a do hlavičky PDF správy; čítaný/zapisovaný cez `getCaseMeta()` a settery `setCase*` (pozri Verejné API vyššie). Meno pacienta, dátum narodenia a dátum vyšetrenia sú iba identifikačné metadáta grafu — **nie sú** súčasťou exportu FHIR.
 
 ### 🖨️ Export
 Okrem vlastného exportu odontogramu Stav JSON / FHIR / PNG / JPG / SVG má **parodontálny graf** vlastnú exportnú cestu:
 - **Parodontálny SVG/PNG/JPG:** `exportPerioSvg()` / `exportPerioImage("png"|"jpg")` vykresľujú celý parodontálny graf (grafika zubov + číselné riadky + klasifikácia 2017) ako jeden samostatný vektorový SVG (`buildPerioSvg()`), nezávisle od pripojeného DOM komponentu `PerioChart`. Tieto tri položky exportnej ponuky sú deaktivované, keď je `hasAnyPerioData()` false (prázdny graf nemá čo parodontálne exportovať).
-- **PDF správa:** položka „Správa PDF…" v exportnej ponuke otvorí `ExportOptionsModal` — nastavovací dialóg (polia mena pacienta + dátumu vyšetrenia, priamo prepojené s metadátami prípadu; štyri zaškrtávacie políčka sekcií: údaje pacienta, odontogram, parodontálny stav, parodontálny popis) pred volaním `exportPdf(opts)`. PDF sa zostavuje natívne cez jsPDF — vektorový text cez `.text()`, rastrové obrázky zuba/parodontálneho grafu cez `.addImage()` — **bez závislosti na svg2pdf.js**. Obe parodontálne sekcie sa automaticky preskočia, keď je `hasAnyPerioData()` false, bez ohľadu na zaškrtávacie políčka dialógu.
+- **PDF správa:** položka „Správa PDF…" v exportnej ponuke otvorí `ExportOptionsModal` — nastavovací dialóg (polia mena pacienta + dátumu narodenia + dátumu vyšetrenia, priamo prepojené s metadátami prípadu, pričom dátum vyšetrenia je predvolene nastavený na dnešný deň; zaškrtávacie políčka sekcií: údaje pacienta, graf odontogramu, popis odontogramu, individuálne poznámky — deaktivované, ak žiadny zub nemá poznámku — parodontálny stav, parodontálny popis) pred volaním `exportPdf(opts)`. Prázdne identifikačné polia sa vrátia k zástupným hodnotám („John Doe" / „1980-01-01"), takže export vždy prebehne úspešne. PDF sa zostavuje natívne cez jsPDF — vektorový text cez `.text()`, rastrové obrázky zuba/parodontálneho grafu cez `.addImage()` — **bez závislosti na svg2pdf.js**. Sekcia individuálnych poznámok sa automaticky preskočí, keď žiadny zub nemá poznámku, a obe parodontálne sekcie sa preskočia, keď je `hasAnyPerioData()` false, bez ohľadu na zaškrtávacie políčka dialógu.
 - **Obmedzenie mPI/mBI na implantáty:** peri-implantátové Mombelliho indexy (mPI/mBI) sa vykresľujú ako riadky iba v oblúku, ktorý obsahuje aspoň jeden implantátový zub — platí to pre živý parodontálny graf aj pre exporty SVG/PDF.
-- Meno pacienta a dátum vyšetrenia sú iba identifikačné metadáta grafu (payload `2.19`, doplnkové) — **nie sú** súčasťou exportu FHIR.
+- Meno pacienta, dátum narodenia a dátum vyšetrenia sú iba identifikačné metadáta grafu (payload `2.20`, doplnkové) — **nie sú** súčasťou exportu FHIR.
 
 ### 📁 Štruktúra priečinkov
 - `src/App.tsx` - rozhranie shellu, ovládacie prvky hornej lišty, prepínač jazyka/číslovania/tmavého režimu/témy/pluginu
@@ -686,7 +688,7 @@ Okrem vlastného exportu odontogramu Stav JSON / FHIR / PNG / JPG / SVG má **pa
 Ak tento modul použijete vo svojej práci, prosím, citujte ho.
 
 **Táto verzia (v1.49.0):**
-> Dul, Z. (2026). *React Odontogram Modul* (v1.49.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
+> Dul, Z. (2026). *React Advanced Odontogram* (v1.49.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **Všetky verzie (konceptové DOI):** https://doi.org/10.5281/zenodo.21156787
 
