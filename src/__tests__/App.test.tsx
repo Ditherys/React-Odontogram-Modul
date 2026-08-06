@@ -82,6 +82,16 @@ vi.mock('../odontogram', () => ({
   exportImage: vi.fn(),
   exportSvg: vi.fn(),
   setImportFormat: vi.fn(),
+  getChartMode: vi.fn().mockReturnValue('status'),
+  setChartMode: vi.fn(),
+  getStatusChart: vi.fn().mockReturnValue({}),
+  getPlanChart: vi.fn().mockReturnValue({}),
+  setPlanChart: vi.fn(),
+  getPlanChanges: vi.fn().mockReturnValue([]),
+  exportStatus: vi.fn(),
+  importStatus: vi.fn(),
+  exportPerioImage: vi.fn().mockResolvedValue(undefined),
+  exportPerioSvg: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe('App.tsx', () => {
