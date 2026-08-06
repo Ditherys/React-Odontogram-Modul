@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import { translations, type Language } from '../i18n/translations';
 
-const ALL_LANGUAGES: Language[] = ['hu', 'en', 'de', 'es', 'it', 'sk', 'pl', 'ru', 'pt-br', 'zh', 'ar'];
+const ALL_LANGUAGES: Language[] = ['hu', 'en', 'de', 'es', 'it', 'sk', 'pl', 'ru', 'pt-br', 'zh', 'ar', 'fr'];
 const PRIMARY_LANGUAGE: Language = 'hu';
 
 describe('translations.ts', () => {
