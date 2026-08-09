@@ -5,6 +5,7 @@ import { STATUS_EXTRAS } from "./status_extras";
 import { t, onI18nChange, getI18nLanguage } from "./i18n/useI18n";
 import { toLabel, type NumberingSystem } from "./utils/numbering";
 import { type OdontogramPlugin, getQuadrant, LAYER_Z } from "./plugin";
+import { sanitizePluginSvg } from "./pluginSanitize";
 import { buildFhirBundle } from "./fhir/toFhir";
 import { parseFhirBundle } from "./fhir/fromFhir";
 import type { FhirExportOptions } from "./fhir/types";
@@ -2956,10 +2957,16 @@ function applyPluginOverlays(toothNo: number){
       }
       if(!svgContent) continue;
 
+      // Security: plugin output is third-party content — sanitize before the
+      // innerHTML sink. An entirely-malicious fragment sanitizes to "" and the
+      // overlay is skipped rather than inserted empty.
+      const cleanSvg = sanitizePluginSvg(svgContent);
+      if(!cleanSvg) continue;
+
       const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
       g.setAttribute("data-plugin", plugin.id);
       g.setAttribute("data-layer", plugin.layer);
-      g.innerHTML = svgContent;
+      g.innerHTML = cleanSvg;
 
       // Insert into SVG at the correct z-position based on layer
       insertPluginGroup(svg, g, plugin.layer);
