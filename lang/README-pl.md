@@ -614,6 +614,10 @@ enablePersistence({
 
 Uwagi: nic nie jest odczytywane ani zapisywane w `localStorage`, dopóki nie zostanie wywołana `enablePersistence()`; zabezpieczenie rozmiaru 4 MB pomija zbyt duży zapis (zgłaszany przez `onError`/`console.warn`) zamiast rzucać wyjątek; każdy błąd zapisu/JSON — przekroczenie limitu, zablokowany iframe, uszkodzone lub nierozpoznane zapisane dane itd. — jest przechwytywany i zgłaszany. Ten moduł nigdy nie rzuca wyjątku.
 
+Uwaga: włączenie trwałości przywraca zapisany przypadek za pomocą `importStatus()`, co zastępuje bieżący przypadek — łącznie z trwającym wykresem planu, jeśli zapisany ładunek go nie zawiera. Włączaj trwałość przy starcie (zaraz po zamontowaniu), a nie w trakcie sesji.
+
+Uwaga: zapisany ładunek może zawierać dane identyfikujące pacjenta (imię i nazwisko pacjenta, data badania) w postaci jawnego tekstu w `localStorage`. Jeśli rejestrujesz takie dane, zapewnij ochronę na poziomie urządzenia lub usuń je za pomocą `clearPersistedState()`, gdy jest to właściwe.
+
 ### 💾 Format eksportu/importu statusu
 Eksport tworzy plik JSON (wersja `2.20`; import akceptuje też starsze wersje `1.4` oraz `2.0` do `2.19` i migruje je automatycznie) zawierający:
 

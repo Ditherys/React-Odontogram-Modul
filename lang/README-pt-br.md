@@ -558,6 +558,10 @@ enablePersistence({
 
 Observações: nada é lido de ou gravado em `localStorage` a menos que `enablePersistence()` seja chamada; um limite de tamanho de 4 MB ignora um salvamento excessivo (reportado via `onError`/`console.warn`) em vez de lançar uma exceção; toda falha de armazenamento/JSON — cota excedida, um iframe restrito, dados armazenados corrompidos ou não reconhecidos etc. — é capturada e reportada. Este módulo nunca lança exceções.
 
+Observação: ativar a persistência restaura o caso salvo via `importStatus()`, o que substitui o caso atual — incluindo um plano em andamento, caso o payload salvo não tenha nenhum. Ative a persistência na inicialização (logo após a montagem), não no meio da sessão.
+
+Observação: o payload persistido pode incluir dados de identificação do paciente (nome do paciente, data do exame) em texto simples no `localStorage`. Se você registrar esses dados, garanta proteção em nível de dispositivo ou os limpe com `clearPersistedState()` quando apropriado.
+
 ### 💾 Formato de exportação/importação de estado
 A exportação cria um arquivo JSON (versão `2.10`; as importações também aceitam as versões legadas `1.4`, `2.0`, `2.1`, `2.2`, `2.3`, `2.4`, `2.5`, `2.6`, `2.7`, `2.8` e `2.9` e migram automaticamente) contendo:
 

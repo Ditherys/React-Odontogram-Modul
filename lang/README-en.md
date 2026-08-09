@@ -614,6 +614,10 @@ enablePersistence({
 
 Notes: nothing is read from or written to `localStorage` unless `enablePersistence()` is called; a 4 MB size guard skips an oversized save (reported via `onError`/`console.warn`) rather than throwing; every storage/JSON failure — quota exceeded, a locked-down iframe, corrupt or unrecognized stored data, etc. — is caught and reported. This module never throws.
 
+Note: enabling persistence restores the saved case via `importStatus()`, which replaces the current case — including an in-progress plan chart if the saved payload has none. Enable persistence at startup (right after mount), not mid-session.
+
+Note: the persisted payload can include patient-identifying case data (patient name, exam date) in plaintext `localStorage`. If you chart such data, ensure device-level protection or clear it with `clearPersistedState()` when appropriate.
+
 ### 💾 Status Export/Import Format
 The export creates a JSON file (version `2.20`; imports also accept legacy `1.4` and `2.0` through `2.19` and migrate automatically) containing:
 

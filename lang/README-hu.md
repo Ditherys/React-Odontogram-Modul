@@ -614,6 +614,10 @@ enablePersistence({
 
 Megjegyzések: a `localStorage`-ba semmi nem kerül beolvasásra vagy kiírásra, amíg meg nem hívja az `enablePersistence()`-t; egy 4 MB-os méretkorlát dobás helyett kihagyja a túl nagy mentést (az `onError`/`console.warn`-on keresztül jelezve); minden tárolási/JSON hiba — kvóta túllépés, lezárt iframe, sérült vagy fel nem ismert tárolt adat stb. — el van kapva és jelentve. Ez a modul soha nem dob kivételt.
 
+Megjegyzés: a perzisztencia bekapcsolása az `importStatus()`-on keresztül visszaállítja a mentett esetet, ami lecseréli az aktuális esetet — beleértve egy folyamatban lévő terv-diagramot is, ha a mentett payloadban nincs terv. A perzisztenciát induláskor (közvetlenül a mountolás után) kapcsolja be, ne munkamenet közben.
+
+Megjegyzés: a mentett payload tartalmazhat beteg-azonosító eset-adatokat (betegnév, vizsgálat dátuma) egyszerű szövegként a `localStorage`-ban. Ha ilyen adatokat rögzít, gondoskodjon eszközszintű védelemről, vagy törölje a `clearPersistedState()` függvénnyel, amikor szükséges.
+
 ### 💾 Állapot Export/Import formátum
 Az export egy JSON fájlt hoz létre (`2.20` verziójú; az importálás továbbra is elfogadja a korábbi `1.4` és `2.0`–`2.19` verziókat, és automatikusan migrálja őket), amely tartalmazza:
 

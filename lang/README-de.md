@@ -616,6 +616,10 @@ enablePersistence({
 
 Hinweise: Ohne Aufruf von `enablePersistence()` wird nichts aus `localStorage` gelesen oder dorthin geschrieben; eine 4-MB-Größenbeschränkung überspringt ein zu großes Speichern (gemeldet über `onError`/`console.warn`), statt eine Exception auszulösen; jeder Speicher-/JSON-Fehler — Kontingent überschritten, ein abgeschottetes iframe, beschädigte oder unbekannte gespeicherte Daten usw. — wird abgefangen und gemeldet. Dieses Modul löst nie eine Exception aus.
 
+Hinweis: Das Aktivieren der Persistenz stellt den gespeicherten Fall über `importStatus()` wieder her, wodurch der aktuelle Fall ersetzt wird — einschließlich eines laufenden Plan-Befunds, falls die gespeicherten Daten keinen enthalten. Aktivieren Sie die Persistenz beim Start (direkt nach dem Mounten), nicht während einer laufenden Sitzung.
+
+Hinweis: Die gespeicherten Daten können patientenbezogene Falldaten (Patientenname, Untersuchungsdatum) im Klartext im `localStorage` enthalten. Wenn Sie solche Daten erfassen, sorgen Sie für einen geräteseitigen Schutz oder löschen Sie sie bei Bedarf mit `clearPersistedState()`.
+
 ### 💾 Status Export-/Importformat
 Der Export erzeugt eine JSON-Datei (Version `2.20`; Importe akzeptieren weiterhin die Legacy-Version `1.4` sowie `2.0` bis `2.19` und werden automatisch migriert) mit folgenden Feldern:
 

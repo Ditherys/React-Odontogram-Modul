@@ -614,6 +614,10 @@ enablePersistence({
 
 Poznámky: pokiaľ nie je zavolané `enablePersistence()`, do `localStorage` sa nič nezapisuje ani z neho nečíta; limit veľkosti 4 MB preskočí príliš veľké uloženie (nahlásené cez `onError`/`console.warn`) namiesto vyhodenia výnimky; každá chyba ukladania/JSON — prekročená kvóta, uzamknutý iframe, poškodené alebo nerozpoznané uložené dáta atď. — je zachytená a nahlásená. Tento modul nikdy nevyhadzuje výnimku.
 
+Poznámka: zapnutie perzistencie obnoví uložený prípad cez `importStatus()`, čím sa nahradí aktuálny prípad — vrátane rozpracovaného plánovacieho grafu, ak uložený payload žiadny neobsahuje. Zapnite perzistenciu pri štarte (hneď po pripojení), nie uprostred relácie.
+
+Poznámka: uložený payload môže obsahovať identifikačné údaje pacienta (meno pacienta, dátum vyšetrenia) v čistom texte v `localStorage`. Ak zaznamenávate takéto údaje, zabezpečte ochranu na úrovni zariadenia alebo ich podľa potreby vymažte pomocou `clearPersistedState()`.
+
 ### 💾 Formát exportu/importu stavu
 Export vytvorí súbor JSON (verzia `2.20`; import tiež akceptuje staršie verzie `1.4` a `2.0` až `2.19` a automaticky ich migruje) obsahujúci:
 
