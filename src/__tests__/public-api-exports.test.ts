@@ -21,6 +21,10 @@ import {
   exportPdf,
   exportPerioImage,
   exportPerioSvg,
+  enablePersistence,
+  disablePersistence,
+  clearPersistedState,
+  isPersistenceEnabled,
 } from "../App";
 
 describe("public API exports — App.tsx re-exports", () => {
@@ -85,5 +89,16 @@ describe("public API exports — App.tsx re-exports", () => {
     expect(typeof exportPerioImage).toBe("function");
     expect(exportPerioSvg).toBeDefined();
     expect(typeof exportPerioSvg).toBe("function");
+  });
+
+  it("exports persistence control functions", () => {
+    expect(enablePersistence).toBeDefined();
+    expect(typeof enablePersistence).toBe("function");
+    expect(disablePersistence).toBeDefined();
+    expect(typeof disablePersistence).toBe("function");
+    expect(clearPersistedState).toBeDefined();
+    expect(typeof clearPersistedState).toBe("function");
+    expect(isPersistenceEnabled).toBeDefined();
+    expect(typeof isPersistenceEnabled).toBe("function");
   });
 });

@@ -11,6 +11,10 @@ export type { OdontogramSummary, OdontogramSummarySection } from "./odontogram";
 export type { FhirExportOptions } from "./fhir/types";
 import { startIntroTour } from "./tour";
 export { startIntroTour } from "./tour";
+export {
+  enablePersistence, disablePersistence, clearPersistedState, isPersistenceEnabled,
+} from "./persistence";
+export type { PersistenceOptions } from "./persistence";
 import { useI18n } from "./i18n/useI18n";
 import SettingsModal, { type SettingsState } from "./SettingsModal";
 import PerioChart from "./PerioChart";
