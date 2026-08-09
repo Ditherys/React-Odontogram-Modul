@@ -4,6 +4,7 @@
 import type { Bundle, Observation, Condition, CodeableConcept, ToothRecord, OdontogramExportPayload, FhirExportOptions } from "./types";
 import { LOCAL_SYSTEM, FDI_SYSTEM, ICD10_SYSTEM } from "./codesystems";
 import { PLACEHOLDER_PATIENT_FULLURL, baseObservation } from "./primitives";
+import { toothBodySiteCode } from "./iso3950";
 import {
   derivePerioClassification,
   type PerioDerivationInput,
@@ -455,7 +456,8 @@ export function appendPerioObservations(bundle: Bundle, payload: OdontogramExpor
   if (!bundle.entry) bundle.entry = [];
   for (const [tooth, recRaw] of Object.entries(teeth)) {
     const rec = (recRaw && typeof recRaw === "object" ? recRaw : {}) as ToothRecord;
-    const obs = buildToothPerioObservation(subjectRef, tooth, rec);
+    const siteTooth = toothBodySiteCode(tooth, rec);
+    const obs = buildToothPerioObservation(subjectRef, siteTooth, rec);
     if (obs) bundle.entry.push({ resource: obs });
   }
 }

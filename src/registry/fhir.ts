@@ -9,6 +9,7 @@ import {
 } from "../fhir/primitives";
 import { AXES } from "./axes";
 import type { ClinicalAxis } from "./types";
+import { toothBodySiteCode } from "../fhir/iso3950";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -104,7 +105,8 @@ export function buildFhirBundleFromRegistry(payload: OdontogramExportPayload, op
 
   for (const [tooth, recRaw] of Object.entries(teeth)) {
     const rec = (recRaw && typeof recRaw === "object" ? recRaw : {}) as ToothRecord;
-    for (const axis of AXES) for (const obs of emitForAxis(subjectRef, tooth, rec, axis)) entries.push({ resource: obs });
+    const siteTooth = toothBodySiteCode(tooth, rec);
+    for (const axis of AXES) for (const obs of emitForAxis(subjectRef, siteTooth, rec, axis)) entries.push({ resource: obs });
     // SP6 Task 1: the unified caries severity rides on the `caries` set's
     // components (see emitForAxis above), so the SP5 standalone `secondary-caries`
     // Observation is retired. `radiographicDepth` remains a separate per-surface
@@ -113,7 +115,7 @@ export function buildFhirBundleFromRegistry(payload: OdontogramExportPayload, op
     if (radiographicDepth && typeof radiographicDepth === "object") {
       const comps = Object.entries(radiographicDepth).filter((e): e is [string, string] => typeof e[1] === "string");
       if (comps.length) {
-        const obs = baseObservation(subjectRef, tooth, findingConcept("radiographic-caries-depth", "Radiographic caries depth"));
+        const obs = baseObservation(subjectRef, siteTooth, findingConcept("radiographic-caries-depth", "Radiographic caries depth"));
         obs.component = comps.map(([surf, val]) => ({
           code: valueConcept("fillingSurfaces", surf),
           valueCodeableConcept: valueConcept("radiographicDepth", val),
@@ -125,7 +127,7 @@ export function buildFhirBundleFromRegistry(payload: OdontogramExportPayload, op
     if (fillingDefect && typeof fillingDefect === "object") {
       const comps = Object.entries(fillingDefect).filter((e): e is [string, string] => typeof e[1] === "string");
       if (comps.length) {
-        const obs = baseObservation(subjectRef, tooth, findingConcept("filling-defect", "Filling defect"));
+        const obs = baseObservation(subjectRef, siteTooth, findingConcept("filling-defect", "Filling defect"));
         obs.component = comps.map(([surf, val]) => ({
           code: valueConcept("fillingSurfaces", surf),
           valueCodeableConcept: valueConcept("fillingDefect", val),
@@ -134,7 +136,7 @@ export function buildFhirBundleFromRegistry(payload: OdontogramExportPayload, op
       }
     }
     if (typeof rec.note === "string" && rec.note.trim().length > 0) {
-      const noteObs = baseObservation(subjectRef, tooth, findingConcept("tooth-note", "Tooth note"));
+      const noteObs = baseObservation(subjectRef, siteTooth, findingConcept("tooth-note", "Tooth note"));
       noteObs.note = [{ text: rec.note }];
       entries.push({ resource: noteObs });
     }
@@ -142,7 +144,7 @@ export function buildFhirBundleFromRegistry(payload: OdontogramExportPayload, op
     if (custom && typeof custom === "object") {
       for (const [pluginId, value] of Object.entries(custom)) {
         if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") continue;
-        const obs = baseObservation(subjectRef, tooth, {
+        const obs = baseObservation(subjectRef, siteTooth, {
           coding: [{ system: LOCAL_SYSTEM, code: `custom-state:${pluginId}`, display: `Custom state: ${pluginId}` }],
           text: `Custom state: ${pluginId}`,
         });

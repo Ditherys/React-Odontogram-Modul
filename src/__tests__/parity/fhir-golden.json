@@ -156,10 +156,10 @@
               "coding": [
                 {
                   "system": "urn:iso:std:iso:3950",
-                  "code": "14"
+                  "code": "54"
                 }
               ],
-              "text": "Tooth 14"
+              "text": "Tooth 54"
             },
             "valueCodeableConcept": {
               "coding": [

@@ -5,6 +5,7 @@ import type { OdontogramExportPayload, ToothRecord } from "../fhir/types";
 import { localCode, ensureTooth } from "../fhir/primitives";
 import { AXES } from "./axes";
 import type { ClinicalAxis } from "./types";
+import { deciduousToFdi } from "../fhir/iso3950";
 
 // Reverse lookup: finding code -> axis.
 const BY_FINDING: Record<string, ClinicalAxis> = {};
@@ -29,7 +30,8 @@ export function parseFhirBundleFromRegistry(bundle: unknown): OdontogramExportPa
 
       const findingCode = localCode(res.code);
       if (!findingCode) continue;
-      const toothId = res.bodySite?.coding?.find((c) => typeof c.code === "string")?.code;
+      const rawToothCode = res.bodySite?.coding?.find((c) => typeof c.code === "string")?.code;
+      const toothId = rawToothCode ? (deciduousToFdi(rawToothCode) ?? rawToothCode) : undefined;
 
       if (findingCode === "edentulous") { globals.edentulous = res.valueBoolean === true; continue; }
       if (!toothId) continue;
