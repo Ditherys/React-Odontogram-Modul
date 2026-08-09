@@ -96,10 +96,11 @@ Fix the security, standards-compliance, and persistence gaps identified in the c
 - Logic:
   - Internal model remains unchanged: `toothNo` 11-48 with `toothSelection: "milktooth"`.
   - On FHIR export, when `toothSelection === "milktooth"`, convert the FDI code to the ISO 3950 deciduous range:
-    - 11-18 → 51-55
-    - 21-28 → 61-65
-    - 31-38 → 71-75
-    - 41-48 → 81-85
+    - 11-15 → 51-55
+    - 21-25 → 61-65
+    - 31-35 → 71-75
+    - 41-45 → 81-85
+  - FDI codes 16-18, 26-28, 36-38, 46-48 are permanent molars and never represent milk teeth; if a `milktooth` flag appears on one of these, export it as a permanent tooth with a warning, not as a deciduous code.
   - `bodySite.coding.system` remains the ISO 3950 URI used by the project.
   - Permanent teeth are unchanged.
 - Add test: FHIR export of a milk tooth yields the correct 51-85 code.
