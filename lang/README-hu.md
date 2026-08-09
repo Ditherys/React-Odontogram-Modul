@@ -1,7 +1,7 @@
 # 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.3.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.4.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -152,7 +152,8 @@ Vagy töltsd be egy kizárólag kliensoldali dinamikus importtal: `dynamic(() =>
 - 📊 Előre definiált státusz minták (alaphelyzet, tejfogazat, vegyes fogazat, fogatlan)
 - 📦 34 előre definiált restaurációs sablon (hidak, kivehető protézisek, bár protézisek implantátumokkal)
 - 💾 Állapot export/import JSON formátumban (2.20 verzió; az importálás továbbra is elfogadja a korábbi 1.4 és 2.0–2.19 verziókat, és automatikusan migrálja, plugin egyedi állapotokkal és fogankénti megjegyzésekkel)
-- 🔗 HL7 FHIR R4 export (collection Bundle fogankénti Observation-ökkel, ISO 3950 fogkódolás a maradó fogazatra, lokális kódrendszer — SNOMED CT megfeleltetés tervezett)
+- 💽 Opcionálisan bekapcsolható localStorage-perzisztencia (`enablePersistence`/`disablePersistence`/`clearPersistedState`/`isPersistenceEnabled`) — alapértelmezetten kikapcsolva; minden állapotváltozáskor elmenti a státusz-diagramot (és opcionálisan a terv-diagramot is), majd a komponens legközelebbi mountolásakor visszaállítja azt, 4 MB-os méretkorláttal, a tárolási/feldolgozási hibákat pedig dobás helyett egy `onError` callbacknek (vagy a `console.warn`-nak) adja tovább
+- 🔗 HL7 FHIR R4 export (collection Bundle fogankénti Observation-ökkel, ISO 3950 fogkódolás a maradó fogazatra **és** a tejfogakra (51–85, veszteségmentes oda-vissza konverzió importáláskor), lokális kódrendszer — SNOMED CT megfeleltetés tervezett); egy rögzített súlyosságú caries komponens egy pontozási-rendszer kódolást is hordoz — ICDAS-t egy elsődleges (tömés nélküli) felületen, CARS-t egy szekunder (tömött) felületen
 - ✚ Kereszt/plusz felület-választó UI (B/M/O/D/L) szuvasodáshoz és tömésekhez
 - 🧱 Felületenkénti tömőanyagok (vegyes tömések, pl. bukkális amalgám + disztális kompozit)
 - 🖼️ PNG/JPG/SVG képexport az odontogramról (letölthető; a PNG/JPG vektoros SVG-ből raszterizált)
@@ -186,7 +187,8 @@ Vagy töltsd be egy kizárólag kliensoldali dinamikus importtal: `dynamic(() =>
 - 🌗 Sötét mód támogatás váltógombbal (önálló vagy szülő alkalmazás által vezérelt)
 - 🎨 Egyedi téma konfiguráció (`themeConfig` prop) CSS custom property-kkel (`--odon-*`)
 - 📱 Mobil érintéses UX: koppintásos nagyítós felugró, hosszú nyomás helyi menü, csípéses zoom, WCAG 44px érintési célpontok, fogív navigáció
-- 🔌 Egyedi SVG plugin rendszer: vizuális fedvények, foganként egyedi állapot, JSON export/import támogatás
+- 🔌 Egyedi SVG plugin rendszer: vizuális fedvények, foganként egyedi állapot, JSON export/import támogatás — a plugin `renderSvg()` kimenete DOMPurify-jal (SVG profil) van megtisztítva, mielőtt beszúrásra kerülne az élő diagramba; a pluginok továbbra is megbízható kódként futnak, ezért csak olyan forrásból származó pluginokat töltsön be, amelyben megbízik
+- 🛡️ Content-Security-Policy: a demó production build-je beszúr egy CSP meta taget (a dev szervert ez nem érinti) — a komponenst beágyazó alkalmazásoknak saját CSP-t kell beállítaniuk
 - ⚠️ Állapot validáció figyelmeztetésekkel inkompatibilis fogállapot-kombinációkra
 - 🏷️ Automatikus állapot tooltip a fogcsempéken (összes aktív állapot megjelenítése)
 - 🩺 Modernizált fogankénti tooltip és teljes szájüreg összegző panel: mindkettő megjeleníti a klinikai leletek teljes körét (pulpa/apikális diagnózis + lézió altípus, gyökérreszorpció, peri-implantáris státusz, fokozatos gyökér szuvasodás, fogkő, korona szegélyi rés, törés, kontaktpont veszteség, típusolt metszőéli/rágófelszíni és cervikális kopás), a panelben egy dedikált "Diagnózisok" szekcióval, egy dedikált "Kopás" szekcióval, valamint egy durva caries-súlyossági minősítővel (felületes/közepes/mély)
@@ -578,6 +580,40 @@ npm run docs           # TypeDoc dokumentáció generálása a docs/ mappába
 | `setImportFormat(format)` | A következő fájlimport értelmezőjének beállítása — `"status"` vagy `"fhir"` |
 | `startIntroTour()` | A 12 lépéses interaktív bemutató túra indítása |
 
+### 💾 Állapotmentés (localStorage)
+
+Opcionálisan bekapcsolható `localStorage`-perzisztencia az odontogram eset-állapotához (`src/persistence.ts`, a csomag belépési pontjáról újraexportálva). Alapértelmezetten kikapcsolva — a meglévő integrációkat nem érinti, amíg egy host alkalmazás explicit módon be nem kapcsolja, és a bekapcsolást az odontogram mountolása **után** kell meghívni (a visszaállítás az `importStatus()`-on keresztül újrarajzolja az élő DOM-ot):
+
+```ts
+import {
+  enablePersistence, disablePersistence,
+  clearPersistedState, isPersistenceEnabled,
+} from "react-advanced-odontogram";
+
+enablePersistence({
+  key: "my-app-odontogram",   // alapértelmezett: "react-advanced-odontogram"
+  includePlan: true,          // a terv-diagram mentése is; alapértelmezett: false
+  onError: (err) => console.error("odontogram persistence:", err),
+});
+```
+
+| Függvény | Leírás |
+|---|---|
+| `enablePersistence(options?)` | Visszaállít egy korábban mentett esetet (ha van) az `importStatus()`-on keresztül, majd minden állapotváltozáskor elmenti a státusz-diagramot a `localStorage`-ba. Idempotens — ismételt hívása lecseréli az előző feliratkozást/beállításokat. **Az odontogram mountolása után kell meghívni.** |
+| `disablePersistence()` | Leállítja a mentést; a tárolt bejegyzés a helyén marad. |
+| `clearPersistedState()` | Törli az aktív (vagy alapértelmezett) kulcshoz tartozó tárolt bejegyzést. |
+| `isPersistenceEnabled()` | `true`, amíg egy állapotváltozás-feliratkozás aktív. |
+
+**`PersistenceOptions`:**
+
+| Mező | Típus | Alapértelmezett | Leírás |
+|---|---|---|---|
+| `key` | `string` | `"react-advanced-odontogram"` | A `localStorage` kulcs. |
+| `includePlan` | `boolean` | `false` | A terv-diagram (a payload `plan` mezője) mentése is. |
+| `onError` | `(err: Error) => void` | — | Bármilyen tárolási/feldolgozási hiba esetén ez hívódik meg a `console.warn` helyett. |
+
+Megjegyzések: a `localStorage`-ba semmi nem kerül beolvasásra vagy kiírásra, amíg meg nem hívja az `enablePersistence()`-t; egy 4 MB-os méretkorlát dobás helyett kihagyja a túl nagy mentést (az `onError`/`console.warn`-on keresztül jelezve); minden tárolási/JSON hiba — kvóta túllépés, lezárt iframe, sérült vagy fel nem ismert tárolt adat stb. — el van kapva és jelentve. Ez a modul soha nem dob kivételt.
+
 ### 💾 Állapot Export/Import formátum
 Az export egy JSON fájlt hoz létre (`2.20` verziójú; az importálás továbbra is elfogadja a korábbi `1.4` és `2.0`–`2.19` verziókat, és automatikusan migrálja őket), amely tartalmazza:
 
@@ -684,6 +720,17 @@ Az odontogram saját Státusz JSON / FHIR / PNG / JPG / SVG exportján túl a **
 - Az implantátum fogaknál a korona/felépítmény lehetőségek eltérnek a természetes fogakétól.
 
 ---
+
+### 🔒 Biztonsági megjegyzések
+
+- **A pluginok megbízható kódként futnak.** Egy plugin `renderSvg()` visszatérési értéke bekerül az élő diagram SVG-jébe. Ez a kimenet a beszúrás előtt [DOMPurify](https://github.com/cure53/DOMPurify)-jal van megtisztítva (SVG profil, plusz `svgFilters`) — a `<script>`, `<iframe>`, `<object>`, `<embed>` és `<foreignObject>` elemek eleve tiltottak, és egy teljesen rosszindulatú kimenet inkább eldobásra kerül, mintsem részlegesen renderelődjön. Ez csökkenti egy kompromittált vagy hibás plugin okozta kárt, de a pluginokat továbbra is csak megbízható forrásból szabad betölteni — a tisztítás egy biztonsági háló, nem az ellenőrzés helyettesítője.
+- **Content-Security-Policy.** A demó **production build-je** ezt a szabályzatot szúrja be egy `<meta http-equiv="Content-Security-Policy">` tag formájában (a dev szervert ez nem érinti):
+
+  ```
+  default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'
+  ```
+
+  Az `OdontogramShell`-t beágyazó alkalmazásoknak a saját telepítésükhöz illő CSP-t kell beállítaniuk — a komponens könyvtárként való használat esetén nem szúr be sajátot.
 
 ### 📖 Hivatkozás
 

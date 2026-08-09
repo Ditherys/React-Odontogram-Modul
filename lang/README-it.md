@@ -1,7 +1,7 @@
 # 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.3.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.4.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -152,7 +152,8 @@ Oppure caricalo con un import dinamico solo client-side: `dynamic(() => import("
 - 📊 Preset di stato predefiniti (ripristino, dentizione primaria, dentizione mista, edentulo)
 - 📦 34 template di restauro predefiniti (ponti, protesi rimovibili, protesi su barra con impianti)
 - 💾 Esportazione/importazione dello stato in JSON (versione 2.20; le importazioni continuano ad accettare le versioni legacy 1.4 e da 2.0 a 2.19 e vengono migrate automaticamente, con stati personalizzati dei plugin e note per dente)
-- 🔗 Esportazione HL7 FHIR R4 (Bundle di raccolta di Observation per dente, codifica dentale ISO 3950 per la dentizione permanente, sistema di codici locale — mappatura SNOMED CT pianificata)
+- 💽 Persistenza opzionale su localStorage (`enablePersistence`/`disablePersistence`/`clearPersistedState`/`isPersistenceEnabled`) — disattivata per impostazione predefinita; salva automaticamente l'odontogramma di stato (e, opzionalmente, il piano) a ogni cambiamento di stato e lo ripristina al successivo montaggio del componente, con un limite di sicurezza di 4 MB e gli errori di archiviazione/parsing instradati a un callback `onError` (o a `console.warn`) invece di generare un'eccezione
+- 🔗 Esportazione HL7 FHIR R4 (Bundle di raccolta di Observation per dente, codifica dentale ISO 3950 per la dentizione permanente **e** per i denti decidui (51-85, con corrispondenza senza perdita di dati in importazione), sistema di codici locale — mappatura SNOMED CT pianificata); un componente di carie con una gravità registrata riporta anche una codifica del sistema di punteggio — ICDAS su una superficie primaria (non otturata), CARS su una ricorrente (otturata)
 - ✚ Interfaccia di selezione superfici a croce (B/M/O/D/L) per carie e otturazioni
 - 🧱 Materiali di restauro per superficie (otturazioni miste, es. buccale amalgama + distale composito)
 - 🖼️ Esportazione immagine PNG/JPG/SVG dell'odontogramma (scaricabile; PNG/JPG rasterizzato da SVG vettoriale)
@@ -186,7 +187,8 @@ Oppure caricalo con un import dinamico solo client-side: `dynamic(() => import("
 - 🌗 Supporto modalità scura con pulsante di attivazione (autonoma o controllata dall'app principale)
 - 🎨 Configurazione tema personalizzato (prop `themeConfig`) con proprietà CSS personalizzate (`--odon-*`)
 - 📱 UX touch su mobile: popover zoom al tocco, menu contestuale con pressione prolungata, zoom a pizzico, target touch WCAG 44px, navigazione per arcata
-- 🔌 Sistema di plugin SVG personalizzati: overlay visivi, stato personalizzato per dente, supporto esportazione/importazione JSON
+- 🔌 Sistema di plugin SVG personalizzati: overlay visivi, stato personalizzato per dente, supporto esportazione/importazione JSON — l'output di `renderSvg()` dei plugin viene sanificato con DOMPurify (profilo SVG) prima di essere inserito nell'odontogramma live; i plugin continuano comunque a essere eseguiti come codice fidato, quindi vanno caricati solo da fonti attendibili
+- 🛡️ Content-Security-Policy: la build di produzione della demo inserisce un tag meta CSP (il server di sviluppo non è interessato) — le applicazioni ospitanti che integrano il componente dovrebbero impostare la propria CSP
 - ⚠️ Avvisi di validazione dello stato per combinazioni di stati dentali incompatibili
 - 🏷️ Tooltip automatico dello stato sui riquadri dentali (mostra tutti gli stati attivi)
 - 🩺 Tooltip per dente e pannello di riepilogo per l'intera bocca modernizzati: entrambi mostrano l'intero set di reperti clinici (diagnosi pulpare/apicale + sottotipo di lesione, riassorbimento radicolare, stato peri-implantare, carie radicolare graduata, tartaro, microinfiltrazione marginale della corona, frattura, perdita di contatto, usura tipizzata del bordo/cervicale), con una sezione dedicata "Diagnosi" nel pannello, una sezione dedicata "Usura", e un qualificatore grossolano di gravità della carie (superficiale/moderata/profonda)
@@ -578,6 +580,40 @@ npm run docs           # Genera la documentazione TypeDoc in docs/
 | `setImportFormat(format)` | Imposta il parser per la prossima importazione file — `"status"` o `"fhir"` |
 | `startIntroTour()` | Avvia il tour introduttivo interattivo in 12 passi |
 
+### 💾 Persistenza dello stato (localStorage)
+
+Persistenza opzionale su `localStorage` per lo stato del caso dell'odontogramma (`src/persistence.ts`, ri-esportata dal punto di ingresso del pacchetto). Disattivata per impostazione predefinita — le integrazioni esistenti non sono interessate a meno che un'applicazione ospitante non la attivi esplicitamente, e va richiamata **dopo** che l'odontogramma è stato montato (il ripristino ridisegna il DOM live tramite `importStatus()`):
+
+```ts
+import {
+  enablePersistence, disablePersistence,
+  clearPersistedState, isPersistenceEnabled,
+} from "react-advanced-odontogram";
+
+enablePersistence({
+  key: "my-app-odontogram",   // predefinito: "react-advanced-odontogram"
+  includePlan: true,          // persiste anche il piano; predefinito: false
+  onError: (err) => console.error("odontogram persistence:", err),
+});
+```
+
+| Funzione | Descrizione |
+|---|---|
+| `enablePersistence(options?)` | Ripristina un caso salvato in precedenza (se presente) tramite `importStatus()`, quindi salva l'odontogramma di stato su `localStorage` a ogni cambiamento di stato. Idempotente — richiamarla di nuovo sostituisce la sottoscrizione/le opzioni precedenti. **Deve essere richiamata dopo che l'odontogramma è stato montato.** |
+| `disablePersistence()` | Interrompe la persistenza; la voce salvata resta invariata. |
+| `clearPersistedState()` | Rimuove la voce salvata per la chiave attiva (o predefinita). |
+| `isPersistenceEnabled()` | `true` mentre una sottoscrizione ai cambiamenti di stato è attiva. |
+
+**`PersistenceOptions`:**
+
+| Campo | Tipo | Predefinito | Descrizione |
+|---|---|---|---|
+| `key` | `string` | `"react-advanced-odontogram"` | La chiave `localStorage`. |
+| `includePlan` | `boolean` | `false` | Persiste anche il piano (il campo `plan` del payload). |
+| `onError` | `(err: Error) => void` | — | Richiamata su qualsiasi errore di archiviazione/parsing invece di `console.warn`. |
+
+Note: non viene letto né scritto nulla su `localStorage` a meno che `enablePersistence()` non venga richiamata; un limite di sicurezza di 4 MB salta un salvataggio troppo grande (segnalato tramite `onError`/`console.warn`) invece di generare un'eccezione; ogni errore di archiviazione/JSON — quota superata, un iframe bloccato, dati salvati corrotti o non riconosciuti, ecc. — viene intercettato e segnalato. Questo modulo non genera mai eccezioni.
+
 ### 💾 Formato di esportazione/importazione dello stato
 L'esportazione crea un file JSON (versione `2.20`; le importazioni accettano anche le versioni legacy `1.4` e da `2.0` a `2.19` e vengono migrate automaticamente) contenente:
 
@@ -682,6 +718,17 @@ Oltre all'esportazione propria dell'odontogramma in Stato JSON / FHIR / PNG / JP
 - Il motore dell'odontogramma utilizza il proprio stato interno (non lo stato React) per prestazioni e semplicità.
 - I denti decidui dispongono di un set ridotto di materiali disponibili (nessuna otturazione in amalgama, nessun trattamento endodontico con perni).
 - I denti con impianto dispongono di un diverso set di opzioni per corona/abutment rispetto ai denti naturali.
+
+### 🔒 Note sulla sicurezza
+
+- **I plugin vengono eseguiti come codice fidato.** Il valore restituito da `renderSvg()` di un plugin viene inserito nell'SVG dell'odontogramma live. Quell'output viene sanificato con [DOMPurify](https://github.com/cure53/DOMPurify) (profilo SVG, più `svgFilters`) prima dell'inserimento — `<script>`, `<iframe>`, `<object>`, `<embed>` e `<foreignObject>` sono vietati a priori, e un output completamente malevolo viene scartato invece di essere renderizzato parzialmente. Questo riduce il raggio d'azione di un plugin compromesso o difettoso, ma i plugin dovrebbero comunque essere caricati solo da fonti attendibili — la sanificazione è una rete di sicurezza, non un sostituto della verifica.
+- **Content-Security-Policy.** La **build di produzione** della demo inserisce questa policy tramite un tag `<meta http-equiv="Content-Security-Policy">` (il server di sviluppo non è interessato):
+
+  ```
+  default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'
+  ```
+
+  Le applicazioni ospitanti che integrano `OdontogramShell` dovrebbero impostare la propria CSP adatta al loro deployment — il componente non ne inserisce una quando è usato come libreria.
 
 ### 📖 Come citare
 

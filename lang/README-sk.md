@@ -1,7 +1,7 @@
 # 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.3.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.4.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -152,7 +152,8 @@ Alebo ho načítajte pomocou dynamického importu iba na strane klienta: `dynami
 - 📊 Preddefinované stavové predvoľby (obnoviť, mliečny chrup, zmiešaný chrup, bezzubý)
 - 📦 34 preddefinovaných šablón reštaurácií (mostíky, snímateľné protézy, stegové protézy s implantátmi)
 - 💾 Export/import stavu v JSON (verzia 2.20; import stále akceptuje staršie verzie 1.4 a 2.0 až 2.19 a automaticky ich migruje, s vlastnými stavmi pluginov a poznámkami ku každému zubu)
-- 🔗 Export HL7 FHIR R4 (kolekcia Bundle s Observations pre každý zub, kódovanie zubov ISO 3950 pre trvalý chrup, lokálny systém kódov — mapovanie SNOMED CT plánované)
+- 💽 Voliteľná (opt-in) perzistencia stavu v `localStorage` (`enablePersistence`/`disablePersistence`/`clearPersistedState`/`isPersistenceEnabled`) — predvolene vypnutá; automaticky ukladá stavový graf (a voliteľne aj plánovací graf) pri každej zmene stavu a obnoví ho pri ďalšom pripojení komponentu, s limitom veľkosti 4 MB a chybami pri ukladaní/parsovaní smerovanými do callbacku `onError` (alebo `console.warn`) namiesto vyhodenia výnimky
+- 🔗 Export HL7 FHIR R4 (kolekcia Bundle s Observations pre každý zub, kódovanie zubov ISO 3950 pre trvalý chrup **aj** mliečne zuby (51-85, obojsmerne bezstratovo pri importe), lokálny systém kódov — mapovanie SNOMED CT plánované); komponent kazu so zaznamenanou závažnosťou nesie aj kódovanie skórovacieho systému — ICDAS na primárnej (nevyplnenej) ploche, CARS na rekurentnej (vyplnenej)
 - ✚ Krížový výber plôch (B/M/O/D/L) pre kaz a výplne
 - 🧱 Materiály reštaurácie pre každú plochu (zmiešané výplne, napr. bukálny amalgám + distálny kompozit)
 - 🖼️ Export obrázka odontogramu vo formáte PNG/JPG/SVG (na stiahnutie; PNG/JPG rastrovaný z vektorového SVG)
@@ -186,7 +187,8 @@ Alebo ho načítajte pomocou dynamického importu iba na strane klienta: `dynami
 - 🌗 Podpora tmavého režimu s prepínacím tlačidlom (samostatný alebo riadený nadradenou aplikáciou)
 - 🎨 Vlastná konfigurácia témy (prop `themeConfig`) s CSS vlastnými vlastnosťami (`--odon-*`)
 - 📱 Mobilné dotykové UX: vyskakovacie okno pre priblíženie kliknutím, kontextová ponuka dlhým stlačením, priblíženie štipnutím, WCAG 44px dotykové ciele, navigácia prepínania oblúka
-- 🔌 Vlastný SVG systém pluginov: vkladanie vizuálnych prekrytí, vlastný stav pre každý zub, podpora exportu/importu JSON
+- 🔌 Vlastný SVG systém pluginov: vkladanie vizuálnych prekrytí, vlastný stav pre každý zub, podpora exportu/importu JSON — výstup `renderSvg()` pluginu je pred vložením do živého grafu sanitizovaný knižnicou DOMPurify (SVG profil); pluginy naďalej bežia ako dôveryhodný kód, preto načítavajte iba pluginy zo zdrojov, ktorým dôverujete
+- 🛡️ Content-Security-Policy: produkčný build dema vkladá CSP meta tag (vývojový server nie je ovplyvnený) — hostiteľské aplikácie vkladajúce komponent by si mali nastaviť vlastný CSP
 - ⚠️ Varovania validácie stavu pre nekompatibilné kombinácie zubných stavov
 - 🏷️ Automatický tooltip stavu na dlaždiciach zubov (zobrazuje všetky aktívne stavy)
 - 🩺 Modernizovaný tooltip pre každý zub a panel súhrnu za celé ústa: obidva zobrazujú kompletnú sadu klinických nálezov (diagnóza drene/apikálna + podtyp lézie, resorpcia koreňa, stav peri-implantátu, odstupňovaný kaz koreňa, zubný kameň, okrajová netesnosť korunky, zlomenina, strata kontaktu, typizované okrajové/cervikálne opotrebenie), s vyhradenou sekciou „Diagnózy" v paneli, vyhradenou sekciou „Opotrebenie" a hrubým kvalifikátorom závažnosti kazu (povrchový/stredný/hlboký)
@@ -578,6 +580,40 @@ npm run docs           # Generovať dokumentáciu TypeDoc v docs/
 | `setImportFormat(format)` | Nastaviť analyzátor pre nasledujúci import súboru — `"status"` alebo `"fhir"` |
 | `startIntroTour()` | Spustiť 12-krokový interaktívny úvodný sprievodca |
 
+### 💾 Perzistencia stavu (localStorage)
+
+Voliteľná (opt-in) perzistencia stavu prípadu odontogramu v `localStorage` (`src/persistence.ts`, reexportované z hlavného vstupného bodu balíka). Predvolene vypnutá — existujúce integrácie nie sú ovplyvnené, pokiaľ ju hostiteľská aplikácia explicitne nezapne, a mala by sa volať **až po** pripojení odontogramu (obnova prekreslí živý DOM cez `importStatus()`):
+
+```ts
+import {
+  enablePersistence, disablePersistence,
+  clearPersistedState, isPersistenceEnabled,
+} from "react-advanced-odontogram";
+
+enablePersistence({
+  key: "my-app-odontogram",   // predvolené: "react-advanced-odontogram"
+  includePlan: true,          // uložiť aj plánovací graf; predvolené: false
+  onError: (err) => console.error("odontogram persistence:", err),
+});
+```
+
+| Funkcia | Popis |
+|---|---|
+| `enablePersistence(options?)` | Obnoví predtým uložený prípad (ak existuje) cez `importStatus()`, potom pri každej zmene stavu uloží stavový graf do `localStorage`. Idempotentné — opätovné volanie nahradí predchádzajúci odber/možnosti. **Musí sa volať až po pripojení odontogramu.** |
+| `disablePersistence()` | Zastaví perzistenciu; uložená položka zostáva zachovaná. |
+| `clearPersistedState()` | Odstráni uloženú položku pre aktívny (alebo predvolený) kľúč. |
+| `isPersistenceEnabled()` | `true`, kým je aktívny odber zmien stavu. |
+
+**`PersistenceOptions`:**
+
+| Pole | Typ | Predvolené | Popis |
+|---|---|---|---|
+| `key` | `string` | `"react-advanced-odontogram"` | Kľúč v `localStorage`. |
+| `includePlan` | `boolean` | `false` | Uložiť aj plánovací graf (pole `plan` v payloade). |
+| `onError` | `(err: Error) => void` | — | Volané pri akejkoľvek chybe ukladania/parsovania namiesto `console.warn`. |
+
+Poznámky: pokiaľ nie je zavolané `enablePersistence()`, do `localStorage` sa nič nezapisuje ani z neho nečíta; limit veľkosti 4 MB preskočí príliš veľké uloženie (nahlásené cez `onError`/`console.warn`) namiesto vyhodenia výnimky; každá chyba ukladania/JSON — prekročená kvóta, uzamknutý iframe, poškodené alebo nerozpoznané uložené dáta atď. — je zachytená a nahlásená. Tento modul nikdy nevyhadzuje výnimku.
+
 ### 💾 Formát exportu/importu stavu
 Export vytvorí súbor JSON (verzia `2.20`; import tiež akceptuje staršie verzie `1.4` a `2.0` až `2.19` a automaticky ich migruje) obsahujúci:
 
@@ -682,6 +718,17 @@ Okrem vlastného exportu odontogramu Stav JSON / FHIR / PNG / JPG / SVG má **pa
 - Modul odontogramu používa vlastný interný stav (nie React stav) pre výkon a jednoduchosť.
 - Mliečne zuby majú obmedzenú sadu dostupných materiálov (žiadne amalgámové výplne, žiadne endodontické kolíky).
 - Implantátové zuby majú inú sadu možností korunky/abutmentu ako prirodzené zuby.
+
+### 🔒 Bezpečnostné poznámky
+
+- **Pluginy bežia ako dôveryhodný kód.** Návratová hodnota `renderSvg()` pluginu sa vkladá do SVG živého grafu. Tento výstup je pred vložením sanitizovaný knižnicou [DOMPurify](https://github.com/cure53/DOMPurify) (SVG profil plus `svgFilters`) — `<script>`, `<iframe>`, `<object>`, `<embed>` a `<foreignObject>` sú úplne zakázané a úplne škodlivý výstup je zahodený namiesto čiastočného vykreslenia. Toto znižuje dosah kompromitovaného alebo chybného pluginu, no pluginy by sa mali naďalej načítavať iba zo zdrojov, ktorým dôverujete — sanitizácia je poistka, nie náhrada za preverenie.
+- **Content-Security-Policy.** Produkčný build dema vkladá túto politiku cez tag `<meta http-equiv="Content-Security-Policy">` (vývojový server nie je ovplyvnený):
+
+  ```
+  default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'
+  ```
+
+  Hostiteľské aplikácie vkladajúce `OdontogramShell` by si mali nastaviť vlastný CSP zodpovedajúci ich nasadeniu — komponent žiadny nevkladá, keď sa používa ako knižnica.
 
 ### 📖 Ako citovať
 

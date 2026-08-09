@@ -1,7 +1,7 @@
 # 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.3.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.4.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -123,7 +123,10 @@ export default function OdontogramClient() {
 - 🪥 Matériaux d'obturation par surface : amalgame, composite, CVI, temporaire
 - 🏥 Diagnostic pulpaire et traitements endodontiques complets
 - 🩺 Module parodontal complet avec bilan graphique et classification 2017
-- 🔗 Exportation/Importation HL7 FHIR R4 et JSON
+- 🔗 Exportation/Importation HL7 FHIR R4 et JSON — codage dentaire ISO 3950 pour la dentition permanente **et** les dents de lait (codes déciduaux 51-85, importation sans perte) ; les composants de carie avec un score renseigné portent en plus un codage ICDAS (surface primaire non obturée) ou CARS (surface récidivante obturée)
+- 💽 Persistance locale (localStorage) optionnelle (`enablePersistence`/`disablePersistence`/`clearPersistedState`/`isPersistenceEnabled`) — désactivée par défaut ; sauvegarde automatiquement l'état à chaque changement et le restaure au montage suivant, avec une limite de 4 Mo et les erreurs signalées via un callback `onError` (jamais d'exception levée)
 - 🖼️ Exportation d'images PNG / JPG / SVG et rapport PDF
 - 🔢 Numérotation FDI / Universelle / Palmer
 - 🌐 Interface disponible en 12 langues dont le Français (FR)
+- 🔌 Système de plugins SVG personnalisés — la sortie de `renderSvg()` d'un plugin est désinfectée avec DOMPurify (profil SVG) avant insertion dans le schéma ; les plugins restent du code de confiance, ne chargez que des plugins provenant de sources fiables
+- 🛡️ Content-Security-Policy : la build de production de la démo injecte une balise CSP (le serveur de développement n'est pas concerné) — les applications hôtes intégrant le composant doivent définir leur propre CSP
