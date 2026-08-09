@@ -2,7 +2,7 @@
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 
 import type { Bundle, Observation, Patient, OdontogramExportPayload, ToothRecord, FhirExportOptions } from "../fhir/types";
-import { LOCAL_SYSTEM } from "../fhir/codesystems";
+import { LOCAL_SYSTEM, ICDAS_SYSTEM, ICDAS_DISPLAYS } from "../fhir/codesystems";
 import {
   valueConcept, findingConcept, baseObservation, EXAM_CATEGORY,
   PLACEHOLDER_PATIENT_ID, PLACEHOLDER_PATIENT_FULLURL,
@@ -48,7 +48,20 @@ function emitForAxis(subjectRef: string, tooth: string, rec: ToothRecord, axis: 
         if (severity) {
           const surface = String(v).replace("caries-", "");
           const code = severity[surface];
-          if (typeof code === "number") { comp.valueInteger = code; delete comp.valueBoolean; }
+          if (typeof code === "number") {
+            comp.valueInteger = code; delete comp.valueBoolean;
+            // The scoring-system coding rides on the component's code alongside
+            // the surface coding: ICDAS on a primary (unfilled) surface, CARS on
+            // a recurrent (filled) one — same predicate as the engine's own
+            // primary-vs-recurrent render split. Import is unaffected: localCode()
+            // matches the FIRST LOCAL_SYSTEM coding (the surface, index 0).
+            const fsm = (rec as Record<string, unknown>).fillingSurfaceMaterials;
+            const filled = !!fsm && typeof fsm === "object" && surface in (fsm as Record<string, unknown>);
+            const scoring = filled
+              ? { system: LOCAL_SYSTEM, code: `cars-${code}`, display: `CARS score ${code}` }
+              : { system: ICDAS_SYSTEM, code: `ICDAS-${code}`, display: ICDAS_DISPLAYS[code] ?? `ICDAS ${code}` };
+            comp.code = { ...comp.code, coding: [...(comp.code.coding ?? []), scoring] };
+          }
         }
         return comp;
       });

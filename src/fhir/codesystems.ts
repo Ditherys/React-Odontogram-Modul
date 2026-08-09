@@ -39,6 +39,17 @@ export const ICD10_SYSTEM = "http://hl7.org/fhir/sid/icd-10";
  */
 export const ICDAS_SYSTEM = "https://www.icdas.org";
 
+/** Standard ICDAS II code descriptions, keyed by the 0-6 score. */
+export const ICDAS_DISPLAYS: Record<number, string> = {
+  0: "ICDAS 0 — Sound tooth surface",
+  1: "ICDAS 1 — First visual change in enamel",
+  2: "ICDAS 2 — Distinct visual change in enamel",
+  3: "ICDAS 3 — Localized enamel breakdown",
+  4: "ICDAS 4 — Underlying dark shadow from dentine",
+  5: "ICDAS 5 — Distinct cavity with visible dentine",
+  6: "ICDAS 6 — Extensive distinct cavity with visible dentine",
+};
+
 /** A single coded value: required local code, optional verified SNOMED code. */
 export interface CodeEntry {
   code: string;
