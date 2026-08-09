@@ -584,7 +584,7 @@ npm run docs           # 在 docs/ 目录生成 TypeDoc 文档
 
 ### 💾 状态持久化（localStorage）
 
-为里程图案例状态提供的可选 `localStorage` 持久化功能（`src/persistence.ts`，从包入口重新导出）。默认关闭——除非宿主应用显式启用，否则不影响现有集成；应在里程图挂载**之后**调用（恢复操作会通过 `importStatus()` 重绘实时 DOM）：
+为牙位图案例状态提供的可选 `localStorage` 持久化功能（`src/persistence.ts`，从包入口重新导出）。默认关闭——除非宿主应用显式启用，否则不影响现有集成；应在牙位图挂载**之后**调用（恢复操作会通过 `importStatus()` 重绘实时 DOM）：
 
 ```ts
 import {
@@ -601,7 +601,7 @@ enablePersistence({
 
 | 函数 | 说明 |
 |---|---|
-| `enablePersistence(options?)` | 通过 `importStatus()` 恢复此前保存的案例（如果存在），随后在每次状态变化时将状态图表保存到 `localStorage`。幂等——再次调用会替换之前的订阅/选项。**必须在里程图挂载之后调用。** |
+| `enablePersistence(options?)` | 通过 `importStatus()` 恢复此前保存的案例（如果存在），随后在每次状态变化时将状态图表保存到 `localStorage`。幂等——再次调用会替换之前的订阅/选项。**必须在牙位图挂载之后调用。** |
 | `disablePersistence()` | 停止持久化；已保存的条目保留不变。 |
 | `clearPersistedState()` | 移除当前（或默认）键对应的已保存条目。 |
 | `isPersistenceEnabled()` | 当状态变化订阅处于激活状态时为 `true`。 |
