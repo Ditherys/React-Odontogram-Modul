@@ -2961,7 +2961,10 @@ function applyPluginOverlays(toothNo: number){
       // innerHTML sink. An entirely-malicious fragment sanitizes to "" and the
       // overlay is skipped rather than inserted empty.
       const cleanSvg = sanitizePluginSvg(svgContent);
-      if(!cleanSvg) continue;
+      if(!cleanSvg){
+        console.warn(`odontogram plugin "${plugin.id}": renderSvg() output was fully removed by sanitization — overlay skipped`);
+        continue;
+      }
 
       const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
       g.setAttribute("data-plugin", plugin.id);

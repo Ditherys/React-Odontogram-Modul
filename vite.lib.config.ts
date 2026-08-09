@@ -5,9 +5,12 @@
 //
 // Kept SEPARATE from `vite.config.ts` (the demo/GitHub-Pages app build) so
 // `npm run build` keeps emitting the demo site unchanged, while
-// `npm run build:lib` emits the consumable library. React and every runtime
-// dependency are externalized so the bundle ships only this component's own
-// code + inlined SVG/CSS — no second copy of React, no bundled jspdf.
+// `npm run build:lib` emits the consumable library. React is a peer and
+// jspdf stays external (lazy-loaded via dynamic import only when a consumer
+// exercises PDF export) — no second copy of React, no bundled jspdf. dompurify
+// is DELIBERATELY bundled (not externalized) so every consumer gets the SVG
+// sanitizer out of the box with zero extra installs, since sanitization runs
+// unconditionally on every render, not behind an opt-in feature.
 // vite-plugin-dts (rollupTypes) emits a single bundled dist/index.d.ts.
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
