@@ -35,4 +35,35 @@ describe("sanitizePluginSvg", () => {
   it("returns an empty string for wholly malicious input", () => {
     expect(sanitizePluginSvg("<script>1<" + "/script>")).toBe("");
   });
+
+  it("discards a </svg><svg ...> breakout attempt instead of leaking it into the output", () => {
+    // The parser treats the embedded </svg> as closing OUR wrapper root, so
+    // the attacker's <svg onload=...> becomes a sibling of the wrapper, not
+    // a child of it. A regex-based unwrap would strip only the first <svg…>
+    // and the last </svg> of the whole sanitized string and let this sibling
+    // leak through; the structural (DOM-walk) unwrap must exclude it
+    // entirely.
+    const out = sanitizePluginSvg('<circle/></svg><svg onload="alert(1)">');
+    expect(out).not.toContain("<svg");
+    expect(out).not.toContain("</svg>");
+    expect(out).not.toContain("onload");
+    expect(out).not.toContain("alert");
+    expect(out).toContain("<circle");
+  });
+
+  it("preserves a plugin-supplied full <svg>...</svg> root and its children", () => {
+    const out = sanitizePluginSvg('<svg><rect width="5" height="5" fill="blue" /></svg>');
+    expect(out).toContain("<svg");
+    expect(out).toContain("<rect");
+    expect(out).toContain('width="5"');
+    expect(out).toContain('fill="blue"');
+  });
+
+  it("preserves a legitimate nested <svg> inside a fragment", () => {
+    const out = sanitizePluginSvg('<g><svg><rect width="3" height="3" /></svg></g>');
+    expect(out).toContain("<g");
+    expect(out).toContain("<svg");
+    expect(out).toContain("<rect");
+    expect(out).toContain('width="3"');
+  });
 });
