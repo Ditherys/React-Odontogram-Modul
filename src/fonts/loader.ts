@@ -1,13 +1,13 @@
 // Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 //
-// Round 2 (phase 2): language-aware PDF font loader. Picks the right embedded
-// Unicode font for the active UI language and returns a descriptor the export
-// path uses: the jsPDF family name, a registration fn, and a per-string text
-// transform (Arabic shaping; identity otherwise). Each font module is loaded via
-// a DYNAMIC import so only the font for the language actually being exported is
-// pulled in — the fonts stay code-split out of the main bundle (they are still
-// bundled in the package = fully offline, never fetched from the network).
+// Language-aware PDF font loader. Picks the right embedded Unicode font for the
+// active UI language and returns a descriptor the export path uses: the jsPDF
+// family name, a registration fn, and a per-string text transform (Arabic
+// shaping; identity otherwise). Each font module is loaded via a dynamic import
+// so only the font for the language actually being exported is pulled in — the
+// fonts stay code-split out of the main bundle (they are still bundled in the
+// package = fully offline, never fetched from the network).
 import type { FontRegistrable } from "./roboto";
 import { shapeArabic } from "./arabicShaper";
 

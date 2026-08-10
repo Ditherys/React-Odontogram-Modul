@@ -14,7 +14,7 @@ import { toothBodySiteCode } from "../fhir/iso3950";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
 
-/** Emit zero or more Observations for one tooth field, per its axis (ports emitForField). */
+/** Emit zero or more Observations for one tooth field, per its axis. */
 function emitForAxis(subjectRef: string, tooth: string, rec: ToothRecord, axis: ClinicalAxis): Observation[] {
   const raw = (rec as Record<string, unknown>)[axis.field];
   const finding = () => findingConcept(axis.finding.local, axis.finding.display);
@@ -36,10 +36,10 @@ function emitForAxis(subjectRef: string, tooth: string, rec: ToothRecord, axis: 
       const arr = Array.isArray(raw) ? (raw as unknown[]).filter((v): v is string => typeof v === "string") : [];
       if (arr.length === 0) return [];
       const obs = baseObservation(subjectRef, tooth, finding());
-      // SP6 Task 1: the unified per-surface `cariesSeverity` (0..6) rides on each
-      // caries component as `valueInteger`, exactly as the retired `cariesDepths`
-      // did. Primary vs recurrent is distinguished by the filling coincidence
-      // (the separate restoration Observation), not by a distinct finding code.
+      // The unified per-surface `cariesSeverity` (0..6) rides on each caries
+      // component as `valueInteger`. Primary vs recurrent is distinguished by the
+      // filling coincidence (the separate restoration Observation), not by a
+      // distinct finding code.
       const severity = axis.field === "caries"
         ? ((rec as Record<string, unknown>).cariesSeverity as Record<string, number> | undefined)
         : undefined;
@@ -94,7 +94,7 @@ function emitForAxis(subjectRef: string, tooth: string, rec: ToothRecord, axis: 
   }
 }
 
-/** Registry-driven FHIR bundle build. Byte-identical to the legacy buildFhirBundle. */
+/** Registry-driven FHIR bundle build from an export payload. */
 export function buildFhirBundleFromRegistry(payload: OdontogramExportPayload, options: FhirExportOptions = {}): Bundle {
   const teeth = payload && typeof payload === "object" && payload.teeth && typeof payload.teeth === "object" ? payload.teeth : {};
   const subjectRef = options.subject ?? PLACEHOLDER_PATIENT_FULLURL;
@@ -120,10 +120,10 @@ export function buildFhirBundleFromRegistry(payload: OdontogramExportPayload, op
     const rec = (recRaw && typeof recRaw === "object" ? recRaw : {}) as ToothRecord;
     const siteTooth = toothBodySiteCode(tooth, rec);
     for (const axis of AXES) for (const obs of emitForAxis(subjectRef, siteTooth, rec, axis)) entries.push({ resource: obs });
-    // SP6 Task 1: the unified caries severity rides on the `caries` set's
-    // components (see emitForAxis above), so the SP5 standalone `secondary-caries`
-    // Observation is retired. `radiographicDepth` remains a separate per-surface
-    // scalar map with its own finding code (unchanged).
+    // The unified caries severity rides on the `caries` set's components (see
+    // emitForAxis above); there is no standalone `secondary-caries` Observation.
+    // `radiographicDepth` remains a separate per-surface scalar map with its own
+    // finding code.
     const radiographicDepth = rec.radiographicDepth;
     if (radiographicDepth && typeof radiographicDepth === "object") {
       const comps = Object.entries(radiographicDepth).filter((e): e is [string, string] => typeof e[1] === "string");

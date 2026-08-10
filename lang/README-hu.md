@@ -183,7 +183,7 @@ Vagy töltsd be egy kizárólag kliensoldali dinamikus importtal: `dynamic(() =>
 - ⏳ Folyamatjelző overlay a képexport alatt
 - 🎓 12 lépéses interaktív bemutató túra
 - 🔢 Három számozási rendszer (FDI, Universal, Palmer)
-- 🌐 I18n (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR) választható nyelvvel (190+ fordítási kulcs nyelvenként)
+- 🌐 I18n — 12 UI nyelv (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR) nyelvváltóval; az arab a felületet jobbról balra rendereli, a fog-/parodontális diagramokat balról jobbra rögzítve (gépi fordítás, anyanyelvi lektorálás az AR/ZH/FR nyelveknél még várat magára)
 - 🌗 Sötét mód támogatás váltógombbal (önálló vagy szülő alkalmazás által vezérelt)
 - 🎨 Egyedi téma konfiguráció (`themeConfig` prop) CSS custom property-kkel (`--odon-*`)
 - 📱 Mobil érintéses UX: koppintásos nagyítós felugró, hosszú nyomás helyi menü, csípéses zoom, WCAG 44px érintési célpontok, fogív navigáció
@@ -204,7 +204,7 @@ Vagy töltsd be egy kizárólag kliensoldali dinamikus importtal: `dynamic(() =>
 - 🩺 Parodontális státuszrögzítés: fogankénti hat standard ponton mért **tasakmélység (probing depth)**, **ínyszél (gingival margin)**, **véreztethetőség szondázásra (bleeding on probing)** (+ suppuráció), levezetett **klinikai tapadásvesztéssel (CAL = PD + ínyszél)**, recesszióval és teljes szájüregi **%BOP**-pal. Egy **grafikus, teljes szájüregre kiterjedő parodontális diagram** — minden fogsor **két külön, bukkális/palatinális(linguális) SVG-ként** rajzolódik (a meglévő fog-grafikát felhasználva, mindkét nézetben egységes korona-a-sáv-felé orientációval; **implantátum grafikával** az implantátum fogakhoz), piros **CEJ-vonallal**, egy **számozott milliméteres segédráccsal**, és egy, a fogak felett húzódó **ínyszél/tasakmélység görbével**, amelyet egy **központi parodontális index-sáv** (felirat: `▲ Buccal … Lingual/Palatal ▼`) oszt ketté, és amely a fogankénti közös indexeket hordozza — a **Miller-osztály** egészen felül, a **Plakk/PI/GI/mPI/mBI** pedig **anatómiai rombusz csempeként** jelenik meg foganként (bukkális csúcs felül, linguális csúcs alul, a középső sor meziális/disztális értékei oldalanként felcserélve, hogy a meziális mindig a fogív középvonala felé mutasson); a számsorok (teljes index-nevekkel — PD/GM/CAL/BOP + mobilitás + furkáció — nagyobb, érintésbarátabb cellákban) oszlopokba rendezve, összegzéssel (átlag PD/CAL, %BOP, PI%), **billentyűzetes automatikus továbblépéssel** történő rögzítéssel; a diagram **dinamikusan a rendelkezésre álló szélességhez igazodik**, bármilyen ablakméretnél reszponzív. Egy `Odontogram | Periodontal Status` **nézetváltóként** jelenik meg, amelynek jobb oldali panelje — amíg ez a nézet aktív — egy **parodontális kontextus oldalsávvá** alakul (páciens adatok, a 2017-es klasszifikáció és a teljes szájüreg összegzés) (egy Beállítás opció visszaváltja az egész megjelenítést **felugró ablakra**), és továbbra is **önállóan meghívható komponens** (`PerioChart` export), így egy befogadó alkalmazás a parodontális diagramot az odontogramtól függetlenül is előhívhatja. Fogankénti **FHIR** export a LOINC parodontális panelen keresztül (`74029-0`; PD `32910-2`, recesszió `32911-0`, CAL `32912-8`)
 - 🅿️ Javasolt (proposed) stílus: Terv módban azok a leletek, amelyeket a terv **hozzáad** az aktuális státuszhoz képest (tervezett korona, extrakció, ortodonciai elmozdulás, protetika, …), egy jellegzetes **szaggatott, színezett "javasolt" körvonallal** jelennek meg, hogy a terv szándékként és ne tényként olvasható — egy "szaggatott = javasolt" jelmagyarázattal a diagram kártyán. A Státusz módú megjelenítés byte-azonos marad; a kezelés csak a tervben létezik, és visszaváltáskor teljesen visszaáll
 - 🚦 Terv módú szűrés (gating): a Terv diagram csak azt mutatja, amit a fogorvos *tenni* tud — az alap választó csak Hiányzó / Maradó / Implantátum opciókat kínál, és a csak-státusz leletek (caries, fogkopás, elszíneződés, valamint a teljes parodontális blokk — mobilitás, hat pontos szondázási rács, gyulladásos/parodontális módosítók, fogkő, peri-implantáris státusz) rejtve vannak; a Pulpa/Endo kezelőelem megtartja az endodonciai **kezelést** (gyökértömés / csap / rezekció / parapulpális csap), miközben elrejti a pulpa/apikális **diagnózist** és a gyökérreszorpciót. A pótlás, protetika, ortodoncia, korona-szükséges/csere és a fogeltávolítási terv továbbra is tervezhető marad
-- 🧪 1746 automatizált teszt sikeres (1 további teszt kihagyva) (Vitest) 164 tesztfájlban (165 összesen): számozás, fordítások, presetek, i18n, App komponens, téma, érintés, pluginek, akadálymentesítés és klinikai tengelyek/diagnózisok paritása lefedésére
+- 🧪 Kiterjedt automatizált Vitest tesztcsomag, amely lefedi a számozást, fordításokat, preseteket, i18n-t, App komponenst, témát, érintést, plugineket, akadálymentesítést és a klinikai tengelyek/diagnózisok paritását
 - 📖 TypeDoc API dokumentáció JSDoc kommentekkel minden publikus exporton (`npm run docs`)
 
 ### 📦 Modulok
@@ -212,7 +212,7 @@ Vagy töltsd be egy kizárólag kliensoldali dinamikus importtal: `dynamic(() =>
 - 🎛️ Vezérlők és státusz panel
 - 🎨 SVG rétegelő motor és fogsablonok
 - 🔢 Fogszámozás és címke generálás (FDI/Universal/Palmer)
-- 🌐 Lokalizáció (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR)
+- 🌐 Lokalizáció — 12 UI nyelv (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR), beleértve az arabot (RTL)
 - 💾 Státusz export/import
 - 📋 Státusz extrák: előre definiált restaurációs sablonok
 - 🎨 Téma konfiguráció: testreszabható színpaletta `--odon-*` CSS property-kkel
@@ -228,7 +228,7 @@ Vagy töltsd be egy kizárólag kliensoldali dinamikus importtal: `dynamic(() =>
 ### 🛠️ UI vezérlők
 
 **🔝 Fejléc sáv:**
-- Nyelvválasztó (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR legördülő)
+- Nyelvválasztó (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR legördülő)
 - Sötét mód váltógomb (nap/hold ikon, világos és sötét téma között vált)
 - Számozási rendszer választó (FDI/Universal/Palmer legördülő)
 - Státusz exportálás / Státusz importálás gombok
@@ -473,7 +473,7 @@ setPluginState(11, "implant-brand", "Straumann");
 
 ### 🧪 Tesztelés
 ```bash
-npm run test           # Összes 1704 teszt futtatása (1 további teszt kihagyva)
+npm run test           # A teljes Vitest tesztcsomag futtatása
 npm run test:watch     # Figyelési mód
 npm run test:coverage  # Lefedettségi jelentés
 ```
@@ -489,7 +489,7 @@ npm run docs           # TypeDoc dokumentáció generálása a docs/ mappába
 
 | Prop | Típus | Alapértelmezett | Leírás |
 |---|---|---|---|
-| `language` | `string` | `'hu'` | UI nyelv (hu/en/de/es/it/sk/pl/ru/pt-br) |
+| `language` | `string` | `'hu'` | UI nyelv (hu/en/de/es/it/sk/pl/ru/pt-br/ar/zh/fr) |
 | `onLanguageChange` | `(lang) => void` | — | Callback nyelvváltáskor |
 | `numberingSystem` | `string` | `'FDI'` | Számozási rendszer (FDI/Universal/Palmer) |
 | `onNumberingChange` | `(system) => void` | — | Callback számozásváltáskor |
@@ -695,7 +695,7 @@ Az odontogram saját Státusz JSON / FHIR / PNG / JPG / SVG exportján túl a **
 - `src/plugin.ts` - `OdontogramPlugin` típus, `PluginLayer`, `getQuadrant()`, `LAYER_Z` z-index prioritások
 - `src/theme.ts` - `OdontogramThemeConfig` típus és `applyThemeConfig()` segédfüggvény
 - `src/status_extras.ts` - 34 előre definiált restaurációs sablon (hidak, protézisek, bár konstrukciók)
-- `src/i18n/` - fordítások (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR) és i18n hook
+- `src/i18n/` - fordítások (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR) és i18n hook
 - `src/utils/numbering.ts` - FDI, Universal, Palmer számozási konverzió
 - `src/registry/` - deklaratív klinikai-tengely registry: FHIR mezőmegfeleltetések, SVG-törlési-halmaz/logikai-jelző aktiválás, pótlás típus×anyag mátrix, UI opciólisták (egyetlen forrás, amely generálja az export/import, FHIR és a választó UI-t)
 - `src/fhir/` - HL7 FHIR R4 export/import: `toFhir.ts`/`fromFhir.ts`, kódrendszerek, mezőmegfeleltetések, primitívek
@@ -704,7 +704,7 @@ Az odontogram saját Státusz JSON / FHIR / PNG / JPG / SVG exportján túl a **
 - `src/perioExport.ts` - `buildPerioSvg()`: a teljes parodontális diagram egyetlen önálló vektoros SVG-ként
 - `src/perioPdf.ts` - az `exportPdf()` tiszta jsPDF jelentés-összeállítója (`assemblePdf`)
 - `src/ExportOptionsModal.tsx` - a "PDF report…" export-beállítási ablak
-- `src/__tests__/` + `src/registry/__tests__/` - Vitest tesztcsomag (1704 teszt sikeres, 1 kihagyva, 163 fájlban)
+- `src/__tests__/` + `src/registry/__tests__/` - kiterjedt automatizált Vitest tesztcsomag
 - `src/assets/teeth-svgs/` - SVG fogsablonok (6 fájl: metszők, szemfogak, kis őrlők, nagy őrlők + okkluzális nézetek)
 - `src/assets/icon-svgs/` - eszköztár ikon SVG-k (5 fájl)
 
@@ -740,14 +740,14 @@ Az odontogram saját Státusz JSON / FHIR / PNG / JPG / SVG exportján túl a **
 
 Ha ezt a modult használod a munkádban, kérlek hivatkozz rá.
 
-**Ez a verzió (v1.49.0):**
-> Dul, Z. (2026). *React Advanced Odontogram* (v1.49.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
+**Ez a verzió (v2.4.0):**
+> Dul, Z. (2026). *React Advanced Odontogram* (v2.4.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **Összes verzió (koncepció DOI):** https://doi.org/10.5281/zenodo.21156787
 
 > A fenti, összes verzióra vonatkozó koncepció DOI mindig a legutóbb archivált
 > kiadásra mutat; egy verzió-specifikus DOI minden kiadáshoz akkor jön létre,
-> amikor azt archiválják a Zenodón. Amíg a v1.49.0 nincs archiválva, a koncepció
+> amikor azt archiválják a Zenodón. Amíg a v2.4.0 nincs archiválva, a koncepció
 > DOI-val hivatkozz rá.
 
 A géppel olvasható hivatkozási metaadatok a [`CITATION.cff`](../CITATION.cff) fájlban találhatók.

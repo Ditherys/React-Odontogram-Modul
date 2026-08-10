@@ -35,16 +35,16 @@ type TFn = (key: string, params?: Record<string, string | number>) => string;
  * accessor — the modal never owns behavior, it only surfaces the controls.
  * New settings are added here and wired into a tab's `render()`.
  */
-/** Round 2 (Stage 3): on-SCREEN odontogram layout controls (distinct from the
- *  PDF/export equivalents). Spacing = inter-tooth gap in the live grid; number
- *  size = the tooth-number font size. Session-only, no payload/render-parity
- *  impact (pure CSS via data-attributes on the grid). */
+/** On-screen odontogram layout controls (distinct from the PDF/export
+ *  equivalents). Spacing = inter-tooth gap in the live grid; number size = the
+ *  tooth-number font size. Session-only, pure CSS via data-attributes on the
+ *  grid. */
 export type ScreenToothSpacing = "wide" | "normal" | "close";
 export type ScreenToothNumberSize = "small" | "normal" | "xlarge";
-/** Round 2 (Stage 5): selection-ring border style (the current default is dashed). */
+/** Selection-ring border style (default dashed). */
 export type SelectionBorderStyle = "solid" | "dashed" | "dotted";
-/** Round 2 (Stage 6): Fillings card complexity — "complex" = per-surface grid
- *  (default), "simple" = one filled/not-filled toggle for the whole tooth. */
+/** Fillings card complexity — "complex" = per-surface grid (default), "simple"
+ *  = one filled/not-filled toggle for the whole tooth. */
 export type FillingComplexity = "complex" | "simple";
 /** The four filling materials whose availability is configurable. */
 export const FILLING_MATERIAL_KEYS = ["amalgam", "composite", "gic", "temporary"] as const;
@@ -58,9 +58,9 @@ export type SettingsState = {
   onToggleDark: () => void;
   toothInfo: boolean;
   onToothInfo: (value: boolean) => void;
-  // Round 2 (Stage 2): per-format export availability + per-source import
-  // availability. When a format/source is off, its export/import menu item is
-  // hidden; when PDF is off, the Export Settings tab is also disabled.
+  // Per-format export availability + per-source import availability. When a
+  // format/source is off, its export/import menu item is hidden; when PDF is
+  // off, the Export Settings tab is also disabled.
   exportPng: boolean;
   onExportPng: (value: boolean) => void;
   exportJpg: boolean;
@@ -83,7 +83,7 @@ export type SettingsState = {
   onRootCariesMode: (value: RootCariesMode) => void;
   radiographicDepthMode: RadiographicDepthMode;
   onRadiographicDepthMode: (value: RadiographicDepthMode) => void;
-  // Round 2 (Stage 5): adjustable tooth-selection colour + border style.
+  // Adjustable tooth-selection colour + border style.
   selectionColor: string;
   onSelectionColor: (value: string) => void;
   selectionBorderStyle: SelectionBorderStyle;
@@ -98,7 +98,7 @@ export type SettingsState = {
   onSurfaceNotation: (value: SurfaceNotation) => void;
   notes: boolean;
   onNotes: (value: boolean) => void;
-  // Round 2 (Stage 3): Odontogram-tab on-screen controls.
+  // Odontogram-tab on-screen controls.
   planModeAvailable: boolean;
   onPlanModeAvailable: (value: boolean) => void;
   screenToothSpacing: ScreenToothSpacing;
@@ -109,8 +109,8 @@ export type SettingsState = {
   onShowStatusCard: (value: boolean) => void;
   showOrthoCard: boolean;
   onShowOrthoCard: (value: boolean) => void;
-  // Round 2 (Stage 4): Periodontal Chart availability. When off, the perio
-  // entry points are hidden and the tab's other perio settings are disabled.
+  // Periodontal Chart availability. When off, the perio entry points are
+  // hidden and the tab's other perio settings are disabled.
   perioChartAvailable: boolean;
   onPerioChartAvailable: (value: boolean) => void;
   perioViewMode: PerioViewMode;
@@ -119,7 +119,7 @@ export type SettingsState = {
   onPerioRowVisibility: (id: PerioRowId, visible: boolean) => void;
   perioIndexNameMode: PerioIndexNameMode;
   onPerioIndexNameMode: (value: PerioIndexNameMode) => void;
-  // Round 2 (Stage 6): Fillings tab config.
+  // Fillings tab config.
   fillingDefectEnabled: boolean;
   onFillingDefectEnabled: (value: boolean) => void;
   fillingComplexity: FillingComplexity;
@@ -1041,13 +1041,13 @@ export default function SettingsModal({
     [onClose],
   );
 
-  // FIX 2 (a11y): APG-tabs keyboard support on the tablist. With a roving
-  // tabindex only the active tab is Tab-reachable, so without this handler the
-  // other tabs are mouse-only. Arrow Left/Right (and Up/Down) move between tabs
-  // wrapping; Home → first, End → last. Activation is automatic (moving focus
-  // also selects), matching the existing click-to-activate model. `.focus()`
-  // works regardless of the roving `tabIndex`, so the just-selected tab (whose
-  // DOM node already exists — same stable id) is focused synchronously.
+  // APG-tabs keyboard support on the tablist. With a roving tabindex only the
+  // active tab is Tab-reachable, so without this handler the other tabs are
+  // mouse-only. Arrow Left/Right (and Up/Down) move between tabs wrapping;
+  // Home → first, End → last. Activation is automatic (moving focus also
+  // selects), matching the click-to-activate model. `.focus()` works regardless
+  // of the roving `tabIndex`, so the just-selected tab (whose DOM node already
+  // exists — same stable id) is focused synchronously.
   const onTabListKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       const nav = ["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown", "Home", "End"];
@@ -1075,8 +1075,8 @@ export default function SettingsModal({
   if (!open) return null;
 
   const resolvedTab = SETTINGS_TABS.find((tab) => tab.id === activeTab) ?? SETTINGS_TABS[0];
-  // Round 2 (Stage 2): never show the Export Settings panel when PDF export is
-  // off (the tab is disabled) — fall back to the first tab.
+  // Never show the Export Settings panel when PDF export is off (the tab is
+  // disabled) — fall back to the first tab.
   const current = resolvedTab.id === "export" && settings.exportPdf === false
     ? SETTINGS_TABS[0]
     : resolvedTab;
@@ -1132,8 +1132,8 @@ export default function SettingsModal({
             onKeyDown={onTabListKeyDown}
           >
             {SETTINGS_TABS.map((tab) => {
-              // Round 2 (Stage 2): the Export Settings tab is disabled when PDF
-              // export is turned off in General — its settings would have no effect.
+              // The Export Settings tab is disabled when PDF export is turned
+              // off in General — its settings would have no effect.
               const tabDisabled = tab.id === "export" && settings.exportPdf === false;
               return (
               <button

@@ -1,7 +1,7 @@
 // Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 //
-// Round 2 (phase 2): Arabic text shaping for the PDF report. jsPDF applies NO
+// Arabic text shaping for the PDF report. jsPDF applies no
 // OpenType layout (GSUB/GPOS), so it draws Arabic base letters in their
 // disconnected ISOLATED forms, left-to-right — unreadable. `shapeArabic()`
 // pre-processes a string into what jsPDF must be handed directly:

@@ -1,12 +1,12 @@
 // Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 //
-// Round 2 (phase 2): bundled Arabic font for the PDF report (ar locale). A
-// SUBSET of Noto Naskh Arabic (OFL) — base Arabic block + Arabic Presentation
-// Forms-A/-B + ASCII/Latin-1 + punctuation. jsPDF applies NO OpenType shaping,
-// so Arabic text must be pre-shaped to its contextual presentation forms and
-// RTL-reordered BEFORE `doc.text` (see `shapeArabic` in ./arabicShaper) — this
-// font carries the Presentation Forms glyphs that pre-shaping targets.
+// Bundled Arabic font for the PDF report (ar locale). A subset of Noto Naskh
+// Arabic (OFL) — base Arabic block + Arabic Presentation Forms-A/-B +
+// ASCII/Latin-1 + punctuation. jsPDF applies no OpenType shaping, so Arabic text
+// must be pre-shaped to its contextual presentation forms and RTL-reordered
+// before `doc.text` (see `shapeArabic` in ./arabicShaper) — this font carries
+// the Presentation Forms glyphs that pre-shaping targets.
 //
 // Lazy-loaded (dynamic import) by the PDF export path, so it never enters the
 // main bundle or a non-Arabic export. Regular + Bold; italic/bold-italic map to

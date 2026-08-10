@@ -183,7 +183,7 @@ Ewentualnie załaduj go za pomocą dynamicznego importu tylko po stronie klienta
 - ⏳ Nakładka postępu podczas eksportu obrazu
 - 🎓 12-krokowy interaktywny samouczek wprowadzający
 - 🔢 Trzy systemy numeracji (FDI, Universal, Palmer)
-- 🌐 I18n (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR) z przełącznikiem języka (190+ kluczy tłumaczeń na język)
+- 🌐 I18n — 12 języków interfejsu (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR) z przełącznikiem języka; arabski wyświetla interfejs od prawej do lewej, a wykresy zębowe/periodontologiczne pozostają od lewej do prawej (tłumaczenie maszynowe, weryfikacja przez rodzimego użytkownika dla AR/ZH/FR w toku)
 - 🌗 Obsługa trybu ciemnego z przyciskiem przełączania (samodzielny lub kontrolowany przez aplikację nadrzędną)
 - 🎨 Konfiguracja niestandardowego motywu (właściwość `themeConfig`) z właściwościami niestandardowymi CSS (`--odon-*`)
 - 📱 Mobilny interfejs dotykowy: wyskakujące okno powiększenia przy dotknięciu, menu kontekstowe przy długim przytrzymaniu, powiększanie szczypnięciem, cele dotykowe WCAG 44px, nawigacja po łukach
@@ -204,7 +204,7 @@ Ewentualnie załaduj go za pomocą dynamicznego importu tylko po stronie klienta
 - 🩺 Dokumentowanie periodontologiczne: **głębokość sondowania**, **brzeg dziąsłowy**, **krwawienie przy sondowaniu** (+ ropienie) na miejsce, w sześciu standardowych miejscach na ząb, z pochodnym **klinicznym poziomem przyczepu (CAL = PD + brzeg dziąsłowy)**, recesją i **%BOP** dla całej jamy ustnej. **Graficzny odontogram periodontalny całej jamy ustnej** — każdy łuk rysowany jako **dwa osobne SVG, policzkowy i podniebienny/językowy** (wykorzystujące grafikę zębów z jednolitą orientacją korony w stronę pasma na obu aspektach; **grafika implantu** dla zębów z implantem) z czerwoną **linią CEJ**, **numerowaną siatką milimetrową** i **krzywą brzegu dziąsłowego/głębokości kieszonki** nad zębami, rozdzieloną przez **centralne pasmo indeksów periodontalnych** (oznaczone `▲ Buccal … Lingual/Palatal ▼`), które grupuje wspólne indeksy na ząb — **klasa Millera** na samej górze, a **Płytka/PI/GI/mPI/mBI** renderowane jako **anatomiczny romboidalny kafelek** na ząb (wierzchołek policzkowy u góry, wierzchołek językowy u dołu, mezjalny/dystalny w środkowym rzędzie zamienione stronami tak, aby mezjalny zawsze wskazywał w stronę linii środkowej łuku); wiersze liczbowe (pełne nazwy indeksów — PD/GM/CAL/BOP + ruchomość + furkacja — w większych, bardziej dotykowych komórkach) wyrównane w kolumnach oraz podsumowanie (średnie PD/CAL, %BOP, %PI), z wprowadzaniem danych przez **automatyczne przechodzenie klawiaturą**; wykres **dynamicznie skaluje się, aby wypełnić dostępną szerokość**, responsywny przy dowolnym rozmiarze okna. Prezentowany jako **przełącznik widoku** `Odontogram | Periodontal Status`, którego prawy panel jest przekształcany w **pasek boczny kontekstu periodontalnego** (dane pacjenta, klasyfikacja z 2017 r. oraz podsumowanie całej jamy ustnej), gdy ten widok jest aktywny (opcja w Ustawieniach przełącza całą prezentację z powrotem na **okno wyskakujące**), a nadal pozostaje **komponentem wywoływanym osobno** (eksport `PerioChart`), dzięki czemu aplikacja hostująca może wywołać odontogram periodontalny niezależnie od podstawowego odontogramu. Eksport **FHIR** na miejsce za pomocą panelu periodontalnego LOINC (`74029-0`; PD `32910-2`, recesja `32911-0`, CAL `32912-8`)
 - 🅿️ Stylizacja propozycji: w trybie Plan wyniki, które plan **dodaje** względem bieżącego statusu (planowana korona, ekstrakcja, ruch ortodontyczny, protetyka, …) są renderowane z wyraźnym **przerywanym, zabarwionym konturem „propozycji”**, dzięki czemu plan czyta się jako zamiar, a nie fakt — z legendą „przerywana linia = propozycja” na karcie wykresu. Renderowanie w trybie Status jest identyczne co do bajtu; leczenie dotyczy wyłącznie planu i jest w pełni resetowane przy powrocie do statusu
 - 🚦 Blokowanie trybu Plan: wykres Planu pokazuje tylko to, co dentysta może *zrobić* — podstawowy selektor oferuje wyłącznie Brak / Stały / Implant, a wyniki dotyczące wyłącznie statusu (próchnica, starcie zęba, przebarwienie oraz cały blok periodontologiczny — ruchomość, sześciopunktowa siatka sondowania, modyfikatory zapalenia/przyzębia, kamień nazębny, stan okołowszczepowy) są ukryte; kontrolka miazgi/endo zachowuje endodontyczne **leczenie** (leczenie kanałowe / wkład / resekcja endodontyczna / wkład parapulpalny), ukrywając jednocześnie **diagnozę** miazgi/okołowierzchołkową oraz resorpcję korzenia. Odbudowa, protetyka, ortodoncja, potrzeba/wymiana korony oraz plan ekstrakcji pozostają możliwe do zaplanowania
-- 🧪 1746 testów automatycznych zaliczonych (1 dodatkowy test pominięty) (Vitest) w 164 plikach testowych (165 łącznie) obejmujących numerację, tłumaczenia, presety, i18n, komponent App, motyw, dotyk, wtyczki, dostępność oraz parytet osi klinicznych/diagnostycznych
+- 🧪 Obszerny zautomatyzowany zestaw testów Vitest obejmujący numerację, tłumaczenia, presety, i18n, komponent App, motyw, dotyk, wtyczki, dostępność oraz parytet osi klinicznych/diagnostycznych
 - 📖 Dokumentacja API TypeDoc z komentarzami JSDoc dla wszystkich publicznych eksportów (`npm run docs`)
 
 ### 📦 Moduły
@@ -212,7 +212,7 @@ Ewentualnie załaduj go za pomocą dynamicznego importu tylko po stronie klienta
 - 🎛️ Panel sterowania i statusu
 - 🎨 Silnik warstwowania SVG i szablony
 - 🔢 Numeracja zębów i mapowanie etykiet (FDI/Universal/Palmer)
-- 🌐 Lokalizacja (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR)
+- 🌐 Lokalizacja — 12 języków interfejsu (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR), w tym arabski (RTL)
 - 💾 Eksport/import statusu
 - 📋 Dodatki statusu: predefiniowane szablony uzupełnień
 - 🎨 Konfiguracja motywu: konfigurowalna paleta kolorów za pomocą właściwości CSS `--odon-*`
@@ -228,7 +228,7 @@ Ewentualnie załaduj go za pomocą dynamicznego importu tylko po stronie klienta
 ### 🛠️ Kontrolki interfejsu
 
 **🔝 Pasek górny:**
-- Przełącznik języka (lista rozwijana HU/EN/DE/ES/IT/SK/PL/RU/PT-BR)
+- Przełącznik języka (lista rozwijana HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR)
 - Przycisk przełączania trybu ciemnego (ikona słońca/księżyca, przełącza między jasnym i ciemnym motywem)
 - Przełącznik systemu numeracji (lista rozwijana FDI/Universal/Palmer)
 - Przyciski Eksportuj status / Importuj status
@@ -473,7 +473,7 @@ setPluginState(11, "implant-brand", "Straumann");
 
 ### 🧪 Testowanie
 ```bash
-npm run test           # Uruchom wszystkie 1704 testy (1 dodatkowy test pominięty)
+npm run test           # Uruchom pełny zestaw testów Vitest
 npm run test:watch     # Tryb obserwowania
 npm run test:coverage  # Raport pokrycia
 ```
@@ -695,7 +695,7 @@ Poza własnym eksportem Status JSON / FHIR / PNG / JPG / SVG odontogramu, **wykr
 - `src/plugin.ts` - typ `OdontogramPlugin`, `PluginLayer`, `getQuadrant()`, priorytety z-index `LAYER_Z`
 - `src/theme.ts` - typ `OdontogramThemeConfig` i narzędzie `applyThemeConfig()`
 - `src/status_extras.ts` - 34 predefiniowane szablony uzupełnień (mosty, protezy, konstrukcje belkowe)
-- `src/i18n/` - tłumaczenia (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR) i hook i18n
+- `src/i18n/` - tłumaczenia (HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR) i hook i18n
 - `src/utils/numbering.ts` - konwersja numeracji FDI, Universal, Palmer
 - `src/registry/` - deklaratywny rejestr osi klinicznych: mapowania pól FHIR, aktywacja zestawu czyszczenia SVG/flag logicznych, macierz typ×materiał odbudowy, listy opcji interfejsu (jedno źródło prawdy generujące eksport/import, FHIR i interfejs selektorów)
 - `src/fhir/` - eksport/import HL7 FHIR R4: `toFhir.ts`/`fromFhir.ts`, systemy kodów, mapowania pól, prymitywy
@@ -704,7 +704,7 @@ Poza własnym eksportem Status JSON / FHIR / PNG / JPG / SVG odontogramu, **wykr
 - `src/perioExport.ts` - `buildPerioSvg()`: pełny wykres periodontalny jako jeden samodzielny wektorowy SVG
 - `src/perioPdf.ts` - czysty składacz raportu jsPDF dla `exportPdf()` (`assemblePdf`)
 - `src/ExportOptionsModal.tsx` - okno dialogowe ustawień eksportu „Raport PDF…”
-- `src/__tests__/` + `src/registry/__tests__/` - zestaw testów Vitest (1704 testy zaliczone, 1 pominięty, w 163 plikach)
+- `src/__tests__/` + `src/registry/__tests__/` - obszerny zautomatyzowany zestaw testów Vitest
 - `src/assets/teeth-svgs/` - szablony SVG zębów (6 plików: siekacze, kły, zęby przedtrzonowe, trzonowce + widoki okluzyjne)
 - `src/assets/icon-svgs/` - ikony SVG paska narzędzi (5 plików)
 
@@ -738,14 +738,14 @@ Poza własnym eksportem Status JSON / FHIR / PNG / JPG / SVG odontogramu, **wykr
 
 Jeśli używasz tego modułu w swojej pracy, zacytuj go.
 
-**Ta wersja (v1.49.0):**
-> Dul, Z. (2026). *React Advanced Odontogram* (v1.49.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
+**Ta wersja (v2.4.0):**
+> Dul, Z. (2026). *React Advanced Odontogram* (v2.4.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **Wszystkie wersje (DOI koncepcyjny):** https://doi.org/10.5281/zenodo.21156787
 
 > Powyższy koncepcyjny DOI obejmujący wszystkie wersje zawsze prowadzi do najnowszego
 > zarchiwizowanego wydania; DOI dla konkretnej wersji jest nadawany przy każdym wydaniu
-> w momencie jego archiwizacji na Zenodo. Do czasu zarchiwizowania wersji v1.49.0 należy
+> w momencie jego archiwizacji na Zenodo. Do czasu zarchiwizowania wersji v2.4.0 należy
 > cytować ją za pomocą DOI koncepcyjnego.
 
 Metadane cytowania w formacie maszynowym znajdują się w [`CITATION.cff`](../CITATION.cff).

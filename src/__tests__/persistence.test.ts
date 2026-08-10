@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { JSDOM } from "jsdom";
 
 // Node 22+ ships a native `localStorage` global (Web Storage API) that, without
@@ -44,14 +44,21 @@ import {
 } from "../persistence";
 
 const KEY = "react-advanced-odontogram";
-const fireStateChange = () => { for (const cb of stateChangeCallbacks) cb(); };
+// Saving is now debounced (SAVE_DEBOUNCE_MS), so flush pending timers after
+// firing a state change to keep these synchronous assertions valid.
+const fireStateChange = () => { for (const cb of stateChangeCallbacks) cb(); vi.runOnlyPendingTimers(); };
 
 beforeEach(() => {
+  vi.useFakeTimers();
   disablePersistence();
   localStorage.clear();
   stateChangeCallbacks.clear();
   vi.clearAllMocks();
   statusPayload = { version: "2.20", globals: { edentulous: false }, teeth: { "11": { toothSelection: "implant" } } };
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("persistence lifecycle", () => {
@@ -65,6 +72,16 @@ describe("persistence lifecycle", () => {
     expect(stored.version).toBe(1);
     expect(typeof stored.savedAt).toBe("string");
     expect(stored.payload).toEqual(statusPayload);
+  });
+
+  it("debounces rapid state changes — nothing is written until edits settle", () => {
+    enablePersistence();
+    // Three rapid changes with no timer flush → nothing persisted yet.
+    for (let i = 0; i < 3; i++) for (const cb of stateChangeCallbacks) cb();
+    expect(localStorage.getItem(KEY)).toBeNull();
+    // Only after the debounce window does the settled state get saved.
+    vi.advanceTimersByTime(400);
+    expect(localStorage.getItem(KEY)).not.toBeNull();
   });
 
   it("restores the saved payload via importStatus on enable", () => {

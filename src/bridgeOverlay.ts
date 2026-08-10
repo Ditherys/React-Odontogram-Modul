@@ -54,13 +54,10 @@ export const SADDLE_Y_FRACTION = 0.72;
  * Vertical center of the saddle bar for a LOWER-arch tile. Lower-arch tiles are
  * rendered rotated 180°, so the anatomically-correct position is the TRUE
  * mirror of the upper value about the tile mid-line: `1 - SADDLE_Y_FRACTION`.
- *
- * 2.2.1: the previous value (0.19) came from measuring the connector artwork
- * (~0.81 from the un-rotated tile top → 0.19 after the 180° flip) and sat too
- * high on the abutment relative to the well-fitting upper saddle. Anchoring the
- * lower fraction to the proven upper value via the geometric mirror keeps both
- * arches consistent by construction. Still a visual quantity — verify on a real
- * render (Vercel) and nudge this single number if the lower saddle needs it.
+ * Anchoring the lower fraction to the proven upper value via the geometric
+ * mirror keeps both arches consistent by construction. Still a visual quantity
+ * — verify on a real render and nudge this single number if the lower saddle
+ * needs it.
  */
 export const SADDLE_Y_FRACTION_LOWER = 1 - SADDLE_Y_FRACTION;
 /** Thickness of the saddle bar, as a fraction of tile height. */

@@ -1,16 +1,16 @@
 // Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 //
-// Round 2 (phase 2): bundled Simplified-Chinese font for the PDF report (zh
-// locale). A SUBSET of Noto Sans SC (OFL) covering every CJK glyph used in the
-// zh UI strings + ASCII/Latin-1 + CJK/fullwidth punctuation. CJK needs no
-// shaping (LTR), just the glyphs. Lazy-loaded (dynamic import) so it never
-// enters the main bundle or a non-Chinese export.
+// Bundled Simplified-Chinese font for the PDF report (zh locale). A subset of
+// Noto Sans SC (OFL) covering every CJK glyph used in the zh UI strings +
+// ASCII/Latin-1 + CJK/fullwidth punctuation. CJK needs no shaping (LTR), just
+// the glyphs. Lazy-loaded (dynamic import) so it never enters the main bundle or
+// a non-Chinese export.
 //
-// NOTE: the subset covers the report's fixed LABELS/structure. A patient name or
-// free-text note containing a Han character OUTSIDE the UI-string set will show
-// a missing glyph — full arbitrary-name coverage needs the multi-MB full font,
-// deferred. Regular only; bold/italic map to the regular face.
+// The subset covers the report's fixed labels/structure. A patient name or
+// free-text note containing a Han character outside the UI-string set shows a
+// missing glyph — full arbitrary-name coverage would need the multi-MB full
+// font. Regular only; bold/italic map to the regular face.
 import type { FontRegistrable } from "./roboto";
 
 export const PDF_FONT_CJK = "NotoSC";

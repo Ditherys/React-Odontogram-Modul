@@ -1,38 +1,28 @@
 // Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 //
-// UI-3b Task 4: `buildPerioSvg()` — the FULL perio chart (teeth graphic +
-// numeric rows + 2017 classification) rendered as ONE standalone vector SVG,
-// built headlessly from state (NOT from the mounted `PerioChart` DOM). Tasks
-// 5/6 (`exportPerioSvg`/`exportPerioImage`, then `exportPdf`) consume this.
+// `buildPerioSvg()` renders the FULL perio chart (teeth graphic + numeric
+// rows) as one standalone vector SVG, built headlessly from state rather than
+// from the mounted `PerioChart` DOM. `exportPerioSvg`/`exportPerioImage` and
+// the PDF report consume it.
 //
-// Reuses `perioGraphic.ts`'s existing builders (`archToothLayout`,
+// It reuses perioGraphic.ts's builders (`archToothLayout`,
 // `buildBuccalArchSvg`/`buildPalatalArchSvg`, `perioCurve`/
-// `buildPerioCurveLayer`, `loadTemplateCache`) — the SAME template cache
-// loader `PerioChart.tsx` awaits, so a load failure (no network / templates
-// unavailable) is handled identically: this module returns `null` rather
-// than throwing, mirroring `PerioChart.tsx`'s own `.catch` swallow (the
-// graphic is a presentation enhancement, never a hard dependency).
+// `buildPerioCurveLayer`, `loadTemplateCache`) — the same template-cache
+// loader PerioChart.tsx awaits. A load failure returns `null` rather than
+// throwing (the graphic is a presentation enhancement, never a hard
+// dependency).
 //
-// The numeric rows and the 2017-classification block are emitted as native
-// `<text>` elements positioned via the SAME `archToothLayout(cache,
-// teeth).teeth[i].x/width` columns the arch SVGs themselves are built from —
-// one shared geometry, so a tooth's numbers always sit under/over that same
-// tooth's crown, exactly like the live `PerioChart` grid's columns
-// (`applyArchColumns`) track the arch SVG. Row ORDER and VALUE SOURCES
-// mirror `PerioChart.tsx`'s `buildArch` exactly: tooth-number header, Miller,
-// buccal BOP/CAL/GM/PD, furcation, the buccal arch graphic + curve, the
-// central band (Plaque/PI/GI/mPI/mBI), the palatal arch graphic + curve,
-// palatal PD/GM/CAL/BOP, mobility, CEJ visibility, root concavity, KG, GT —
-// gated the SAME way: `getPerioRowVisibility()` per row, `indexName()` for
-// row labels, and the T3 mPI/mBI implant-gate (`teeth.some(isToothImplant)`
-// per arch, from `ui3b-mpi-implant-gate.test.ts`).
+// Numeric rows are emitted as native `<text>` elements positioned via the
+// same `archToothLayout` columns the arch SVGs are built from, so a tooth's
+// numbers always sit under/over that tooth's crown. Row order, value sources,
+// and gating mirror PerioChart.tsx's live grid: `getPerioRowVisibility()` per
+// row, `indexName()` for labels, and the mPI/mBI implant-gate (a row renders
+// only in an arch with at least one implant tooth).
 //
-// A charted/graded value renders only when it is actually CHARTED — mirrors
-// this module's own `perioOverlayMarks`/`perioGradeMarks`/`perioKgMarks`
-// convention throughout `perioGraphic.ts` ("absence = not charted, never a
-// mark"): an uncharted site/surface/axis emits no `<text>` at all, rather
-// than a placeholder dash, keeping the exported vector clean.
+// A value renders only when it is actually charted: an uncharted
+// site/surface/axis emits no `<text>` at all (no placeholder dash), keeping
+// the exported vector clean.
 import {
   archToothLayout,
   buildBuccalArchSvg,
@@ -74,31 +64,25 @@ import { t } from "./i18n/useI18n";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-// Neither array is exported from odontogram.ts/perioGraphic.ts — this
-// mirrors the SAME module-local duplication `PerioChart.tsx` and
-// `bridgeOverlay.ts` already carry (see their own "Mirrors ALL_TEETH..."
-// comments); array-adjacent == visually adjacent within an arch.
+// The two arches in visual left-to-right order. Neither array is exported from
+// odontogram.ts/perioGraphic.ts, so it is duplicated locally (as PerioChart.tsx
+// and bridgeOverlay.ts also do). Array-adjacent == visually adjacent within an arch.
 const UPPER_ARCH: readonly number[] = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
 const LOWER_ARCH: readonly number[] = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 
-// Mirrors PerioChart.tsx's own module-local `BUCCAL_SITES`/`LINGUAL_SITES`
-// literals (same module-eval-safety precedent — see that file's comment).
+// The buccal and lingual probing sites, duplicated locally (also in PerioChart.tsx).
 const BUCCAL_SITES: readonly PerioSite[] = ["MB", "B", "DB"];
 const LINGUAL_SITES: readonly PerioSite[] = ["ML", "L", "DL"];
 
-// Mirrors PerioChart.tsx's `PLAQUE_SURFACES` (the 4 fixed O'Leary surfaces
-// shared by plaque/PI/GI/mPI/mBI).
+// The 4 fixed O'Leary surfaces shared by plaque/PI/GI/mPI/mBI.
 const PLAQUE_SURFACES: readonly string[] = ["mesial", "distal", "buccal", "lingual"];
-// 2.2.3 (round 2): faint surface-letter guide behind each plaque/grade value in
-// the PDF (mirrors the on-screen watermark). Dental-standard M/D/B/L.
+// Faint surface-letter guide (dental-standard M/D/B/L) drawn behind each
+// plaque/grade value, mirroring the on-screen watermark.
 const SURFACE_LETTER: Record<string, string> = { mesial: "M", distal: "D", buccal: "B", lingual: "L" };
 
-// Compact display faces for the categorical/graded rows — mirror
-// PerioChart.tsx's own PRIVATE face maps (`FURCATION_ROMAN`, `GRADE_FACE`,
-// `CEJ_VISIBILITY_FACE`, `ROOT_CONCAVITY_FACE`, `GINGIVAL_THICKNESS_FACE`,
-// `MILLER_CLASS_FACE`) — duplicated here for the same reason that file
-// doesn't export them (display-only, not a shared API): this module renders
-// its OWN standalone `<text>`, never the live grid's cycle-button labels.
+// Compact display faces for the categorical/graded rows — duplicated locally
+// (PerioChart.tsx keeps equivalent private maps); display-only, since this
+// module renders its own standalone `<text>` rather than cycle-button labels.
 const FURCATION_ROMAN: readonly string[] = ["–", "I", "II", "III", "IV"];
 const GRADE_FACE: Record<number, string> = { 1: "1", 2: "2", 3: "3" };
 const MOBILITY_FACE: Record<string, string> = { m1: "1", m2: "2", m3: "3" };
@@ -107,24 +91,21 @@ const ROOT_CONCAVITY_FACE: Record<string, string> = { mild: "Mi", deep: "Dp" };
 const GT_FACE: Record<string, string> = { thin: "Tn", medium: "Md", thick: "Tk" };
 const MILLER_FACE: Record<string, string> = { i: "I", ii: "II", iii: "III", iv: "IV" };
 
-/** Left column width (svg user units) reserved for the row-label text —
- *  mirrors `PerioChart.tsx`'s `ROW_LABEL_WIDTH` role (a fixed sticky-label
- *  track), just in this module's own coordinate scale (row-local units, not
- *  px), so a wide label ("Peri-implant Bleeding Index (mBI)") still has room
- *  before the tooth columns start at `LABEL_WIDTH`. */
+/** Left column width (svg user units) reserved for the row-label text, so a
+ *  wide label ("Peri-implant Bleeding Index (mBI)") still has room before the
+ *  tooth columns start at `LABEL_WIDTH`. */
 const LABEL_WIDTH = 150;
 /** Vertical advance (svg user units) per numeric row + row-label/value font
- *  size. 2.2.3 Stage C: no longer fixed — `buildPerioSvg` sets them per call
- *  from the PDF perio font-size setting (default = "normal" = 8/13, one step up
- *  from the former 6/10 "small"). Every `text()` / append-helper reads these. */
+ *  size. `buildPerioSvg` sets these per call from the PDF perio font-size
+ *  setting (default "normal" = 8/13). Every `text()`/append-helper reads them. */
 let ROW_HEIGHT = 13;
 let ROW_FONT_SIZE = 8;
-/** 2.2.3 Stage C: when true, a numeric row with NO charted value anywhere is
- *  skipped entirely (label + row). Default false = always show the row. */
+/** When true, a numeric row with no charted value anywhere is skipped entirely
+ *  (label + row). Default false = always show the row. */
 let perioSkipEmptyRows = false;
-/** 2.2.3 (round 2): y-baseline + width of each numeric row actually emitted —
- *  collected by the append helpers, consumed by `buildPerioSvg` to paint the
- *  alternating row-stripe backgrounds behind the content. */
+/** y-baseline + width of each numeric row actually emitted — collected by the
+ *  append helpers, consumed by `buildPerioSvg` to paint the alternating
+ *  row-stripe backgrounds behind the content. */
 let perioStripeBands: { y: number; w: number }[] = [];
 /** Extra vertical gap (svg user units) between one arch's block and the next
  *  (or the trailing classification block). */
@@ -176,9 +157,8 @@ function appendRowLabel(root: Element, y: number, label: string): void {
 }
 
 /** Append one site-subdivided row (PD/GM/CAL/BOP) — up to 3 sub-columns per
- *  tooth, spread across the tooth's width via the SAME fraction formula
- *  `PerioChart.tsx`'s `collectCurveInput`/`collectOverlayInput` use for the
- *  curve/overlay marks (`x + width*(j+0.5)/n`), so a site's number sits
+ *  tooth, spread across the tooth's width via the same fraction formula the
+ *  curve/overlay marks use (`x + width*(j+0.5)/n`), so a site's number sits
  *  exactly where that site's curve point / overlay mark lands. `valueFor`
  *  returning `null` means "not charted" — no `<text>` is emitted for it. */
 function appendSiteRow(
@@ -227,7 +207,7 @@ function appendSurfaceRow(
   if (perioSkipEmptyRows && items.length === 0) return false;
   perioStripeBands.push({ y, w: LABEL_WIDTH + layout.totalWidth });
   appendRowLabel(root, y, label);
-  // 2.2.3 (round 2): faint per-surface letter behind each value (M/D/B/L).
+  // Faint per-surface letter behind each value (M/D/B/L).
   for (const g of guides) {
     const el = text(g.x, y, g.letter);
     el.setAttribute("class", "perio-surface-letter");
@@ -259,14 +239,12 @@ function appendSingleRow(
   return true;
 }
 
-/** Append the furcation row — mirrors `PerioChart.tsx`'s `buildFurcationCell`
- *  content gate exactly: a tooth with no furcated entrance for its position,
- *  OR whose perio rows are hidden (`isPerioRowHidden` — missing/implant/
- *  under-gum/extraction), gets NO marks at all (not even a "–" placeholder),
- *  unlike every graded-index row above (which shows "–" via the button face
- *  even when ungraded) — an existing-but-ungraded entrance still gets its
- *  "–" face (mirrors `FURCATION_ROMAN[0]`), since the entrance's POSITIONAL
- *  existence is itself informative. */
+/** Append the furcation row — a tooth with no furcated entrance for its
+ *  position, OR whose perio rows are hidden (`isPerioRowHidden` —
+ *  missing/implant/under-gum/extraction), gets NO marks at all (not even a "–"
+ *  placeholder), unlike the graded-index rows above. An existing-but-ungraded
+ *  entrance still gets its "–" face (`FURCATION_ROMAN[0]`), since the entrance's
+ *  positional existence is itself informative. */
 function appendFurcationRow(root: Element, y: number, label: string, layout: ArchLayout): boolean {
   const items: { x: number; v: string }[] = [];
   for (const tooth of layout.teeth) {
@@ -287,18 +265,15 @@ function appendFurcationRow(root: Element, y: number, label: string, layout: Arc
 
 /** Build one aspect's arch graphic (buccal or palatal) — the standalone
  *  `<svg>` from `buildBuccalArchSvg`/`buildPalatalArchSvg` (own `viewBox`,
- *  already carrying its own mm-grid layer), positioned as a NESTED `<svg>`
- *  at `(LABEL_WIDTH, y)` with `width`/`height` set 1:1 to its `viewBox`
- *  dimensions (no rescale — `preserveAspectRatio` is already a no-op at that
- *  ratio), so its internal x=0 column lines up EXACTLY under `LABEL_WIDTH +
- *  tooth.x`, the same offset every numeric row/curve x uses. The T3 curve
- *  overlay is then built (via `perioCurve`/`buildPerioCurveLayer`, the exact
- *  per-site x formula `PerioChart.tsx`'s `collectCurveInput` uses) and
- *  appended into the SAME oriented row group `PerioChart.tsx`'s
- *  `drawArchCurves` targets (`.perio-tooth-row-buccal` /
- *  `.perio-tooth-row-palatal-inner`), so the curve rides the same flip/
- *  mirror transforms as the teeth. Returns the vertical space (svg user
- *  units) the graphic consumed, so the caller can advance its row cursor. */
+ *  already carrying its own mm-grid layer), positioned as a nested `<svg>` at
+ *  `(LABEL_WIDTH, y)` with `width`/`height` set 1:1 to its `viewBox` dimensions
+ *  (no rescale), so its internal x=0 column lines up exactly under `LABEL_WIDTH
+ *  + tooth.x`, the offset every numeric row/curve x uses. The curve overlay is
+ *  then built and appended into the same oriented row group the teeth ride
+ *  (`.perio-tooth-row-buccal` / `.perio-tooth-row-palatal-inner`), so the curve
+ *  rides the same flip/mirror transforms as the teeth. Returns the vertical
+ *  space (svg user units) the graphic consumed, so the caller can advance its
+ *  row cursor. */
 function appendArchGraphic(
   root: Element,
   cache: TemplateDocCache,
@@ -308,11 +283,8 @@ function appendArchGraphic(
   aspect: "buccal" | "palatal",
   gap: number,
 ): number {
-  // 2.2.3 (round 2) FIX: build the arch artwork with the SAME inter-tooth gap the
-  // number rows were re-spaced with, so the teeth and every value column share
-  // ONE geometry. Previously the arch used the fixed on-screen TOOTH_GAP while
-  // the rows packed to `gap`, so any non-default spacing drifted the teeth out of
-  // alignment with their own numbers (and distorted the curve).
+  // Build the arch artwork with the same inter-tooth gap the number rows were
+  // re-spaced with, so the teeth and every value column share one geometry.
   const svg =
     aspect === "buccal"
       ? buildBuccalArchSvg(cache, teeth, isToothImplant, gap, getPerioToothKind)
@@ -333,16 +305,16 @@ function appendArchGraphic(
   const curveSites: PerioCurveSite[] = [];
   const xs: number[] = [];
   for (const tooth of layout.teeth) {
-    // Round 2: a missing/extraction-socket tooth has no crown to probe — draw no
-    // curve over its (now empty) column, even if stale perio data lingers.
+    // A missing/extraction-socket tooth has no crown to probe — draw no curve
+    // over its (now empty) column, even if stale perio data lingers.
     if (getPerioToothKind(tooth.toothNo) === "missing") {
       sites.forEach((site, j) => { curveSites.push({ site, pd: undefined, gm: undefined }); xs.push(tooth.x + (tooth.width * (j + 0.5)) / 3); });
       continue;
     }
     const perio = getToothPerio(tooth.toothNo);
-    // 2.2.3 (round 2): if a tooth has ANY charted site on this aspect, treat its
-    // remaining sites as 0 (pd=0, gm=0) so the curve is drawn fully across the
-    // tooth instead of stopping mid-tooth at the first uncharted site.
+    // If a tooth has any charted site on this aspect, treat its remaining sites
+    // as 0 (pd=0, gm=0) so the curve is drawn fully across the tooth instead of
+    // stopping mid-tooth at the first uncharted site.
     const anyCharted = sites.some((s) => Object.prototype.hasOwnProperty.call(perio.pd, s));
     sites.forEach((site, j) => {
       const charted = Object.prototype.hasOwnProperty.call(perio.pd, site);
@@ -365,12 +337,11 @@ function appendArchGraphic(
 }
 
 /**
- * UI-3b Task 4: build the FULL perio chart (teeth graphic + numeric rows +
- * 2017 classification) as ONE standalone vector SVG, from the ACTIVE chart's
- * state — headless, no mounted DOM read. Returns `null` when the shared
- * tooth-template cache (`loadTemplateCache()`, same loader/memoized promise
- * `PerioChart.tsx` awaits) fails to load (templates are inlined, so this is
- * only an internal parse fault — the guard is defensive).
+ * Build the FULL perio chart (teeth graphic + numeric rows) as one standalone
+ * vector SVG, from the active chart's state — headless, no mounted DOM read.
+ * Returns `null` when the shared tooth-template cache (`loadTemplateCache()`)
+ * fails to load (templates are inlined, so this is only an internal parse
+ * fault — the guard is defensive).
  */
 export async function buildPerioSvg(opts: {
   fontSize?: number;
@@ -386,9 +357,9 @@ export async function buildPerioSvg(opts: {
     return null;
   }
 
-  // 2.2.3 Stage C: apply the perio PDF settings (font size, row height, empty-row
-  // skipping) via the shared module state the text/append helpers read. Defaults
-  // = "normal" font (8/13), show all rows, wide spacing, centered band labels.
+  // Apply the perio PDF settings (font size, row height, empty-row skipping) via
+  // the shared module state the text/append helpers read. Defaults: "normal"
+  // font (8/13), show all rows, wide spacing, centered band labels.
   ROW_FONT_SIZE = opts.fontSize ?? 8;
   ROW_HEIGHT = opts.rowHeight ?? 13;
   perioSkipEmptyRows = opts.showEmptyRows === false;
@@ -410,8 +381,8 @@ export async function buildPerioSvg(opts: {
   const styleEl = document.createElementNS(SVG_NS, "style");
   styleEl.textContent = PERIO_EXPORT_STYLE;
   svg.appendChild(styleEl);
-  // 2.2.3 (round 2): a background layer appended BEFORE all content so its
-  // row-stripes + column separators paint behind the teeth/numbers.
+  // A background layer appended before all content so its row-stripes + column
+  // separators paint behind the teeth/numbers.
   const bgLayer = document.createElementNS(SVG_NS, "g");
   bgLayer.setAttribute("aria-hidden", "true");
   svg.appendChild(bgLayer);
@@ -430,7 +401,7 @@ export async function buildPerioSvg(opts: {
     const lingualLabel = isUpper ? t("perio.palatal") : t("perio.lingual");
     const archHasImplant = teeth.some((n) => isToothImplant(n));
 
-    // 2.2.3 (round 2): centered arch title ("Upper Teeth" / "Lower Teeth").
+    // Centered arch title ("Upper Teeth" / "Lower Teeth").
     const archTitle = text(LABEL_WIDTH + layout.totalWidth / 2, cursorY, isUpper ? t("perio.export.upperTeeth") : t("perio.export.lowerTeeth"), "middle");
     archTitle.setAttribute("font-weight", "700");
     archTitle.setAttribute("font-size", String(ROW_FONT_SIZE * 1.15));
@@ -439,8 +410,7 @@ export async function buildPerioSvg(opts: {
     // Column separators span from the top of the header row down to the last row.
     const archStartY = cursorY - ROW_HEIGHT * 0.7;
 
-    // --- Tooth-number header row (chrome, not gated — mirrors buildArch's
-    //     always-present header). ---
+    // --- Tooth-number header row (chrome, always present, not gated). ---
     for (const tooth of layout.teeth) {
       const x = LABEL_WIDTH + tooth.x + tooth.width / 2;
       svg.appendChild(text(x, cursorY, formatToothLabel(tooth.toothNo)));
@@ -455,8 +425,7 @@ export async function buildPerioSvg(opts: {
       })) cursorY += ROW_HEIGHT;
     }
 
-    // --- Buccal-aspect rows (PD innermost / nearest the teeth in the live
-    //     grid — order here matches buildArch's append order: BOP, CAL, GM, PD). ---
+    // --- Buccal-aspect rows, PD nearest the teeth (append order: BOP, CAL, GM, PD). ---
     if (visible.bop) {
       if (appendSiteRow(svg, cursorY, `${buccalLabel} ${indexName("bop")}`, layout, BUCCAL_SITES, (n, site) => {
         const perio = getToothPerio(n);
@@ -494,14 +463,10 @@ export async function buildPerioSvg(opts: {
     // --- BUCCAL tooth-row graphic + curve overlay. ---
     cursorY += appendArchGraphic(svg, cache, teeth, layout, cursorY, "buccal", toothGap);
 
-    // --- Band-orientation legend (mirrors PerioChart.tsx's central-band
-    //     label): buccal (top, next to the graphic above) / lingual-palatal
-    //     (bottom, next to the graphic below). Chrome only — matches the
-    //     on-screen "▲ Buccal … Lingual/Palatal ▼" row so the export is
-    //     visually faithful to the band. ---
-    // 2.2.3 Stage C: "center" (default) puts a centered "▲ Buccal ▲" above the
-    // Plaque row and a centered "▼ Lingual/Palatal ▼" below the GI row; "edge"
-    // keeps the former single row (buccal left, lingual right).
+    // --- Band-orientation legend: buccal aspect above, lingual/palatal below.
+    //     Chrome only. "center" (default) puts a centered "▲ Buccal ▲" above the
+    //     Plaque row and a centered "▼ Lingual/Palatal ▼" below the GI row;
+    //     "edge" uses a single row (buccal left, lingual right). ---
     const bandBuccal = t("perio.band.buccal");
     const bandLingual = t("perio.band.lingual");
     const bandCenterX = LABEL_WIDTH + layout.totalWidth / 2;
@@ -531,13 +496,12 @@ export async function buildPerioSvg(opts: {
         return g > 0 ? GRADE_FACE[g] ?? String(g) : null;
       })) cursorY += ROW_HEIGHT;
     }
-    // 2.2.3 Stage C: centered lingual/palatal band label, below the GI row.
+    // Centered lingual/palatal band label, below the GI row.
     if (labelPlacement === "center") {
       svg.appendChild(text(bandCenterX, cursorY, `▼ ${bandLingual} ▼`, "middle"));
       cursorY += ROW_HEIGHT;
     }
-    // T3 implant-gate: mPI/mBI only render in an arch with >= 1 implant tooth
-    // (mirrors `ui3b-mpi-implant-gate.test.ts` / buildArch's `archHasImplant`).
+    // Implant-gate: mPI/mBI render only in an arch with >= 1 implant tooth.
     if (visible.mpi && archHasImplant) {
       if (appendSurfaceRow(svg, cursorY, indexName("mpi"), layout, (n, surface) => {
         const g = getPeriImplantPlaque(n, surface);
@@ -554,8 +518,7 @@ export async function buildPerioSvg(opts: {
     // --- PALATAL tooth-row graphic + curve overlay. ---
     cursorY += appendArchGraphic(svg, cache, teeth, layout, cursorY, "palatal", toothGap);
 
-    // --- Palatal-aspect rows (PD innermost / nearest the teeth — order
-    //     matches buildArch: PD, GM, CAL, BOP). ---
+    // --- Palatal-aspect rows, PD nearest the teeth (append order: PD, GM, CAL, BOP). ---
     if (visible.pd) {
       if (appendSiteRow(svg, cursorY, `${lingualLabel} ${indexName("pd")}`, layout, LINGUAL_SITES, (n, site) => {
         const perio = getToothPerio(n);
@@ -617,9 +580,9 @@ export async function buildPerioSvg(opts: {
       })) cursorY += ROW_HEIGHT;
     }
 
-    // 2.2.3 (round 2): vertical column separators between teeth (left edge of
-    // each tooth + the right edge), spanning the arch's numeric block — drawn
-    // into the background layer so they sit behind the teeth/numbers.
+    // Vertical column separators between teeth (left edge of each tooth + the
+    // right edge), spanning the arch's numeric block — drawn into the background
+    // layer so they sit behind the teeth/numbers.
     const sep = (x: number) => {
       const ln = document.createElementNS(SVG_NS, "line");
       ln.setAttribute("class", "perio-col-sep");
@@ -636,8 +599,8 @@ export async function buildPerioSvg(opts: {
   buildOneArch(UPPER_ARCH);
   buildOneArch(LOWER_ARCH);
 
-  // 2.2.3 (round 2): alternating row-stripe backgrounds behind every other
-  // emitted numeric row (collected by the append helpers), for readability.
+  // Alternating row-stripe backgrounds behind every other emitted numeric row
+  // (collected by the append helpers), for readability.
   perioStripeBands.forEach((b, i) => {
     if (i % 2 === 0) return;
     const r = document.createElementNS(SVG_NS, "rect");
@@ -649,9 +612,9 @@ export async function buildPerioSvg(opts: {
     bgLayer.appendChild(r);
   });
 
-  // 2.2.3: the 2017 classification (Diagnosis/Stage/Grade/Extent) is NOT drawn
-  // into the chart image — it is already listed in the PDF's "Periodontal
-  // description" metrics table, so repeating it here was redundant.
+  // The 2017 classification (Diagnosis/Stage/Grade/Extent) is intentionally not
+  // drawn into the chart image — it already appears in the PDF's "Periodontal
+  // description" metrics table.
 
   const width = maxWidth;
   const height = cursorY;

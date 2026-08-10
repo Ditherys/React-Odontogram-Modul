@@ -1,50 +1,41 @@
 // Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 //
-// UI-3b Task 6: `exportPdf()` — jsPDF-native PDF report assembler (vector
-// text via jsPDF `.text`/`.addImage`, raster tooth/perio charts, NO
-// svg2pdf.js — jsPDF is already a dependency, this is its first use in the
-// engine).
+// jsPDF-native PDF report assembler — vector text via jsPDF `.text`/`.addImage`,
+// raster tooth/perio charts, no svg2pdf.js.
 //
-// Split for testability (per the task spec): this module holds the PURE
-// `assemblePdf(opts, data, docFactory)` — no I/O, no SVG rasterization, no
-// `fetch`/`Image`/`canvas` — it only decides which sections to add and
-// drives a jsPDF-like `PdfDocLike` doc. `exportPdf()` (the impure half that
-// gathers `data` via SVG→PNG rasterization + summary text +
-// `hasAnyPerioData()`, drives the export-progress overlay, and calls
-// `assemblePdf`) lives in `odontogram.ts` alongside `exportImage`/
-// `exportPerioImage`, which it now shares a `rasterizeSvgToPng` raster
-// helper with (DRY — see odontogram.ts).
+// Split for testability: this module holds the PURE `assemblePdf(opts, data,
+// docFactory)` — no I/O, no SVG rasterization, no `fetch`/`Image`/`canvas`. It
+// only decides which sections to add and drives a jsPDF-like `PdfDocLike` doc.
+// `exportPdf()` (the impure half that gathers `data` via SVG→PNG rasterization,
+// summary text, and `hasAnyPerioData()`, drives the export-progress overlay, and
+// calls `assemblePdf`) lives in `odontogram.ts` alongside `exportImage`/
+// `exportPerioImage`, sharing a `rasterizeSvgToPng` raster helper with them.
 //
-// jsPDF-in-jsdom note: constructing a REAL `jsPDF` instance touches browser
-// canvas/font internals jsdom doesn't fully provide, so `assemblePdf` is
-// unit-tested exclusively via an injected fake `PdfDocLike` (see
-// `src/__tests__/ui3b-export-pdf.test.ts`) — never a real `new jsPDF()`.
-// `exportPdf()`'s real-jsPDF path is a controller/browser-verify item.
+// Constructing a real `jsPDF` instance touches browser canvas/font internals
+// jsdom doesn't fully provide, so `assemblePdf` is unit-tested exclusively via
+// an injected fake `PdfDocLike`, never a real `new jsPDF()`.
 
-// jsPDF is NOT imported statically — it is lazy-loaded via a dynamic
-// `import("jspdf")` in `exportPdf()` (see odontogram.ts) so consumers who never
-// export a PDF don't pull jspdf (and its html2canvas/dompurify deps) into their
-// bundle. `assemblePdf` receives a jsPDF-backed `docFactory` from its caller
-// (or an injected fake, in tests) — it never references jsPDF itself.
+// jsPDF is not imported statically — it is lazy-loaded via a dynamic
+// `import("jspdf")` in `exportPdf()` so consumers who never export a PDF don't
+// pull jspdf (and its html2canvas/dompurify deps) into their bundle.
+// `assemblePdf` receives a jsPDF-backed `docFactory` from its caller (or an
+// injected fake, in tests) — it never references jsPDF itself.
 import { t } from "./i18n/useI18n";
 
-/** UI-3b Task 6/7: which PDF sections the user opted into. The perio
- *  sections are additionally auto-skipped whenever `data.hasPerio` is false
- *  (see {@link assemblePdf}), regardless of these flags — a blank perio
- *  chart never gets an empty "Periodontal status" page. */
+/** Which PDF sections the user opted into. The perio sections are additionally
+ *  auto-skipped whenever `data.hasPerio` is false (see {@link assemblePdf}),
+ *  regardless of these flags — a blank perio chart never gets an empty
+ *  "Periodontal status" page. */
 export interface PdfExportOptions {
   patientData: boolean;
-  /** 2.2.1: the odontogram chart IMAGE. Split out of the former combined
-   *  `odontogram` flag so the chart and its prose description are independently
-   *  selectable in the export dialog. */
+  /** The odontogram chart IMAGE — selectable independently of its prose
+   *  description in the export dialog. */
   odontogramChart: boolean;
-  /** 2.2.1: the whole-mouth odontogram summary PROSE (was bundled with the
-   *  chart image under the old `odontogram` flag). */
+  /** The whole-mouth odontogram summary PROSE. */
   odontogramDescription: boolean;
-  /** 2.2.1: the per-tooth "Individual notes" section — omitted whenever no
-   *  tooth carries a note (`data.individualNotes` empty), regardless of this
-   *  flag. */
+  /** The per-tooth "Individual notes" section — omitted whenever no tooth
+   *  carries a note (`data.individualNotes` empty), regardless of this flag. */
   individualNotes: boolean;
   perioStatus: boolean;
   perioDescription: boolean;
@@ -58,24 +49,24 @@ export interface PdfExportOptions {
  *  perioPdf.ts). */
 export interface PdfCaseIdentity {
   patientName: string | null;
-  /** 2.2.1: patient date of birth (ISO `YYYY-MM-DD`), shown 2nd in the header. */
+  /** Patient date of birth (ISO `YYYY-MM-DD`), shown 2nd in the header. */
   patientDob: string | null;
   examDate: string | null;
 }
 
-/** 2.2.2: a labelled key/value pair rendered as one row of a colored table. */
+/** A labelled key/value pair rendered as one row of a colored table. */
 export interface PdfRow {
   label: string;
   value: string;
 }
 
-/** 2.2.2: one abbreviation-glossary entry (bold term + description). */
+/** One abbreviation-glossary entry (bold term + description). */
 export interface PdfAbbrev {
   term: string;
   desc: string;
 }
 
-/** 2.2.3 (round 2): grouped dentition table (structurally matches odontogram.ts's
+/** Grouped dentition table (structurally matches odontogram.ts's
  *  OdontogramToothTable — a local type keeps this module free of an odontogram
  *  import). Tooth numbers are coloured/emphasized by `status`. */
 export interface PdfToothTableCell { toothNo: number; label: string; status: "empty" | "content" | "problem"; }
@@ -85,8 +76,8 @@ export interface PdfToothTable {
   legend: string;
 }
 
-/** 2.2.2: end-of-document footer — medical disclaimer + a generation/version
- *  stamp with attribution links (GitHub + DOI). */
+/** End-of-document footer — medical disclaimer + a generation/version stamp
+ *  with attribution links (GitHub + DOI). */
 export interface PdfFooter {
   disclaimer: string;
   /** "Generated on <date> with <app> v<version>", pre-localized. */
@@ -111,43 +102,42 @@ export interface PdfAssembleData {
   /** `hasAnyPerioData()` — when false, BOTH perio sections are omitted no
    *  matter what `opts.perioStatus`/`opts.perioDescription` ask for. */
   hasPerio: boolean;
-  /** 2.2.2: document title shown once at the very top (e.g. "Odontogram Report"). */
+  /** Document title shown once at the very top (e.g. "Odontogram Report"). */
   reportTitle: string;
-  /** 2.2.2: end-of-document disclaimer + generation/version/attribution stamp. */
+  /** End-of-document disclaimer + generation/version/attribution stamp. */
   footer: PdfFooter;
-  /** 2.2.3: colour theme palette (all table/heading colours derive from this). */
+  /** Colour theme palette (all table/heading colours derive from this). */
   palette: PdfPalette;
-  /** 2.2.3: patient identity rows (name / DOB (+age) / exam date) — pre-formatted
-   *  by `exportPdf` per the PDF settings (default name/DOB, age toggle, date
+  /** Patient identity rows (name / DOB (+age) / exam date) — pre-formatted by
+   *  `exportPdf` per the PDF settings (default name/DOB, age toggle, date
    *  format), so the assembler just lays them out. */
   patient: PdfRow[];
   odontogramPng: string;
-  /** 2.2.2: one-sentence dental-chart overview, rendered as a caption above the
+  /** One-sentence dental-chart overview, rendered as a caption above the
    *  findings table. */
   odontogramCaption: string;
-  /** 2.2.3 (round 2): grouped dentition table (null when the odontogram-table
-   *  toggle is off). */
+  /** Grouped dentition table (null when the odontogram-table toggle is off). */
   toothTable?: PdfToothTable | null;
-  /** 2.2.2: dental-chart findings (permanent/missing lists live in the caption;
-   *  these are the per-axis sections + implants) as key/value table rows. */
+  /** Dental-chart findings (permanent/missing lists live in the caption; these
+   *  are the per-axis sections + implants) as key/value table rows. */
   odontogramFindings: PdfRow[];
-  /** 2.2.2: per-tooth notes as `{ tooth, note }` rows — empty when none. */
+  /** Per-tooth notes as `{ tooth, note }` rows — empty when none. */
   individualNotes: PdfRow[];
   odontogramImageSize?: PdfImageSize;
-  /** 2.2.3 Stage B: optional frame around the dental-chart image (null = none). */
+  /** Optional frame around the dental-chart image (null = none). */
   odontogramBorder?: { widthMm: number; color: RGB } | null;
   perioPng: string;
-  /** 2.2.2: periodontal metrics + 2017 classification as key/value table rows. */
+  /** Periodontal metrics + 2017 classification as key/value table rows. */
   perioMetrics: PdfRow[];
   perioImageSize?: PdfImageSize;
-  /** 2.2.2: abbreviation glossary (bold term + description) rows. */
+  /** Abbreviation glossary (bold term + description) rows. */
   abbreviations: PdfAbbrev[];
-  /** Round 2 (phase 2): jsPDF font family to render with (the caller registers
-   *  it on the doc via the docFactory). Falls back to built-in "helvetica" when
-   *  omitted — e.g. the unit-test fixture. */
+  /** jsPDF font family to render with (the caller registers it on the doc via
+   *  the docFactory). Falls back to built-in "helvetica" when omitted — e.g.
+   *  the unit-test fixture. */
   fontFamily?: string;
-  /** Round 2 (phase 2): per-string transform applied before every `doc.text`
-   *  (Arabic shaping + bidi; identity for other scripts). Omitted = identity. */
+  /** Per-string transform applied before every `doc.text` (Arabic shaping +
+   *  bidi; identity for other scripts). Omitted = identity. */
   shapeText?: (s: string) => string;
 }
 
@@ -160,11 +150,11 @@ export interface PdfDocLike {
   addPage: (...args: any[]) => PdfDocLike;
   setFontSize: (size: number) => PdfDocLike;
   setFont: (fontName: string, fontStyle?: string) => PdfDocLike;
-  // Round 2: embedded-font registration (present on a real jsPDF, absent on the
-  // test fake) — optional so the fake still satisfies this interface.
+  // Embedded-font registration (present on a real jsPDF, absent on the test
+  // fake) — optional so the fake still satisfies this interface.
   addFileToVFS?: (fileName: string, data: string) => void;
   addFont?: (fileName: string, fontName: string, fontStyle: string) => void;
-  // 2.2.2: colored-table drawing surface (all present on a real jsPDF instance).
+  // Colored-table drawing surface (all present on a real jsPDF instance).
   setTextColor: (r: number, g?: number, b?: number) => PdfDocLike;
   setFillColor: (r: number, g?: number, b?: number) => PdfDocLike;
   setDrawColor: (r: number, g?: number, b?: number) => PdfDocLike;
@@ -205,14 +195,15 @@ function wrapPlainText(text: string, maxCharsPerLine: number): string[] {
   return lines;
 }
 
+// Filesystem-safe timestamp (`YYYY-MM-DD-HH-MM-SS`) for the download filename.
 function pdfStamp(): string {
   return new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
 }
 
 
-// 2.2.2: report colour palette (RGB) for the tabular layout — a colored section
-// heading bar (white text), light key-cell + alternating row shading, subtle
-// borders. 2.2.3: selectable via the PDF-settings colour theme.
+// Report colour palette (RGB) for the tabular layout — a colored section heading
+// bar (white text), light key-cell + alternating row shading, subtle borders.
+// Selectable via the PDF-settings colour theme.
 type RGB = readonly [number, number, number];
 export interface PdfPalette {
   header: RGB;      // section-heading bar fill (white text)
@@ -225,8 +216,8 @@ export interface PdfPalette {
   muted: RGB;       // secondary/value text
 }
 
-/** 2.2.3: selectable report colour themes — the default "blue" reproduces the
- *  2.2.2 look; the other three are distinct but equally calm/medical. */
+/** Selectable report colour themes — the default is "blue"; the other three are
+ *  distinct but equally calm/medical. */
 export type PdfColorTheme = "blue" | "teal" | "amber" | "slate";
 export const PDF_PALETTES: Record<PdfColorTheme, PdfPalette> = {
   blue:  { header: [37, 99, 235],  headerText: [255, 255, 255], labelBg: [219, 234, 254], rowBg: [255, 255, 255], rowAlt: [244, 248, 253], border: [199, 210, 224], text: [15, 23, 42], muted: [51, 65, 85] },
@@ -235,8 +226,8 @@ export const PDF_PALETTES: Record<PdfColorTheme, PdfPalette> = {
   slate: { header: [51, 65, 85],   headerText: [255, 255, 255], labelBg: [226, 232, 240], rowBg: [255, 255, 255], rowAlt: [248, 250, 252], border: [203, 213, 225], text: [15, 23, 42], muted: [71, 85, 105] },
 };
 export const DEFAULT_PDF_THEME: PdfColorTheme = "blue";
-// 2.2.3 (round 2): fixed warning colour for "problem" tooth numbers in the
-// dentition table (bold-italic red), independent of the chosen theme.
+// Fixed warning colour for "problem" tooth numbers in the dentition table
+// (bold-italic red), independent of the chosen theme.
 const C_PROBLEM: RGB = [190, 40, 40];
 
 /**
@@ -244,9 +235,9 @@ const C_PROBLEM: RGB = [190, 40, 40];
  * no I/O, no rasterization; `docFactory` defaults to a real `new jsPDF()`
  * but tests always inject a fake (see the jsdom note above).
  *
- * 2.2.2: a medical, tabular layout — each section opens with a colored heading
- * bar; identity/findings/metrics/abbreviations render as colored key/value
- * tables. Section order: (1) Patient data (name, DOB + age, exam date) when
+ * Medical, tabular layout — each section opens with a colored heading bar;
+ * identity/findings/metrics/abbreviations render as colored key/value tables.
+ * Section order: (1) Patient data (name, DOB + age, exam date) when
  * `opts.patientData`; (2) Dental chart — image (`opts.odontogramChart`) and/or
  * caption + findings table (`opts.odontogramDescription`); (3) Individual notes
  * when `opts.individualNotes` AND at least one note exists; (4) Periodontal
@@ -262,10 +253,10 @@ export function assemblePdf(
   },
 ): PdfDocLike {
   const doc = docFactory();
-  // Round 2: the bundled Unicode font is registered by the caller's docFactory
-  // (see exportPdf → loadPdfFont) so Hungarian ő/ű, Cyrillic, Arabic and CJK
-  // render. `data.fontFamily` names it; `shape` applies Arabic joining/bidi to
-  // every string (identity for other scripts). Both fall back for the test doc.
+  // The bundled Unicode font is registered by the caller's docFactory (see
+  // exportPdf → loadPdfFont) so Hungarian ő/ű, Cyrillic, Arabic and CJK render.
+  // `data.fontFamily` names it; `shape` applies Arabic joining/bidi to every
+  // string (identity for other scripts). Both fall back for the test doc.
   const FONT = data.fontFamily ?? "helvetica";
   const shape = data.shapeText ?? ((s: string) => s);
   doc.setFont(FONT, "normal");
@@ -277,7 +268,7 @@ export function assemblePdf(
   const contentWidth = pageWidth - MARGIN_MM * 2;
   let y = MARGIN_MM;
 
-  // 2.2.3: all colours come from the chosen theme palette.
+  // All colours come from the chosen theme palette.
   const { header: C_HEADER, headerText: C_HEADER_TEXT, labelBg: C_LABEL_BG,
     rowBg: C_ROW_BG, rowAlt: C_ROW_ALT, border: C_BORDER, text: C_TEXT, muted: C_MUTED } = data.palette;
 
@@ -369,17 +360,17 @@ export function assemblePdf(
     doc.setFontSize(10);
   };
 
-  // 2.2.3 (round 2): the grouped dentition table — category columns × anatomical
-  // group rows, tooth numbers coloured by status (content = bold accent, problem
-  // = bold-italic red, empty = muted). Followed by the emphasis legend.
+  // The grouped dentition table — category columns × anatomical group rows,
+  // tooth numbers coloured by status (content = bold accent, problem =
+  // bold-italic red, empty = muted). Followed by the emphasis legend.
   const drawToothTable = (tt: PdfToothTable) => {
     const nCols = tt.columns.length;
     if(nCols === 0 || tt.rows.length === 0) return;
     const fontSize = 8;
     const lineH = fontSize * 0.5;
     const pad = 1.6;
-    // Round 2: wider label column + wrapping (below) so a long group label
-    // ("Upper right posterior") no longer overflows into the first data cell.
+    // Wider label column + wrapping (below) so a long group label ("Upper right
+    // posterior") doesn't overflow into the first data cell.
     const labelW = 34;
     const catW = (contentWidth - labelW) / nCols;
     const mmPerChar = (1.7 * fontSize) / 10;
@@ -467,7 +458,7 @@ export function assemblePdf(
     const imgHeight = Math.min(maxImgHeight, imgWidth * aspect);
     ensureSpace(imgHeight);
     doc.addImage(png, "PNG", MARGIN_MM, y, imgWidth, imgHeight);
-    // 2.2.3 Stage B: optional frame around the chart.
+    // Optional frame around the chart.
     if(border){
       doc.setDrawColor(border.color[0], border.color[1], border.color[2]);
       doc.setLineWidth(border.widthMm);
@@ -476,7 +467,7 @@ export function assemblePdf(
     y += imgHeight + LINE_HEIGHT_MM;
   };
 
-  // 2.2.2: document title at the very top (once), with an accent rule under it.
+  // Document title at the very top (once), with an accent rule under it.
   const documentTitle = (title: string) => {
     if(!title) return;
     ink(C_HEADER);
@@ -493,15 +484,15 @@ export function assemblePdf(
     doc.setFontSize(10);
   };
 
-  // 2.2.2: end-of-document footer — disclaimer + generation/version stamp with
-  // GitHub + DOI attribution links. Anchored to the bottom of the last page.
+  // End-of-document footer — disclaimer + generation/version stamp with GitHub
+  // + DOI attribution links. Anchored to the bottom of the last page.
   const footerBlock = (f: PdfFooter) => {
     const lineH = 3.6;
     const discBudget = Math.max(20, Math.floor(contentWidth / 1.35));
     const discLines = f.disclaimer ? wrapPlainText(f.disclaimer, discBudget) : [];
     const genLines = (f.generated ? 1 : 0) + (f.repoUrl ? 1 : 0) + (f.doi ? 1 : 0);
-    // 2.2.3 Stage D: disclaimer and generator stamp are independently toggled —
-    // skip whichever is empty, and the whole block (incl. separator) if both are.
+    // Disclaimer and generator stamp are independently toggled — skip whichever
+    // is empty, and the whole block (incl. separator) if both are.
     if(discLines.length === 0 && genLines === 0) return;
     const gap = discLines.length && genLines ? 2 : 0;
     const blockH = 3 + discLines.length * lineH + gap + genLines * lineH + 2;
@@ -533,8 +524,8 @@ export function assemblePdf(
 
   if(opts.patientData){
     sectionBar(t("pdf.section.patientData"));
-    // 2.2.3: rows are pre-built by exportPdf per the PDF settings (default
-    // name/DOB fallbacks, age toggle, date format).
+    // Rows are pre-built by exportPdf per the PDF settings (default name/DOB
+    // fallbacks, age toggle, date format).
     table(data.patient, { labelWidth: 45, fontSize: 10 });
   }
 
@@ -543,15 +534,14 @@ export function assemblePdf(
     if(opts.odontogramChart) image(data.odontogramPng, data.odontogramImageSize, data.odontogramBorder);
     if(opts.odontogramDescription){
       caption(data.odontogramCaption);
-      // 2.2.3 (round 2): grouped dentition table between the overview caption and
-      // the per-axis findings table (rendered only when the caller supplies it).
+      // Grouped dentition table between the overview caption and the per-axis
+      // findings table (rendered only when the caller supplies it).
       if(data.toothTable) drawToothTable(data.toothTable);
     }
   }
 
-  // Round 2: the per-axis findings (caries, endo, diagnoses, wear, …) get their
-  // OWN titled section (like "Patient data"/"Dental chart"), a label/value table
-  // merging both fields, instead of trailing untitled under the chart.
+  // The per-axis findings (caries, endo, diagnoses, wear, …) get their own
+  // titled section, a label/value table merging both fields.
   if(opts.odontogramDescription && data.odontogramFindings.length){
     sectionBar(t("pdf.section.findings"));
     table(data.odontogramFindings, { labelWidth: 48, fontSize: 9 });
@@ -563,8 +553,8 @@ export function assemblePdf(
   }
 
   if(data.hasPerio && opts.perioStatus){
-    // 2.2.2: the periodontal-status chart always starts on its own page — it is
-    // a full-width diagram and reads far better without the odontogram section
+    // The periodontal-status chart always starts on its own page — it is a
+    // full-width diagram and reads far better without the odontogram section
     // crowding above it. Only break when the current page already has content
     // (so a perio-only report doesn't open with a blank first page).
     if(y > MARGIN_MM){ doc.addPage(); y = MARGIN_MM; }
@@ -573,8 +563,8 @@ export function assemblePdf(
   }
 
   if(data.hasPerio && opts.perioDescription){
-    // 2.2.3 Stage C: the metrics table and the abbreviation glossary are each
-    // independently toggleable — an empty array skips that whole sub-section.
+    // The metrics table and the abbreviation glossary are each independently
+    // toggleable — an empty array skips that whole sub-section.
     if(data.perioMetrics.length){
       sectionBar(t("pdf.section.perioDescription"));
       table(data.perioMetrics, { labelWidth: 55, fontSize: 9.5 });

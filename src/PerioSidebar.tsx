@@ -27,30 +27,24 @@ import {
 } from "./odontogram";
 import { indexName } from "./perioIndexNames";
 
-// UI-1 Task 1: extracted from `PerioChart.tsx` (the whole-mouth summary bar +
-// the "Páciens adatok" case-metadata form + the 2017 classification block),
-// which used to live inside the chart's `gridBody` (shared by both chart
-// chrome variants). Now a standalone, separately-mountable panel — `App.tsx`
-// renders it in the shared right `<aside className="panel">` in place of the
-// odontogram controls whenever the perio (Dental Chart) view is active, and
-// `PerioChart`'s popup chrome renders it stacked above its own grid so the
-// modal overlay stays a complete, self-sufficient surface. Reuses the EXACT
-// same DOM ids/classes the moved JSX had, so every existing id-based test
-// (and any host CSS targeting them) keeps resolving unchanged.
+// Standalone, separately-mountable perio-context panel bundling the whole-mouth
+// summary bar, the patient-data case-metadata form, and the 2017 classification
+// block. `App.tsx` renders it in the shared right `<aside className="panel">` in
+// place of the odontogram controls whenever the perio (Dental Chart) view is
+// active, and `PerioChart`'s popup chrome renders it stacked above its own grid
+// so the modal overlay stays a complete, self-sufficient surface. It uses the
+// same DOM ids/classes as the perio chart, so id-based tests and host CSS
+// targeting them keep resolving.
 //
 // Self-contained: owns its own `summary`/`caseMeta`/`classification` React
-// state + its own single `onStateChange` subscription (mirrors the pattern
-// `PerioChart` used for `caseMeta`/`classification`, `PerioChart.tsx:1953`)
-// — independent of whatever else is mounted (the chart grid, another
-// `PerioSidebar` instance in a different chrome). No `active` gate is needed
-// here (unlike `PerioChart`, which is always present in `<App/>`'s tree and
-// returns `null` while closed) because `PerioSidebar` itself is only ever
-// mounted by its caller when it's actually needed — so the real
-// `getPerioSummary`/`getCaseMeta`/`getPerioClassification` calls only ever
-// happen post-mount, in the effect below, never at module-eval time.
+// state and a single `onStateChange` subscription, independent of whatever else
+// is mounted (the chart grid, another `PerioSidebar` instance in a different
+// chrome). No `active` gate is needed because the component is only ever mounted
+// by its caller when needed — so `getPerioSummary`/`getCaseMeta`/
+// `getPerioClassification` are only called post-mount, in the effect below,
+// never at module-eval time.
 //
-// No new engine exports, no new mutation path — every control still writes
-// straight through its existing P4a/P4b setter, exactly as before the move.
+// Every control writes straight through its existing engine setter.
 
 type PerioSummaryData = ReturnType<typeof getPerioSummary>;
 const EMPTY_SUMMARY: PerioSummaryData = {
@@ -107,13 +101,12 @@ const EMPTY_CLASSIFICATION: ClassificationData = {
   overridden: { diagnosis: false, stage: false, grade: false, extent: false },
 };
 
-// Glickman furcation grade -> Roman-numeral face, mirrors `PerioChart.tsx`'s
-// own `FURCATION_ROMAN` (same duplication precedent as that file's
-// UPPER_ARCH/LOWER_ARCH vs. odontogram.ts's ALL_TEETH).
+// Glickman furcation grade -> Roman-numeral face (mirrors `PerioChart.tsx`'s
+// own `FURCATION_ROMAN`).
 const FURCATION_ROMAN = ["–", "I", "II", "III", "IV"];
 
-// P4b Task 4: per-axis derived-value label helpers, mirrors `PerioChart.tsx`'s
-// own identically-named helpers exactly.
+// Per-axis derived-value label helpers (mirror `PerioChart.tsx`'s own
+// identically-named helpers).
 function diagnosisLabel(v: string): string {
   return t(`perio.class.dx.${v}`);
 }
@@ -149,9 +142,8 @@ export default function PerioSidebar() {
     return unsubscribe;
   }, []);
 
-  // Read directly (not React state) — safe post-mount, same as PerioChart's
-  // own equivalent read. Only gates the case-metadata/classification panel's
-  // inputs (`disabled`).
+  // Read directly (not React state) — safe post-mount. Only gates the
+  // case-metadata/classification panel's inputs (`disabled`).
   const readOnly = getReadOnly();
 
   const worstCalText =
@@ -162,16 +154,13 @@ export default function PerioSidebar() {
   const cigsDisabled = caseMeta.smokingStatus !== "current";
   const hba1cDisabled = caseMeta.diabetesStatus !== "present";
 
-  // UI-2 Task 3: the whole-mouth summary items that name a specific index
-  // (PD/CAL/BOP/Furcation/Plaque) compose their label from the qualifier
-  // (Avg/Worst/Max/%) + `indexName(...)`, so canonical mode swaps in the
-  // fixed English/Latin index name instead of the localized `t(...)` string
-  // — same effect as `buildArch`'s composed buccal/palatal labels in
-  // `PerioChart.tsx`. The qualifier itself is a plain English literal in
-  // canonical mode by design: canonical mode is explicitly NOT localized
-  // (that is the whole point of it), so it never round-trips through `t()`.
-  // "Charted sites" isn't tied to one specific index — left translated in
-  // both modes.
+  // Whole-mouth summary items that name a specific index (PD/CAL/BOP/Furcation/
+  // Plaque) compose their label from the qualifier (Avg/Worst/Max/%) +
+  // `indexName(...)`, so canonical mode swaps in the fixed English/Latin index
+  // name instead of the localized `t(...)` string. The qualifier itself is a
+  // plain English literal in canonical mode by design: canonical mode is not
+  // localized, so it never round-trips through `t()`. "Charted sites" isn't tied
+  // to one specific index — left translated in both modes.
   const canonicalNames = getPerioIndexNameMode() === "canonical";
   const avgPdLabel = canonicalNames ? `Avg ${indexName("pd")}` : t("perio.summary.avgPd");
   const avgCalLabel = canonicalNames ? `Avg ${indexName("cal")}` : t("perio.summary.avgCal");

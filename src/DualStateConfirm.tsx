@@ -10,16 +10,16 @@ const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
- * DS-1 Task 2: blocking confirm dialog shown BEFORE a status-mode edit is
- * applied to a tooth the user has already planned (which would make the status
- * chart diverge from the plan). Mirrors {@link SettingsModal}'s dialog contract:
+ * Blocking confirm dialog shown BEFORE a status-mode edit is applied to a tooth
+ * the user has already planned (which would make the status chart diverge from
+ * the plan). Mirrors {@link SettingsModal}'s dialog contract:
  *
  * - `role="dialog"` + `aria-modal`, labelled by its message; root id
  *   `#dualStateConfirm`.
  * - Esc cancels; backdrop click cancels; focus is trapped inside while open and
  *   returned to the opener element on close.
- * - "Igen" accepts (apply the divergent edit), "Mégse" cancels (revert the
- *   control). Both labels + the message come through `t`.
+ * - Accept applies the divergent edit, cancel reverts the control. Both labels
+ *   and the message come through `t`.
  *
  * The dialog owns no state — accept/cancel are driven entirely by the caller
  * (the odontogram module's deferred `apply`/`revert`), so the same instance can

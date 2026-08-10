@@ -17,7 +17,7 @@
 
 ## 🇨🇳 简体中文
 
-*(本文档为 README 的简体中文版本 — 译自英文原版，对应 v1.49.0)*
+*(本文档为 README 的简体中文版本 — 译自英文原版，对应 v2.4.0)*
 
 ### 📋 概述
 本项目是一款交互式、基于浏览器的牙位图（口腔检查图）编辑器，界面简洁，支持快速的牙科病历记录。它通过分层渲染 SVG 牙齿模板来表现修复体、龋齿、牙髓治疗状态、松动度及其他临床细节，同时提供多选、选择过滤器和预设状态模板。
@@ -185,7 +185,7 @@ export default function OdontogramClient() {
 - ⏳ 图像导出过程中的进度浮层
 - 🎓 12 步交互式新手导览
 - 🔢 三种牙位编号系统（FDI、通用编号法、Palmer）
-- 🌐 国际化（HU/EN/DE/ES/IT/SK/PL/RU/PT-BR），支持语言切换（每种语言 190+ 条翻译键）
+- 🌐 国际化（HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR），支持语言切换
 - 🌗 支持深色模式，附带切换按钮（独立控制或由父应用控制）
 - 🎨 通过 CSS 自定义属性（`--odon-*`）实现的自定义主题配置（`themeConfig` 属性）
 - 📱 移动端触控体验：点按缩放弹出层、长按上下文菜单、双指缩放、符合 WCAG 标准的 44px 触控目标、牙弓切换导航
@@ -206,7 +206,7 @@ export default function OdontogramClient() {
 - 🩺 牙周记录：每颗牙齿六个标准位点的**探诊深度**、**龈缘位置**、**探诊出血**（+溢脓），并推算出**临床附着水平（CAL = 探诊深度 + 龈缘位置）**、牙龈退缩量，以及全口**探诊出血百分比（%BOP）**。**图形化全口牙周图**——每侧牙弓分别绘制为**两张独立的颊侧/腭（舌）侧 SVG 图**（复用牙齿美术资源，在两个面上统一采用“牙冠朝向一致”的方向；种植牙位使用**种植体图形**），配有红色的**CEJ 线**、**带毫米刻度编号的参考网格**，以及贯穿各牙的**龈缘/牙周袋深度曲线**，并由一条**中央牙周指标带**（标注为 `▲ 颊侧 … 舌/腭侧 ▼`）将其分隔，该指标带承载共用的按牙位指标——最上方为 **Miller 分级**，**菌斑/PI/GI/mPI/mBI** 则以每颗牙齿一个**解剖学菱形方块**呈现（颊侧尖朝上，舌侧尖朝下，中间行的近中/远中根据左右侧对调，使近中始终指向牙弓中线）；数值行（完整指标名称——PD/GM/CAL/BOP + 松动度 + 根分叉——采用更大、更适合触控的单元格）按列对齐，并附一份摘要（平均 PD/CAL、%BOP、PI%），支持**键盘自动前进**式录入；图表会**动态缩放以填满可用宽度**，在任意窗口尺寸下均具响应式效果。以 `Odontogram | Periodontal Status`（牙位图 | 牙周状态）**视图切换开关**呈现，该视图激活时右侧面板会转用为**牙周情境侧栏**（患者数据、2017 年分类结果及全口摘要），设置选项可将整体呈现方式切回**弹窗**形式；`PerioChart` 依然是一个**可独立调用的组件**（具名导出），使宿主应用可以独立于基础牙位图单独调起牙周图表。按位点的 **FHIR** 导出通过 LOINC 牙周面板代码（`74029-0`；探诊深度 `32910-2`、牙龈退缩 `32911-0`、CAL `32912-8`）
 - 🅿️ 拟定样式：在计划模式下，计划相对当前现状**新增**的发现（拟定牙冠、拔牙、正畸移动、修复体等）会以醒目的**虚线、着色“拟定”轮廓**渲染，使计划呈现为意向而非既成事实——图表卡片中附有“虚线 = 拟定”图例说明。现状模式下的渲染保持逐字节一致；治疗方案仅存在于计划图表中，切回现状时会完全重置
 - 🚦 计划模式限定：计划图表仅显示牙医实际可以**执行**的操作——基础选择器仅提供缺失 / 恒牙 / 种植体，且仅适用于现状的发现项（龋齿、牙齿磨耗、变色，以及整个牙周区块——松动度、六位点探诊网格、炎症/牙周修饰项、牙石、种植体周状态）均被隐藏；牙髓/根管控件保留根管**治疗**操作（根管治疗/桩钉/根尖切除/髓旁钉），同时隐藏牙髓/根尖**诊断**及牙根吸收。修复体、可摘修复、正畸、需要牙冠/更换牙冠及拔牙计划仍可纳入计划
-- 🧪 1746 个自动化测试通过（另有 1 个测试被跳过）（Vitest），覆盖 164 个测试文件（共 165 个），涵盖编号系统、翻译、预设模板、国际化、App 组件、主题、触控、插件、无障碍访问及临床轴/诊断一致性
+- 🧪 全面的 Vitest 自动化测试套件，涵盖编号系统、翻译、预设模板、国际化、App 组件、主题、触控、插件、无障碍访问及临床轴/诊断一致性
 - 📖 基于 JSDoc 注释、面向所有公共导出项生成的 TypeDoc API 文档（`npm run docs`）
 
 ### 📦 模块组成
@@ -214,7 +214,7 @@ export default function OdontogramClient() {
 - 🎛️ 控件与状态面板
 - 🎨 SVG 分层渲染引擎及模板
 - 🔢 牙位编号与标签映射（FDI/通用编号法/Palmer）
-- 🌐 本地化（HU/EN/DE/ES/IT/SK/PL/RU/PT-BR）
+- 🌐 本地化（HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR）
 - 💾 状态导出/导入
 - 📋 状态附加功能：预定义修复体模板
 - 🎨 主题配置：通过 `--odon-*` CSS 属性实现的可自定义配色方案
@@ -230,7 +230,7 @@ export default function OdontogramClient() {
 ### 🛠️ 界面控件
 
 **🔝 顶部工具栏：**
-- 语言切换器（HU/EN/DE/ES/IT/SK/PL/RU/PT-BR 下拉菜单）
+- 语言切换器（HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR 下拉菜单）
 - 深色模式切换按钮（太阳/月亮图标，在亮色与深色主题间切换）
 - 编号系统切换器（FDI/通用编号法/Palmer 下拉菜单）
 - 导出状态 / 导入状态按钮
@@ -475,7 +475,7 @@ setPluginState(11, "implant-brand", "Straumann");
 
 ### 🧪 测试
 ```bash
-npm run test           # 运行全部 1704 个测试（另有 1 个测试被跳过）
+npm run test           # 运行完整的 Vitest 测试套件
 npm run test:watch     # 监听模式
 npm run test:coverage  # 覆盖率报告
 ```
@@ -697,7 +697,7 @@ enablePersistence({
 - `src/plugin.ts` - `OdontogramPlugin` 类型、`PluginLayer`、`getQuadrant()`、`LAYER_Z` 层级优先级
 - `src/theme.ts` - `OdontogramThemeConfig` 类型及 `applyThemeConfig()` 工具函数
 - `src/status_extras.ts` - 34 种预定义修复体模板（桥、义齿、杆卡结构）
-- `src/i18n/` - 翻译文件（HU/EN/DE/ES/IT/SK/PL/RU/PT-BR）及国际化 hook
+- `src/i18n/` - 翻译文件（HU/EN/DE/ES/IT/SK/PL/RU/PT-BR/AR/ZH/FR）及国际化 hook
 - `src/utils/numbering.ts` - FDI、通用编号法、Palmer 编号转换
 - `src/registry/` - 声明式临床轴注册表：FHIR 字段映射、SVG 清除集/布尔标志激活、修复体类型×材料矩阵、界面选项列表（生成导出/导入、FHIR 及选择器界面的单一数据来源）
 - `src/fhir/` - HL7 FHIR R4 导出/导入：`toFhir.ts`/`fromFhir.ts`、代码系统、字段映射、基础类型
@@ -706,7 +706,7 @@ enablePersistence({
 - `src/perioExport.ts` - `buildPerioSvg()`：将完整牙周图表构建为一份独立的矢量 SVG
 - `src/perioPdf.ts` - `exportPdf()` 的纯 jsPDF 报告组装器（`assemblePdf`）
 - `src/ExportOptionsModal.tsx` - “PDF report…”导出设置弹窗
-- `src/__tests__/` + `src/registry/__tests__/` - Vitest 测试套件（1704 个测试通过，1 个跳过，共 163 个文件）
+- `src/__tests__/` + `src/registry/__tests__/` - 全面的 Vitest 自动化测试套件
 - `src/assets/teeth-svgs/` - SVG 牙齿模板（6 个文件：切牙、尖牙、前磨牙、磨牙 + 咬合面视图）
 - `src/assets/icon-svgs/` - 工具栏图标 SVG（5 个文件）
 
@@ -740,12 +740,12 @@ enablePersistence({
 
 如果您在工作中使用了本模块，请引用它。
 
-**本版本（v1.49.0）：**
-> Dul, Z. (2026). *React Advanced Odontogram* (v1.49.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
+**本版本（v2.4.0）：**
+> Dul, Z. (2026). *React Advanced Odontogram* (v2.4.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **所有版本（概念 DOI）：** https://doi.org/10.5281/zenodo.21156787
 
 > 上述概念 DOI 始终指向最新归档的发布版本；每次在 Zenodo 上归档发布时，
-> 都会为该版本铸造一个版本专属 DOI。在 v1.49.0 被归档之前，请使用概念 DOI 进行引用。
+> 都会为该版本铸造一个版本专属 DOI。在 v2.4.0 被归档之前，请使用概念 DOI 进行引用。
 
 机器可读的引用元数据位于 [`CITATION.cff`](../CITATION.cff)。

@@ -204,7 +204,7 @@ O cárgalo con un import dinámico solo de cliente: `dynamic(() => import("./Odo
 - 🩺 Registro periodontal: **profundidad de sondaje**, **margen gingival** y **sangrado al sondaje** (+ supuración) por sitio, en los seis sitios estándar de cada diente, con un **nivel de inserción clínica derivado (CAL = PD + margen gingival)**, recesión y **%BOP** de toda la boca. Un **odontograma periodontal gráfico de boca completa** — cada arcada se dibuja como **dos SVG independientes, bucal y palatino/lingual** (reutilizando el arte dental con una orientación uniforme de corona hacia la banda en ambos aspectos; un **gráfico de implante** para los dientes con implante) con una **línea CEJ** roja, una **cuadrícula numerada en milímetros** y una **curva de margen gingival/profundidad de bolsa** sobre los dientes, dividida por una **banda central de índices periodontales** (etiquetada `▲ Buccal … Lingual/Palatal ▼`) que agrupa los índices compartidos por diente — la **clase de Miller** en la parte superior, y **Placa/PI/GI/mPI/mBI** representados como una **loseta romboidal anatómica** por diente (vértice bucal arriba, vértice lingual abajo, mesial/distal de la fila central intercambiados según el lado para que mesial siempre apunte hacia la línea media de la arcada); las filas numéricas (con los nombres completos de los índices — PD/GM/CAL/BOP + movilidad + furca — en celdas más grandes y táctiles) alineadas en columnas, y un resumen (PD/CAL promedio, %BOP, %PI), con entrada por **avance automático de teclado**; el odontograma **se escala dinámicamente para llenar el ancho disponible**, siendo responsivo en cualquier tamaño de ventana. Se presenta como un **selector de vista** `Odontogram | Periodontal Status`, cuyo panel derecho se reconvierte en una **barra lateral de contexto periodontal** (datos del paciente, la clasificación de 2017 y el resumen de toda la boca) mientras esa vista está activa (una opción de Ajustes permite volver a toda la presentación como **ventana emergente**), y sigue siendo un **componente invocable por separado** (exportación `PerioChart`) para que una aplicación anfitriona pueda abrir el odontograma periodontal de forma independiente del odontograma base. Exportación **FHIR** por sitio mediante el panel periodontal LOINC (`74029-0`; PD `32910-2`, recesión `32911-0`, CAL `32912-8`)
 - 🅿️ Estilo de propuesta: en el modo Plan, los hallazgos que el plan **añade** respecto al estado actual (corona planificada, extracción, movimiento ortodóntico, prótesis, …) se renderizan con un **contorno "propuesto" distintivo, punteado y con tinte**, de modo que el plan se lea como intención y no como hecho — con una leyenda "punteado = propuesto" en la tarjeta del odontograma. El renderizado en modo Estado es idéntico byte a byte; el tratamiento visual es exclusivo del plan y se restablece por completo al volver al estado
 - 🚦 Restricción del modo Plan: el odontograma de Plan solo muestra lo que un dentista puede *hacer* — el selector base ofrece únicamente Ausente / Permanente / Implante, y los hallazgos de solo estado (caries, desgaste dental, decoloración, y todo el bloque periodontal — movilidad, cuadrícula de sondaje de seis sitios, modificadores de inflamación/periodontales, cálculo, estado periimplantario) quedan ocultos; el control de pulpa/endo conserva el **tratamiento** endodóntico (conducto / poste / apicectomía / pin parapulpar) mientras oculta el **diagnóstico** pulpar/apical y la reabsorción radicular. La restauración, la prótesis, la ortodoncia, la necesidad/reemplazo de corona y el plan de extracción siguen siendo planificables
-- 🧪 1746 pruebas automatizadas superadas (1 prueba adicional omitida) (Vitest) en 164 archivos de test (165 en total), para numeración, traducciones, plantillas, i18n, componente App, tema, táctil, plugins, accesibilidad y paridad de ejes clínicos/diagnósticos
+- 🧪 Una amplia suite de pruebas automatizadas de Vitest para numeración, traducciones, plantillas, i18n, componente App, tema, táctil, plugins, accesibilidad y paridad de ejes clínicos/diagnósticos
 - 📖 Documentación API TypeDoc con comentarios JSDoc en todas las exportaciones públicas (`npm run docs`)
 
 ### 📦 Módulos
@@ -473,7 +473,7 @@ setPluginState(11, "implant-brand", "Straumann");
 
 ### 🧪 Pruebas
 ```bash
-npm run test           # Ejecutar las 1704 pruebas (1 prueba adicional omitida)
+npm run test           # Ejecutar la amplia suite de pruebas automatizadas de Vitest
 npm run test:watch     # Modo watch
 npm run test:coverage  # Informe de cobertura
 ```
@@ -704,7 +704,7 @@ Además de la propia exportación de Estado JSON / FHIR / PNG / JPG / SVG del od
 - `src/perioExport.ts` - `buildPerioSvg()`: el gráfico periodontal completo como un único SVG vectorial independiente
 - `src/perioPdf.ts` - ensamblador puro jsPDF del informe de `exportPdf()` (`assemblePdf`)
 - `src/ExportOptionsModal.tsx` - el diálogo de ajustes de exportación "Informe PDF…"
-- `src/__tests__/` + `src/registry/__tests__/` - suite de pruebas Vitest (1704 pruebas superadas, 1 omitida, en 163 archivos)
+- `src/__tests__/` + `src/registry/__tests__/` - una amplia suite de pruebas automatizadas de Vitest
 - `src/assets/teeth-svgs/` - plantillas SVG dentales (6 archivos: incisivos, caninos, premolares, molares + vistas oclusales)
 - `src/assets/icon-svgs/` - SVGs de iconos de barra de herramientas (5 archivos)
 
@@ -738,14 +738,14 @@ Además de la propia exportación de Estado JSON / FHIR / PNG / JPG / SVG del od
 
 Si utilizas este módulo en tu trabajo, por favor cítalo.
 
-**Esta versión (v1.49.0):**
-> Dul, Z. (2026). *React Advanced Odontogram* (v1.49.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
+**Esta versión (v2.4.0):**
+> Dul, Z. (2026). *React Advanced Odontogram* (v2.4.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **Todas las versiones (DOI de concepto):** https://doi.org/10.5281/zenodo.21156787
 
 > El DOI de concepto de todas las versiones anterior siempre resuelve a la versión
 > archivada más reciente; se emite un DOI específico de versión por cada lanzamiento
-> cuando se archiva en Zenodo. Hasta que la v1.49.0 sea archivada, cítala mediante
+> cuando se archiva en Zenodo. Hasta que la v2.4.0 sea archivada, cítala mediante
 > el DOI de concepto.
 
 Los metadatos de citación legibles por máquina están en [`CITATION.cff`](CITATION.cff).

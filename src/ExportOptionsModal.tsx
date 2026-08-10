@@ -21,22 +21,23 @@ const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
- * UI-3b Task 7: the "PDF report…" export-settings dialog. Mirrors
- * {@link DualStateConfirm}'s dialog contract exactly:
+ * The "PDF report…" export-settings dialog. Mirrors {@link DualStateConfirm}'s
+ * dialog contract exactly:
  *
  * - `.odon-confirm-backdrop` / `.odon-confirm-modal`, `role="dialog"` +
  *   `aria-modal`, labelled via `useId()`.
  * - Esc cancels; backdrop click cancels; focus is trapped inside while open
  *   and returned to the opener element on close.
  *
- * Behavior: four checkboxes (all default ON) — patient data, odontogram +
- * description, perio status, perio description + footer — plus name/exam-date
- * inputs that write straight through the P4a `setPatientName`/`setExamDate`
- * setters (same pattern as `PerioSidebar`'s case-meta panel). When
- * {@link hasAnyPerioData} is false the two perio checkboxes are `disabled`
- * (a "no perio data" note is shown) and are forced off in the opts handed to
- * `exportPdf()` regardless of their checked state — belt-and-suspenders on
- * top of `exportPdf()`'s own internal auto-skip.
+ * Behavior: checkboxes (all default ON) for the report sections — patient data,
+ * odontogram chart, odontogram description, individual notes, perio status,
+ * perio description — plus name/exam-date inputs that write straight through the
+ * `setPatientName`/`setExamDate` setters (same pattern as `PerioSidebar`'s
+ * case-meta panel). When {@link hasAnyPerioData} is false the two perio
+ * checkboxes are `disabled` (a "no perio data" note is shown) and forced off in
+ * the opts handed to `exportPdf()` regardless of their checked state —
+ * belt-and-suspenders on top of `exportPdf()`'s own internal auto-skip. The
+ * individual-notes checkbox is likewise disabled when no tooth carries a note.
  */
 export default function ExportOptionsModal({
   open,
@@ -52,16 +53,16 @@ export default function ExportOptionsModal({
   const titleId = useId();
 
   const [patientData, setPatientDataOpt] = useState(true);
-  // 2.2.1: the former combined "Odontogram + description" option is split into
-  // two independently-selectable checkboxes, plus a third for per-tooth notes.
+  // Odontogram chart and description are independently-selectable checkboxes,
+  // plus a third for per-tooth notes.
   const [odontogramChart, setOdontogramChartOpt] = useState(true);
   const [odontogramDescription, setOdontogramDescriptionOpt] = useState(true);
   const [individualNotes, setIndividualNotesOpt] = useState(true);
   const [perioStatus, setPerioStatusOpt] = useState(true);
   const [perioDescription, setPerioDescriptionOpt] = useState(true);
   const [hasPerio, setHasPerio] = useState(false);
-  // 2.2.1: whether any tooth carries a note — drives the notes checkbox's
-  // `disabled` state (mirrors `hasPerio`/the perio checkboxes).
+  // Whether any tooth carries a note — drives the notes checkbox's `disabled`
+  // state (mirrors `hasPerio`/the perio checkboxes).
   const [hasNotes, setHasNotes] = useState(false);
   const [caseMeta, setCaseMetaState] = useState(getCaseMeta());
   // Local, decoupled buffer for the patient-name input. `setPatientName` trims
@@ -79,8 +80,8 @@ export default function ExportOptionsModal({
     openerRef.current = (document.activeElement as HTMLElement | null) ?? null;
     setHasPerio(hasAnyPerioData());
     setHasNotes(hasAnyToothNote());
-    // 2.2.1: exam date defaults to today (still editable) when the case has
-    // none — so a fresh report is dated without the user having to fill it in.
+    // Exam date defaults to today (still editable) when the case has none — so
+    // a fresh report is dated without the user having to fill it in.
     if (getCaseMeta().examDate === null) {
       setExamDate(new Date().toISOString().slice(0, 10));
     }

@@ -1,22 +1,21 @@
 // Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 //
-// Round 2: bundled Unicode font for the PDF report. jsPDF's built-in Helvetica
-// uses WinAnsi encoding, so it CANNOT render Hungarian double-acute accents
-// (ő/ű) or Cyrillic (ru), producing garbled output. This embeds a tight SUBSET
-// of Roboto (Apache-2.0) — Basic Latin, Latin-1, Latin Extended-A, the Romanian
+// Bundled Unicode font for the PDF report. jsPDF's built-in Helvetica uses
+// WinAnsi encoding, so it cannot render Hungarian double-acute accents (ő/ű) or
+// Cyrillic (ru), producing garbled output. This embeds a tight subset of Roboto
+// (Apache-2.0) — Basic Latin, Latin-1, Latin Extended-A, the Romanian
 // comma-below letters, Cyrillic (U+0400–045F + ґ/ѐ), and the punctuation the
 // report uses (en/em dash, curly quotes, bullet, ellipsis, €, minus) — covering
-// every currently LATIN/CYRILLIC UI language (hu, en, de, es, it, sk, pl, ru,
-// pt-br, fr) in ~27 KB per weight (GSUB/GPOS/hinting stripped). Arabic (ar) and
-// Chinese (zh) need their own shaped/CJK fonts and are a separate, later step —
-// they still fall back to the built-in font for now.
+// every Latin/Cyrillic UI language (hu, en, de, es, it, sk, pl, ru, pt-br, fr)
+// in ~27 KB per weight (GSUB/GPOS/hinting stripped). Arabic (ar) and Chinese
+// (zh) have their own shaped/CJK fonts.
 //
-// Base64-embedded (not fetched) so the export works fully offline, exactly like
-// the ?raw-inlined tooth-template SVGs. Regular + Bold only; italic/bold-italic
-// are mapped to those upright faces (jsPDF cannot synthesize a slant for an
-// embedded TTF, and a missing style would throw). Subset built with pyftsubset
-// from Roboto-{Regular,Bold}.ttf.
+// Base64-embedded (not fetched) so the export works fully offline, like the
+// ?raw-inlined tooth-template SVGs. Regular + Bold only; italic/bold-italic are
+// mapped to those upright faces (jsPDF cannot synthesize a slant for an embedded
+// TTF, and a missing style would throw). Subset built with pyftsubset from
+// Roboto-{Regular,Bold}.ttf.
 
 /** jsPDF surface needed to register an embedded font (subset of jsPDF's API). */
 export interface FontRegistrable {

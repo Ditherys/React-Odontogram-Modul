@@ -42,13 +42,12 @@ import iconPulpSvg from "./assets/icon-svgs/icon_pulp.svg?raw";
 // ?raw-inlined SVGs above.
 import brandLogoUrl from "./assets/react-module-logo.png?inline";
 
-// Task 4 (Arabic+Chinese sub-project): languages whose native reading
-// direction is right-to-left. Only Arabic today; Chinese (zh) is LTR.
-// The shell root's `dir` is reactive to the active `lang` (never mutates
-// `document.documentElement` — an embedding host page's direction is not
-// ours to change), while the dental/perio charts stay pinned `dir="ltr"`
-// (see `#toothGrid` below + the defensive CSS rule in `src/index.css`) since
-// they are diagrams read 18->28 left-to-right in every locale.
+// Languages whose native reading direction is right-to-left (only Arabic today).
+// The shell root's `dir` reacts to the active `lang` and never mutates
+// `document.documentElement` — an embedding host page's direction is not ours to
+// change. The dental/perio charts stay pinned `dir="ltr"` (see `#toothGrid` below
+// plus the CSS rule in `src/index.css`) since they are diagrams read
+// left-to-right in every locale.
 const RTL_LANGUAGES: ReadonlySet<Language> = new Set(["ar"]);
 function isRtl(lang: Language): boolean {
   return RTL_LANGUAGES.has(lang);
@@ -203,9 +202,9 @@ const LANGUAGE_OPTIONS: { value: Language; labelKey: string }[] = [
  * />
  * ```
  */
-/** Round 2 (Stage 5): parse a `#rgb`/`#rrggbb` hex colour to a CSS `"r,g,b"`
- *  channel string for `rgba(var(--odon-select-rgb), α)`. Falls back to the blue
- *  default on a malformed value. */
+/** Parse a `#rgb`/`#rrggbb` hex colour to a CSS `"r,g,b"` channel string for
+ *  `rgba(var(--odon-select-rgb), α)`. Falls back to the blue default on a
+ *  malformed value. */
 function hexToRgbCss(hex: string): string {
   let h = (hex || "").replace("#", "").trim();
   if(h.length === 3) h = h.split("").map((c) => c + c).join("");
@@ -255,24 +254,24 @@ export default function App({
   const [discoLevel, setDiscoLevel] = useState<ToothDetailLevel>(discolorationDetailLevel ?? "complex");
   const [notation, setNotation] = useState<SurfaceNotation>(surfaceNotation ?? "full");
   const [toothInfoOn, setToothInfoOn] = useState<boolean>(true);
-  // Round 2 (Stage 2): per-format export + per-source import availability
-  // (session-only UI config). All default ON. A disabled format/source hides its
-  // export/import menu item; disabling PDF also disables the Export Settings tab.
+  // Per-format export + per-source import availability (session-only UI config).
+  // All default ON. A disabled format/source hides its export/import menu item;
+  // disabling PDF also disables the Export Settings tab.
   const [exportPngOn, setExportPngOn] = useState<boolean>(true);
   const [exportJpgOn, setExportJpgOn] = useState<boolean>(true);
   const [exportSvgOn, setExportSvgOn] = useState<boolean>(true);
   const [exportPdfOn, setExportPdfOn] = useState<boolean>(true);
   const [importStatusOn, setImportStatusOn] = useState<boolean>(true);
   const [importFhirOn, setImportFhirOn] = useState<boolean>(true);
-  // Round 2 (Stage 3): Odontogram-tab on-screen controls (session-only).
+  // Odontogram-tab on-screen controls (session-only).
   const [planModeAvailable, setPlanModeAvailable] = useState<boolean>(true);
   const [perioChartAvailable, setPerioChartAvailable] = useState<boolean>(true);
   const [screenSpacing, setScreenSpacing] = useState<ScreenToothSpacing>("normal");
   const [screenNumberSize, setScreenNumberSize] = useState<ScreenToothNumberSize>("normal");
-  // Round 2 (Stage 5): adjustable tooth-selection colour + border style.
+  // Adjustable tooth-selection colour + border style.
   const [selectionColor, setSelectionColor] = useState<string>("#3b7bff");
   const [selectionBorderStyle, setSelectionBorderStyle] = useState<SelectionBorderStyle>("dashed");
-  // Round 2 (Stage 6): Fillings-tab config (mirrors odontogram.ts module flags).
+  // Fillings-tab config (mirrors odontogram.ts module flags).
   const [fillingDefectOn, setFillingDefectOn] = useState<boolean>(() => getFillingDefectEnabled());
   const [fillingComplexityState, setFillingComplexityState] = useState<FillingComplexity>(() => getFillingComplexity());
   const [fissureSealingOn, setFissureSealingOn] = useState<boolean>(() => getFissureSealingEnabled());
@@ -286,44 +285,40 @@ export default function App({
   const [pdfOpen, setPdfOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const importRef = useRef<HTMLDivElement | null>(null);
-  // P2 Task 1: demo state mirroring the module-level perio-overlay flag
-  // (odontogram.ts), kept in sync via the existing onStateChange subscription
-  // below so a host that calls openPerioOverlay()/closePerioOverlay() directly
-  // (bypassing this button entirely) still gets <PerioChart/> to re-render.
+  // Mirror the module-level perio-overlay flag into React state, kept in sync via
+  // the onStateChange subscription below so a host that calls openPerioOverlay()/
+  // closePerioOverlay() directly (bypassing this button) still re-renders <PerioChart/>.
   const [perioOpen, setPerioOpen] = useState(false);
-  // "Dental Chart" graphical redesign, Task 1: demo state mirroring the
-  // module-level perioViewMode flag (odontogram.ts) — same precedent as
-  // `perioOpen` above, kept in sync via onStateChange so a host calling
-  // setPerioViewMode() directly (e.g. from the Settings modal) re-renders the
-  // housing without a dedicated local setter. `activeView` is purely local UI
-  // state (never exposed to a host) — which of the toggle's two segments is
-  // showing, only meaningful while `viewMode === "toggle"`.
+  // Mirror the module-level perioViewMode flag into React state, kept in sync via
+  // onStateChange so a host calling setPerioViewMode() directly (e.g. from the
+  // Settings modal) re-renders the housing without a dedicated local setter.
+  // `activeView` is purely local UI state (never exposed to a host) — which of the
+  // toggle's two segments is showing, only meaningful while `viewMode === "toggle"`.
   const [viewMode, setViewMode] = useState<PerioViewMode>(() => getPerioViewMode());
   const [activeView, setActiveView] = useState<"odontogram" | "dentalChart">("odontogram");
-  // UI-2 Task 1: mirror the two Settings -> Periodontal tab module flags into
-  // React state, same precedent as `viewMode` mirroring `perioViewMode` above
-  // — kept in sync via the shared `onStateChange` subscription so a host
-  // calling the setters directly still re-renders the Settings modal.
+  // Mirror the two Settings -> Periodontal tab module flags into React state,
+  // kept in sync via the shared `onStateChange` subscription so a host calling
+  // the setters directly still re-renders the Settings modal.
   const [perioRowVisibility, setPerioRowVisibilityState] = useState<Record<PerioRowId, boolean>>(
     () => getPerioRowVisibility(),
   );
   const [perioIndexNameMode, setPerioIndexNameModeState] = useState<PerioIndexNameMode>(
     () => getPerioIndexNameMode(),
   );
-  // 2.2.3: PDF export settings mirror (session-only module state).
+  // PDF export settings mirror (session-only module state).
   const [pdfSettings, setPdfSettingsState] = useState(() => getPdfSettings());
-  // UI-1 Task 1: whether the perio (Dental Chart) view is the one currently
-  // showing — ONLY true in toggle-mode dentalChart; popup mode never gates
-  // the shared right panel this way (the popup itself renders <PerioSidebar/>
-  // in its own body, see PerioChart.tsx). Drives which content the shared
-  // right `<aside className="panel">` below renders.
+  // Whether the perio (Dental Chart) view is the one currently showing — ONLY
+  // true in toggle-mode dentalChart; popup mode never gates the shared right
+  // panel this way (the popup renders <PerioSidebar/> in its own body, see
+  // PerioChart.tsx). Drives which content the shared right `<aside
+  // className="panel">` below renders.
   const isPerioView = viewMode === "toggle" && activeView === "dentalChart";
-  // DS-1 Task 2: mirror the module-level "a status edit on a planned tooth is
-  // awaiting confirmation" flag into React state via the existing onStateChange
-  // subscription (requestDualStateConfirm / accept / cancel all notify), so the
-  // blocking confirm dialog opens/closes regardless of which gated edit raised
-  // it. Initialized false — a confirm can only be requested by a post-mount
-  // edit, so there is never a pending confirm at mount.
+  // Mirror the module-level "a status edit on a planned tooth is awaiting
+  // confirmation" flag into React state via the onStateChange subscription
+  // (requestDualStateConfirm / accept / cancel all notify), so the blocking
+  // confirm dialog opens/closes regardless of which gated edit raised it.
+  // Starts false — a confirm can only be requested by a post-mount edit, so
+  // there is never a pending confirm at mount.
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Dark mode: controlled via prop or standalone via internal state
@@ -404,9 +399,9 @@ export default function App({
     setPulpLevel(pulpDetailLevel ?? "aae");
   }, [pulpDetailLevel]);
 
-  // SP5 Task 5: sync the caries-granularity settings (controlled props -> engine).
-  // The mode-picker UI itself lives in the Settings modal (Task 6); these props
-  // are the controlled entry point so hosts (and tests) can drive the modes.
+  // Sync the caries-granularity settings (controlled props -> engine). The
+  // mode-picker UI lives in the Settings modal; these props are the controlled
+  // entry point so hosts (and tests) can drive the modes.
   useEffect(() => {
     const v = secondaryCariesMode ?? "standard";
     setSecondaryCariesMode(v);
@@ -444,39 +439,37 @@ export default function App({
     return onStateChange(refresh);
   }, [toothInfoOn, lang, currentNumbering]);
 
-  // UI-3b: mirror perio-data presence into React state so the perio export
-  // menu items' `disabled` gate stays live. Deliberately its OWN effect,
-  // subscribed UNCONDITIONALLY (NOT gated by `toothInfoOn` like the summary
-  // effect above) — the export gate must track charted perio data even when
-  // the user has the Tooth-info panel turned off.
+  // Mirror perio-data presence into React state so the perio export menu items'
+  // `disabled` gate stays live. Deliberately its OWN effect, subscribed
+  // UNCONDITIONALLY (not gated by `toothInfoOn` like the summary effect above) —
+  // the export gate must track charted perio data even when the Tooth-info panel
+  // is turned off.
   useEffect(() => {
     const refresh = () => setHasPerio(hasAnyPerioData());
     refresh();
     return onStateChange(refresh);
   }, []);
 
-  // P2 Task 1: mirror the module-level perio-overlay flag into React state via
-  // the existing onStateChange subscription (openPerioOverlay/closePerioOverlay
-  // both call notifyStateChange()), so <PerioChart/> re-renders regardless of
-  // whether it was opened/closed via this button or a host calling the
-  // imperative API directly.
+  // Mirror the module-level perio-overlay flag into React state via the
+  // onStateChange subscription (openPerioOverlay/closePerioOverlay both call
+  // notifyStateChange()), so <PerioChart/> re-renders whether it was opened/closed
+  // via this button or a host calling the imperative API directly.
   useEffect(() => {
     const refresh = () => setPerioOpen(isPerioOverlayOpen());
     refresh();
     return onStateChange(refresh);
   }, []);
 
-  // "Dental Chart" graphical redesign, Task 1: mirror the module-level
-  // perioViewMode flag into React state the same way perioOpen mirrors
-  // isPerioOverlayOpen() above.
+  // Mirror the module-level perioViewMode flag into React state the same way
+  // perioOpen mirrors isPerioOverlayOpen() above.
   useEffect(() => {
     const refresh = () => setViewMode(getPerioViewMode());
     refresh();
     return onStateChange(refresh);
   }, []);
 
-  // UI-2 Task 1: mirror the module-level perioRowVisibility/perioIndexNameMode
-  // flags into React state the same way perioViewMode is mirrored above.
+  // Mirror the module-level perioRowVisibility/perioIndexNameMode flags into
+  // React state the same way perioViewMode is mirrored above.
   useEffect(() => {
     const refresh = () => {
       setPerioRowVisibilityState(getPerioRowVisibility());
@@ -486,10 +479,9 @@ export default function App({
     return onStateChange(refresh);
   }, []);
 
-  // DS-1 Task 2: mirror the pending-confirm flag into React state. Subscribe
-  // only (no initial read) — a confirm is only ever requested by a post-mount
-  // edit, so `confirmOpen` starts false and this never calls the module during
-  // the initial render.
+  // Mirror the pending-confirm flag into React state. Subscribe only (no initial
+  // read) — a confirm is only ever requested by a post-mount edit, so
+  // `confirmOpen` starts false and this never calls the module during initial render.
   useEffect(() => {
     return onStateChange(() => setConfirmOpen(isDualStateConfirmPending()));
   }, []);
@@ -512,8 +504,7 @@ export default function App({
   }, []);
 
   // Live settings surface for the tabbed Settings modal. Each handler updates
-  // local React state AND calls the same module accessor the old dropdown did —
-  // so the setting still does exactly what it did, only from a new location.
+  // local React state and calls the matching module accessor.
   const settingsState: SettingsState = {
     numbering: currentNumbering,
     onNumbering: setNumbering,
@@ -674,8 +665,8 @@ export default function App({
               <div className="dropdown-menu" role="menu" aria-label={t("topbar.export")}>
                 <button className="dropdown-item" role="menuitem" onClick={() => { (document.getElementById("btnStatusExport") as HTMLButtonElement | null)?.click(); setExportOpen(false); }}>{t("export.menu.statusJson")}</button>
                 <button className="dropdown-item" role="menuitem" onClick={() => { (document.getElementById("btnStatusFhirExport") as HTMLButtonElement | null)?.click(); setExportOpen(false); }}>{t("export.menu.fhir")}</button>
-                {/* Round 2 (Stage 2): image + PDF items gated by per-format
-                    availability (General → Export). Status/FHIR JSON export stay. */}
+                {/* Image + PDF items gated by per-format availability
+                    (General → Export). Status/FHIR JSON export always stay. */}
                 {exportPngOn && <button className="dropdown-item" role="menuitem" onClick={() => { (document.getElementById("btnStatusPngExport") as HTMLButtonElement | null)?.click(); setExportOpen(false); }}>{t("export.menu.png")}</button>}
                 {exportJpgOn && <button className="dropdown-item" role="menuitem" onClick={() => { (document.getElementById("btnStatusJpgExport") as HTMLButtonElement | null)?.click(); setExportOpen(false); }}>{t("export.menu.jpg")}</button>}
                 {exportSvgOn && <button className="dropdown-item" role="menuitem" onClick={() => { (document.getElementById("btnStatusSvgExport") as HTMLButtonElement | null)?.click(); setExportOpen(false); }}>{t("export.menu.svg")}</button>}
@@ -702,13 +693,14 @@ export default function App({
               </div>
             )}
           </div>
+          {/* Hidden file picker backing both import menu items. */}
           <input id="statusImportInput" type="file" accept="application/json" hidden />
         </div>
       </header>
 
       <main className="layout">
-        {/* Round 2 (Stage 4): hide the perio entry point (view toggle / open
-            button) entirely when the Periodontal chart is turned off in Settings. */}
+        {/* Hide the perio entry point (view toggle / open button) entirely when
+            the Periodontal chart is turned off in Settings. */}
         <div className={"perio-launch-bar" + (perioChartAvailable ? "" : " hidden")}>
           {viewMode === "toggle" ? (
             <div id="appViewToggle" className="chart-mode-toggle" role="tablist">
@@ -746,6 +738,8 @@ export default function App({
             </button>
           )}
         </div>
+        {/* Hide (not unmount) the odontogram column while the Dental Chart
+            segment is active in toggle mode, so its wired controls survive. */}
         <div
           className="chart-column"
           style={viewMode === "toggle" && activeView === "dentalChart" ? { display: "none" } : undefined}
@@ -756,20 +750,19 @@ export default function App({
               <div className="chart-title">{t("chart.title")}</div>
               <div className="chart-hint">{t("chart.hint")}</div>
             </div>
-            {/* Round 2 (Stage 3): the Status|Plan toggle is hidden when plan mode
-                is turned off in Settings → Odontogram. It is HIDDEN VIA CSS (not
-                unmounted) so odontogram.ts's one-time click wiring on these
-                buttons survives being toggled off and back on. */}
+            {/* The Status|Plan toggle is hidden when plan mode is turned off in
+                Settings → Odontogram. Hidden via CSS (not unmounted) so
+                odontogram.ts's one-time click wiring on these buttons survives
+                being toggled off and back on. */}
             <div id="chartModeToggle" className={"chart-mode-toggle" + (planModeAvailable ? "" : " hidden")} role="tablist">
               <button id="chartModeStatus" type="button" className="chart-mode-btn is-active" role="tab" aria-selected="true">{t("chartMode.status")}</button>
               <button id="chartModePlan" type="button" className="chart-mode-btn" role="tab" aria-selected="false">{t("chartMode.plan")}</button>
               <span id="chartModePlanBadge" className="plan-badge hidden">{t("chartMode.planBadge")}</span>
             </div>
-            {/* R2-C Task 2: "dashed = proposed" legend. Always rendered — its
-                visibility is pure CSS, scoped by the `.chart.plan-mode
-                #proposedLegend` descendant selector (src/index.css), which
-                reuses the SAME `.plan-mode` cue the chart card already gets
-                from the real, unchanged syncChartModeUi() in odontogram.ts.
+            {/* "dashed = proposed" legend. Always rendered — its visibility is
+                pure CSS, scoped by the `.chart.plan-mode #proposedLegend`
+                selector (src/index.css), which reuses the same `.plan-mode` cue
+                the chart card gets from syncChartModeUi() in odontogram.ts.
                 No new React state, no new engine call. */}
             <div id="proposedLegend" className="proposed-legend">
               <span className="proposed-legend-swatch" aria-hidden="true"></span>
@@ -802,8 +795,7 @@ export default function App({
           <section className="tooth-info card" aria-label={t("toothInfo.title")}>
             <div className="card-title">{t("toothInfo.title")}</div>
             <p className="tooth-info-overview">{summary.overview}</p>
-            {/* 2.2.3 (round 2): the grouped dentition table replaces the flat
-                permanent/missing lists — one column per tooth category, one row
+            {/* Grouped dentition table: one column per tooth category, one row
                 per anatomical group (whole mouth / jaw / quadrant / sextant per
                 the PDF summary-grouping setting). Tooth numbers are coloured by
                 status (blue = has content, red+italic = has a problem). */}
@@ -889,11 +881,11 @@ export default function App({
         )}
         <aside className="panel">
           {/* Keep the odontogram control panel ALWAYS mounted, toggling only
-              its visibility with CSS. Unmounting it on the perio toggle
-              produced fresh DOM nodes whose one-time wireControls() listeners
-              were never re-attached, silently breaking odontogram editing after
-              a round-trip through Periodontal Status. PerioSidebar stays a
-              plain conditional (mounted only in the perio view). */}
+              its visibility with CSS. Unmounting it on the perio toggle would
+              produce fresh DOM nodes whose one-time wireControls() listeners are
+              never re-attached, silently breaking odontogram editing after a
+              round-trip through Periodontal Status. PerioSidebar stays a plain
+              conditional (mounted only in the perio view). */}
           {isPerioView && <PerioSidebar />}
           <div className="panel-odontogram-controls" style={isPerioView ? { display: "none" } : undefined}>
           <div className="panel-header">
@@ -1096,10 +1088,10 @@ export default function App({
                 <select id="fillingSelect"></select>
               </div>
               <div id="fillingSurfaceChecks" className="hidden"></div>
-              {/* Round 2 (Stage 6): "simple" complexity — one filled/not-filled
-                  toggle shown instead of the 5-surface grid (wired in odontogram.ts).
-                  It is a `.row` LABEL (the whole pill is clickable — the native
-                  checkbox is display:none), exactly like #fissureSealingRow. */}
+              {/* "simple" complexity: one filled/not-filled toggle shown instead
+                  of the 5-surface grid (wired in odontogram.ts). It is a `.row`
+                  LABEL (the whole pill is clickable — the native checkbox is
+                  display:none), like #fissureSealingRow. */}
               <label id="fillingSimpleRow" className="row fissure-row hidden">
                 <input type="checkbox" id="fillingSimpleToggle" />
                 <span>{t("filling.simpleToggle")}</span>

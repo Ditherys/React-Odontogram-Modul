@@ -87,14 +87,12 @@ import {
 
 // Width of the sticky left-hand row-label column (px). The arch graphic and
 // every number row share ONE CSS grid whose first track is this label column,
-// so the tooth columns (tracks 2..N+1) start at the same x in every row.
-// UI-1 Task 3: raised from 132 -> 220 so full row-label names (e.g. the
-// longest, "Peri-implant Bleeding Index (mBI)") are no longer force-
-// truncated by the old fixed-width + CSS ellipsis combo. 220px still isn't
-// wide enough for every language's full label on one line (several
-// translations run longer than the English source) — `.perio-fullgrid-row-
-// label-text` (index.css) allows those to wrap onto a second line instead of
-// clipping; the row's height simply grows to fit (grid rows are auto-sized).
+// so the tooth columns (tracks 2..N+1) start at the same x in every row. Wide
+// enough to hold the longest row-label name ("Peri-implant Bleeding Index
+// (mBI)") without truncation; labels that still run longer (several
+// translations exceed the English source) wrap onto a second line via
+// `.perio-fullgrid-row-label-text` (index.css) instead of clipping, and the
+// row grows to fit (grid rows are auto-sized).
 const ROW_LABEL_WIDTH = 220;
 
 // Provisional per-tooth column width (px) used until the tooth-template cache
@@ -125,19 +123,19 @@ const LOWER_ARCH: readonly number[] = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 3
 const BUCCAL_SITES: readonly PerioSite[] = ["MB", "B", "DB"];
 const LINGUAL_SITES: readonly PerioSite[] = ["ML", "L", "DL"];
 
-// SP-perio P2b Task 4: the 4 fixed O'Leary plaque-index surfaces (mirrors
-// VALID_PLAQUE_SURFACE in odontogram.ts — literal here for the same
-// module-eval-safety reason as BUCCAL_SITES above). Order = the clockwise
-// M/D + B/L quadrant order the 4-quadrant plaque mark reads in.
+// The 4 fixed O'Leary plaque-index surfaces (mirrors VALID_PLAQUE_SURFACE in
+// odontogram.ts — literal here for the same module-eval-safety reason as
+// BUCCAL_SITES above). Order = the clockwise M/D + B/L quadrant order the
+// 4-quadrant plaque mark reads in.
 const PLAQUE_SURFACES: readonly string[] = ["mesial", "distal", "buccal", "lingual"];
 
-// 2.2.3 (round 2): single-letter surface tag shown as a faint watermark behind
-// each plaque/PI/GI/mPI/mBI marker square, so which surface a mark belongs to is
+// Single-letter surface tag shown as a faint watermark behind each
+// plaque/PI/GI/mPI/mBI marker square, so which surface a mark belongs to is
 // unambiguous. Dental-standard letters — language-neutral, no i18n needed.
 const SURFACE_LETTER: Record<string, string> = { mesial: "M", distal: "D", buccal: "B", lingual: "L" };
 
-// UI-3a Task 3: does SURFACE "mesial" sit in the LEFT column of a tooth's
-// diamond plaque/grade cell (`.perio-fullgrid-plaque-quad`'s `"mes dis"`
+// Does SURFACE "mesial" sit in the LEFT column of a tooth's diamond
+// plaque/grade cell (`.perio-fullgrid-plaque-quad`'s `"mes dis"`
 // middle row)? Mesial always points toward the arch midline. UPPER_ARCH/
 // LOWER_ARCH (above) lay FDI quadrant 1/4 teeth on the screen-LEFT half of
 // their arch (the midline sits at the 11|21 / 41|31 boundary, to their
@@ -149,8 +147,8 @@ function mesialOnLeft(toothNo: number): boolean {
   return quadrant === 2 || quadrant === 3;
 }
 
-// UI-3a Task 3: the diamond `grid-area` a plaque/grade surface button gets
-// on a given tooth. Buccal/lingual are always the top-/bottom-centered tips;
+// The diamond `grid-area` a plaque/grade surface button gets on a given
+// tooth. Buccal/lingual are always the top-/bottom-centered tips;
 // mesial/distal swap the "mes"/"dis" middle-row columns per `mesialOnLeft`
 // so mesial stays toward the midline on both sides of the arch. This only
 // decides visual placement — the button's `surface`/`data-*` wiring (set by
@@ -167,9 +165,9 @@ function diamondGridArea(surface: string, toothNo: number): "buc" | "mes" | "dis
 // Index 0 (no involvement) shows the em-dash placeholder, 1-4 show I-IV.
 const FURCATION_ROMAN = ["–", "I", "II", "III", "IV"];
 
-// SP-perio PG-C Task 3: cejVisibility / rootConcavity cycle-button value
-// order + compact face glyphs (mirrors FURCATION_ROMAN's role). Literal (not
-// imported from "./odontogram") for the same module-eval-safety reason as
+// cejVisibility / rootConcavity cycle-button value order + compact face
+// glyphs (mirrors FURCATION_ROMAN's role). Literal (not imported from
+// "./odontogram") for the same module-eval-safety reason as
 // BUCCAL_SITES/PLAQUE_SURFACES above — order matches VALID_CEJ_VISIBILITY /
 // VALID_ROOT_CONCAVITY (odontogram.ts) / LOCAL_VALUE_MAPS (codesystems.ts).
 const CEJ_VISIBILITY_CYCLE: readonly string[] = ["none", "detectable", "not-detectable"];
@@ -177,12 +175,12 @@ const CEJ_VISIBILITY_FACE: Record<string, string> = { none: "–", detectable: "
 const ROOT_CONCAVITY_CYCLE: readonly string[] = ["none", "mild", "deep"];
 const ROOT_CONCAVITY_FACE: Record<string, string> = { none: "–", mild: "Mi", deep: "Dp" };
 
-// SP-perio PG-D Task 4: gingivalThickness (GT) / millerClass cycle-button
-// value order + compact face glyphs — mirrors CEJ_VISIBILITY_CYCLE/
-// ROOT_CONCAVITY_CYCLE above exactly. Literal (not imported from
-// "./odontogram") for the same module-eval-safety reason as those two —
-// order matches VALID_GINGIVAL_THICKNESS / VALID_MILLER_CLASS (odontogram.ts)
-// / LOCAL_VALUE_MAPS (fhir/codesystems.ts).
+// gingivalThickness (GT) / millerClass cycle-button value order + compact
+// face glyphs — mirrors CEJ_VISIBILITY_CYCLE/ROOT_CONCAVITY_CYCLE above
+// exactly. Literal (not imported from "./odontogram") for the same
+// module-eval-safety reason as those two — order matches
+// VALID_GINGIVAL_THICKNESS / VALID_MILLER_CLASS (odontogram.ts) /
+// LOCAL_VALUE_MAPS (fhir/codesystems.ts).
 const GINGIVAL_THICKNESS_CYCLE: readonly string[] = ["unknown", "thin", "medium", "thick"];
 const GINGIVAL_THICKNESS_FACE: Record<string, string> = { unknown: "–", thin: "Tn", medium: "Md", thick: "Tk" };
 const MILLER_CLASS_CYCLE: readonly string[] = ["none", "i", "ii", "iii", "iv"];
@@ -220,41 +218,33 @@ const EMPTY_SUMMARY: PerioSummaryData = {
   mbiScore: null,
 };
 
-// UI-1 Task 1: the case-metadata (`CaseMetaData`/`EMPTY_CASE_META`) and
-// classification (`ClassificationData`/`EMPTY_CLASSIFICATION`) state + the
-// per-axis derived-value label helpers (`diagnosisLabel`/`stageLabel`/
-// `gradeLabel`/`extentLabel`) moved to `src/PerioSidebar.tsx` along with the
-// panel JSX that was their only consumer — nothing in `PerioChart.tsx` itself
-// reads `getCaseMeta()`/`getPerioClassification()` anymore.
-
 type ToothCellRefs = {
   pd: Partial<Record<PerioSite, HTMLInputElement>>;
   gm: Partial<Record<PerioSite, HTMLInputElement>>;
   bop: Partial<Record<PerioSite, HTMLInputElement>>;
   cal: Partial<Record<PerioSite, HTMLSpanElement>>;
   mobility: HTMLSelectElement | null;
-  // SP-perio P2b Task 4: per-entrance furcation cycle buttons (keyed by
-  // entrance string — only the furcated-position entrances exist) and the
-  // 4 O'Leary plaque-surface toggle buttons.
+  // Per-entrance furcation cycle buttons (keyed by entrance string — only the
+  // furcated-position entrances exist) and the 4 O'Leary plaque-surface toggle
+  // buttons.
   furcation: Partial<Record<string, HTMLButtonElement>>;
   plaque: Partial<Record<string, HTMLButtonElement>>;
-  // SP-perio PG-C Task 3: single per-tooth cycle button each (no site/entrance
-  // subdivision — mirrors `mobility` above, which is also one-per-tooth).
+  // Single per-tooth cycle button each (no site/entrance subdivision —
+  // mirrors `mobility` above, which is also one-per-tooth).
   cejVisibility: HTMLButtonElement | null;
   rootConcavity: HTMLButtonElement | null;
-  // SP-perio PG-D Task 4: PI/GI per-surface (0-3) cycle buttons (keyed by the
-  // 4 O'Leary surfaces, mirrors `plaque` above); KG is a single per-tooth mm
-  // number input (mirrors `mobility`'s one-per-tooth shape); gingivalThickness/
-  // millerClass are single per-tooth cycle buttons (mirror cejVisibility/
-  // rootConcavity above).
+  // PI/GI per-surface (0-3) cycle buttons (keyed by the 4 O'Leary surfaces,
+  // mirrors `plaque` above); KG is a single per-tooth mm number input (mirrors
+  // `mobility`'s one-per-tooth shape); gingivalThickness/millerClass are
+  // single per-tooth cycle buttons (mirror cejVisibility/rootConcavity above).
   pi: Partial<Record<string, HTMLButtonElement>>;
   gi: Partial<Record<string, HTMLButtonElement>>;
   kg: HTMLInputElement | null;
   gingivalThickness: HTMLButtonElement | null;
   millerClass: HTMLButtonElement | null;
-  // SP-perio PG-E Task 2: mPI/mBI per-surface (0-3) cycle buttons — mirror
-  // `pi`/`gi` above exactly, but IMPLANT-GATED (see syncToothCells): active
-  // only on an implant tooth, inert everywhere else.
+  // mPI/mBI per-surface (0-3) cycle buttons — mirror `pi`/`gi` above exactly,
+  // but IMPLANT-GATED (see syncToothCells): active only on an implant tooth,
+  // inert everywhere else.
   mpi: Partial<Record<string, HTMLButtonElement>>;
   mbi: Partial<Record<string, HTMLButtonElement>>;
 };
@@ -277,8 +267,8 @@ type GridHandlers = {
   onMbiSurface: (toothNo: number, surface: string) => void;
 };
 
-// T3 curve overlay: gather the ordered per-site {pd,gm} readings for one row
-// (buccal MB/B/DB or lingual ML/L/DL) plus each site's x. The 3 sites of a
+// Gather the ordered per-site {pd,gm} readings for one row (buccal MB/B/DB or
+// lingual ML/L/DL) plus each site's x for the pocket/margin curve. The 3 sites of a
 // tooth spread evenly across that tooth's width (reusing the SAME per-tooth
 // x/width `archToothLayout` gives the arch teeth, so the curve tracks them):
 // site j lands at x + width*(j+0.5)/3 → the 1/6, 1/2, 5/6 fractions. Reads
@@ -291,9 +281,9 @@ function collectCurveInput(
   const xs: number[] = [];
   for (const tooth of layout.teeth) {
     const perio = getToothPerio(tooth.toothNo);
-    // 2.2.3 (round 2): a tooth with ANY charted site on this aspect has its
-    // remaining sites treated as 0 (pd=0, gm=0), so the pocket/margin curve is
-    // drawn fully across the tooth rather than stopping at the first gap.
+    // A tooth with ANY charted site on this aspect has its remaining sites
+    // treated as 0 (pd=0, gm=0), so the pocket/margin curve is drawn fully
+    // across the tooth rather than stopping at the first gap.
     const anyCharted = siteKeys.some((s) => Object.prototype.hasOwnProperty.call(perio.pd, s));
     siteKeys.forEach((site, j) => {
       const charted = Object.prototype.hasOwnProperty.call(perio.pd, site);
@@ -307,18 +297,16 @@ function collectCurveInput(
   return { sites, xs };
 }
 
-// UI-3a Task 2: `buildBuccalArchSvg`/`buildPalatalArchSvg` render as two
-// independent `<svg class="perio-tooth-arch perio-tooth-arch-buccal|palatal">`
-// elements, each mounted into its OWN grid cell (`buccalCell`/`palatalCell`,
-// see `buildArch` below) with the central perio index band between them —
-// the legacy combined single-SVG builder (`buildArchGraphic`) and its
-// generic-fallback mount shape are retired; `resolveAspectSvg` only ever
-// needs to find the dedicated per-aspect SVG (it still takes `container`
-// rather than the SVG directly because `drawArchCurves`/`drawArchOverlay`
-// are called with the whole arch grid element — which contains BOTH
-// `buccalCell` and `palatalCell` as descendants regardless of the rows
-// sitting between them in the DOM — so one `container.querySelector` reaches
-// either aspect's SVG from anywhere in the arch).
+// `buildBuccalArchSvg`/`buildPalatalArchSvg` render as two independent
+// `<svg class="perio-tooth-arch perio-tooth-arch-buccal|palatal">` elements,
+// each mounted into its own grid cell (`buccalCell`/`palatalCell`, see
+// `buildArch` below) with the central perio index band between them.
+// `resolveAspectSvg` takes `container` rather than the SVG directly because
+// `drawArchCurves`/`drawArchOverlay` are called with the whole arch grid
+// element — which contains BOTH `buccalCell` and `palatalCell` as descendants
+// regardless of the rows sitting between them in the DOM — so one
+// `container.querySelector` reaches either aspect's SVG from anywhere in the
+// arch.
 function resolveAspectSvg(container: Element, aspectClass: string): Element | null {
   return container.querySelector(`svg.${aspectClass}`);
 }
@@ -358,27 +346,25 @@ function drawArchCurves(cache: TemplateDocCache, container: HTMLElement | null, 
   }
 }
 
-// PG-B Task 2/3 switcher: the overlay layers offered by the switch row, in
-// display order. T2 shipped the discrete highlights (bop/plaque/pd5/pd6); T3
-// adds the continuous mm heat layers (pd/cal/gr). PG-C Task 1 adds "cairo",
-// the derived per-tooth Cairo recession-TYPE overlay, grouped next to "gr"
-// (both are recession-related indices). PG-D Task 4 adds "kg" (keratinized
-// gingiva width, grouped next to "cairo"/"gr" — all mucogingival/recession
-// axes) and "pi"/"gi" (Silness-Löe/Löe-Silness graded indices, grouped next
-// to "plaque" — all plaque/gingival-inflammation axes). GT/Miller are
-// categorical, rows-only axes with NO overlay (see the Dental Chart rows).
-// PG-E Task 2 adds "mpi"/"mbi" (Mombelli modified Plaque/Bleeding indices),
-// grouped next to "pi"/"gi" — same graded shape, but IMPLANT-ONLY data, so
-// marks only ever land on implant teeth.
+// The overlay layers offered by the switch row, in display order: the
+// discrete highlights (bop/plaque/pd5/pd6), the continuous mm heat layers
+// (pd/cal/gr), "cairo" (derived per-tooth Cairo recession-TYPE, grouped next
+// to "gr" as both are recession-related), "kg" (keratinized gingiva width,
+// grouped with the other mucogingival/recession axes), "pi"/"gi" (Silness-Löe/
+// Löe-Silness graded indices, grouped next to "plaque" — plaque/gingival-
+// inflammation axes), and "mpi"/"mbi" (Mombelli modified Plaque/Bleeding
+// indices, grouped next to "pi"/"gi" — same graded shape, but IMPLANT-ONLY
+// data, so marks only ever land on implant teeth). GT/Miller are categorical,
+// rows-only axes with NO overlay (see the Dental Chart rows).
 const SWITCHER_LAYERS: readonly PerioOverlayLayer[] = [
   "none", "pd", "cal", "gr", "cairo", "kg", "bop", "plaque", "pi", "gi", "mpi", "mbi", "pd5", "pd6",
 ];
 
-// UI-2 Task 3: the subset of overlay layers that correspond 1:1 to a
-// toggleable Dental Chart index row (`PerioRowId`) — these route their pill
-// label through `indexName()` so canonical mode is consistent between the
-// grid row and the matching overlay switcher entry. Layers with no row
-// counterpart ("none"/"gr"/"cairo"/"pd5"/"pd6") always stay
+// The subset of overlay layers that correspond 1:1 to a toggleable Dental
+// Chart index row (`PerioRowId`) — these route their pill label through
+// `indexName()` so canonical mode is consistent between the grid row and the
+// matching overlay switcher entry. Layers with no row counterpart
+// ("none"/"gr"/"cairo"/"pd5"/"pd6") always stay
 // `t(\`perio.overlay.${layer}\`)`, unaffected by the name-mode setting.
 const OVERLAY_LAYER_TO_ROW: Partial<Record<PerioOverlayLayer, PerioRowId>> = {
   pd: "pd",
@@ -406,9 +392,9 @@ function overlaySwitchLabel(layer: PerioOverlayLayer): string {
   return t(`perio.overlay.${layer}`);
 }
 
-// PG-B Task 2 overlay: gather one row's ordered per-site {x, pd, gm, bop}
-// readings — the SAME per-tooth x/width `archToothLayout` gives the arch teeth
-// (and the curve), so the overlay marks track the teeth. Reads getToothPerio
+// Gather one row's ordered per-site {x, pd, gm, bop} readings — the SAME
+// per-tooth x/width `archToothLayout` gives the arch teeth (and the curve), so
+// the overlay marks track the teeth. Reads getToothPerio
 // (active chart) -> status/plan aware + live-updates, mirroring
 // `collectCurveInput`.
 function collectOverlayInput(layout: ArchLayout, siteKeys: readonly PerioSite[]): PerioOverlaySite[] {
@@ -428,8 +414,8 @@ function collectOverlayInput(layout: ArchLayout, siteKeys: readonly PerioSite[])
   return out;
 }
 
-// PG-B Task 3 overlay: gather one row's ordered per-site {x, pd, gm, cal}
-// readings for the continuous mm heat overlays — same shape/x-positioning as
+// Gather one row's ordered per-site {x, pd, gm, cal} readings for the
+// continuous mm heat overlays — same shape/x-positioning as
 // `collectOverlayInput`, plus the site's CAL (via the REAL `getToothCal`, not
 // a re-derived `pd+gm`, so the heat overlay can never drift from the public
 // CAL definition). Reads getToothPerio/getToothCal (active chart) ->
@@ -453,24 +439,23 @@ function collectMmHeatInput(layout: ArchLayout, siteKeys: readonly PerioSite[]):
 }
 
 /**
- * PG-B Task 2/3: draw (or clear) the overlay for ONE arch band. UI-3a Task 2:
- * each aspect has its OWN standalone arch SVG (`buildBuccalArchSvg`/
- * `buildPalatalArchSvg`), each mounted into its own grid cell
- * (`buccalCell`/`palatalCell` — see `buildArch`), so a buccal-aspect mark is
- * appended into `svg.perio-tooth-arch-buccal` and a palatal-aspect mark into
+ * Draw (or clear) the overlay for ONE arch band. Each aspect has its OWN
+ * standalone arch SVG (`buildBuccalArchSvg`/`buildPalatalArchSvg`), each
+ * mounted into its own grid cell (`buccalCell`/`palatalCell` — see
+ * `buildArch`), so a buccal-aspect mark is appended into
+ * `svg.perio-tooth-arch-buccal` and a palatal-aspect mark into
  * `svg.perio-tooth-arch-palatal`.
  * Stale overlay layers are removed first (scoped to `container`, i.e. both
  * SVGs), so this is safe to call on every state / layer change. The overlay
  * `<g>` is appended INTO the SAME oriented row group the teeth + curve ride
  * in its OWN svg (`.perio-tooth-row-buccal` / `.perio-tooth-row-palatal-
- * inner`), so the T1 occlusal-to-occlusal flip carries the marks along with
+ * inner`), so the occlusal-to-occlusal flip carries the marks along with
  * the teeth — one coordinate space, no divergent geometry (it reuses
  * `archToothLayout` + `PERIO_MM_PX`, exactly like `drawArchCurves`).
  *
  * `none` draws nothing (after the stale clear), so selecting None leaves a
  * bare arch. Exported for direct unit testing against a hand-built template
- * cache (see pgb-switcher.test.ts / pgb-mm-overlays.test.ts); the component
- * calls it from the graphic effect.
+ * cache; the component calls it from the graphic effect.
  */
 export function drawArchOverlay(
   cache: TemplateDocCache,
@@ -511,8 +496,8 @@ export function drawArchOverlay(
     return;
   }
 
-  // PG-C Task 1: the Cairo recession-TYPE overlay — a per-TOOTH derived
-  // classification (getToothRecessionType), not a per-site reading, so it is
+  // The Cairo recession-TYPE overlay — a per-TOOTH derived classification
+  // (getToothRecessionType), not a per-site reading, so it is
   // collected once per tooth (mirroring the plaque block above) and — since
   // RT is specifically a BUCCAL-recession index — drawn ONLY into the buccal
   // row, never the lingual/palatal row.
@@ -528,8 +513,8 @@ export function drawArchOverlay(
     return;
   }
 
-  // PG-D Task 4: the KG (keratinized gingiva width) overlay — a per-TOOTH
-  // buccal mm scalar (getKeratinizedWidth), collected once per tooth
+  // The KG (keratinized gingiva width) overlay — a per-TOOTH buccal mm scalar
+  // (getKeratinizedWidth), collected once per tooth
   // (mirrors the Cairo block above) and drawn ONLY into the buccal row (KG is
   // specifically a buccal measure, like Cairo RT).
   if (layer === "kg") {
@@ -544,13 +529,13 @@ export function drawArchOverlay(
     return;
   }
 
-  // PG-D Task 4: the PI/GI graded-index overlays — per-surface 0-3 grades
-  // (getPlaqueIndex/getGingivalIndex) over the SAME 4 O'Leary surfaces the
-  // "plaque" overlay reads, split across both rows exactly like it.
-  // PG-E Task 2 adds "mpi"/"mbi" (Mombelli modified Plaque/Bleeding indices,
-  // getPeriImplantPlaque/getPeriImplantBleeding) to the SAME shape — implant-
-  // only data, so a non-implant tooth simply reads grade 0 everywhere and
-  // draws no mark, with no extra gating needed here.
+  // The PI/GI graded-index overlays — per-surface 0-3 grades (getPlaqueIndex/
+  // getGingivalIndex) over the SAME 4 O'Leary surfaces the "plaque" overlay
+  // reads, split across both rows exactly like it. "mpi"/"mbi" (Mombelli
+  // modified Plaque/Bleeding indices, getPeriImplantPlaque/
+  // getPeriImplantBleeding) share the SAME shape — implant-only data, so a
+  // non-implant tooth simply reads grade 0 everywhere and draws no mark, with
+  // no extra gating needed here.
   if (layer === "pi" || layer === "gi" || layer === "mpi" || layer === "mbi") {
     const getGrade =
       layer === "pi" ? getPlaqueIndex :
@@ -576,10 +561,10 @@ export function drawArchOverlay(
     return;
   }
 
-  // PG-B Task 3: the continuous mm heat overlays (pd / cal / gr) — every
-  // charted site heat-bucketed by depth, over the SAME sites/x-positions the
-  // T2 discrete overlays + curve use (`collectMmHeatInput` mirrors
-  // `collectOverlayInput`, adding the real `getToothCal` reading for `cal`).
+  // The continuous mm heat overlays (pd / cal / gr) — every charted site
+  // heat-bucketed by depth, over the SAME sites/x-positions the discrete
+  // overlays + curve use (`collectMmHeatInput` mirrors `collectOverlayInput`,
+  // adding the real `getToothCal` reading for `cal`).
   if (layer === "pd" || layer === "cal" || layer === "gr") {
     const mmHeatLayer = layer as MmHeatOverlayLayer;
     const buccalMarks = perioMmHeatMarks(mmHeatLayer, collectMmHeatInput(layout, BUCCAL_SITES), opts);
@@ -603,9 +588,9 @@ function mkEl<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string)
   return node;
 }
 
-/** SP-perio PG-B Task 1: at most ONE row-label info popover is open across the
- *  whole perio chart (upper+lower arch, overlay or inline) at any time —
- *  module-scope singleton, mirroring `odontogram.ts`'s
+/** At most ONE row-label info popover is open across the whole perio chart
+ *  (upper+lower arch, overlay or inline) at any time — module-scope
+ *  singleton, mirroring `odontogram.ts`'s
  *  `showCariesDepthPopup`/`hideCariesDepthPopup` outside-click/Escape
  *  contract. Opening a new popover always closes any previous one first. */
 let activeInfoPopover: {
@@ -636,7 +621,7 @@ function hideInfoPopover(): void {
  *  is consumed here BEFORE it can bubble up into the perio-overlay dialog's
  *  own Esc-closes-the-whole-overlay handler (`PerioChart`'s `onKeyDown`) —
  *  the popover closes without also closing the overlay. Never stacks with
- *  the DS-1 confirm modal: `.perio-info-popover`'s z-index sits below
+ *  the confirm modal: `.perio-info-popover`'s z-index sits below
  *  `.odon-confirm-backdrop`'s (200) — see index.css. */
 function toggleInfoPopover(infoKey: string, anchor: HTMLButtonElement): void {
   const reopening = activeInfoPopover?.button === anchor;
@@ -693,7 +678,7 @@ function toggleInfoPopover(infoKey: string, anchor: HTMLButtonElement): void {
  *  opens a positioned `.perio-info-popover` with `t(infoKey)` on click (see
  *  {@link toggleInfoPopover}). Rows with no label (the tooth-number header /
  *  tooth-graphic placeholder rows) call this with no `infoKey` and get no
- *  button, same as before. */
+ *  button. */
 function mkRowLabelCell(text: string, infoKey?: string): HTMLDivElement {
   const cell = mkEl("div", "perio-fullgrid-row-label");
   const label = mkEl("span", "perio-fullgrid-row-label-text");
@@ -716,12 +701,12 @@ function mkRowLabelCell(text: string, infoKey?: string): HTMLDivElement {
 }
 
 /** Sync ONE tooth's already-built cells from the given perio/CAL snapshot —
- *  the R3 (perf) targeted-update primitive. Never creates/destroys DOM
- *  nodes, only updates value/checked/disabled/text on existing ones, so it
- *  is cheap to call after every single-site edit AND in a loop over all 32
- *  teeth for a full resync (dual-state switch / external edits). Mirrors
- *  the P1 tooth-panel's `syncPerioRow` value-sync contract (omit-when-empty:
- *  an uncharted site renders blank, `?? ""`). */
+ *  the targeted-update primitive. Never creates/destroys DOM nodes, only
+ *  updates value/checked/disabled/text on existing ones, so it is cheap to
+ *  call after every single-site edit AND in a loop over all 32 teeth for a
+ *  full resync (dual-state switch / external edits). Follows the tooth-panel's
+ *  `syncPerioRow` value-sync contract (omit-when-empty: an uncharted site
+ *  renders blank, `?? ""`). */
 function syncToothCells(
   cells: ToothCellRefs,
   toothNo: number,
@@ -757,8 +742,8 @@ function syncToothCells(
     cells.mobility.value = getToothMobility(toothNo);
     cells.mobility.disabled = readOnly || hidden;
   }
-  // SP-perio P2b Task 4: furcation cycle buttons — face + grade + pressed
-  // state from the active chart's per-entrance grade (getToothFurcation).
+  // Furcation cycle buttons — face + grade + pressed state from the active
+  // chart's per-entrance grade (getToothFurcation).
   // Buttons only exist for furcated-position + present teeth (built once,
   // see buildFurcationCell), so `hidden` here is belt-and-braces.
   const furc = getToothFurcation(toothNo);
@@ -771,8 +756,8 @@ function syncToothCells(
     btn.setAttribute("aria-pressed", grade > 0 ? "true" : "false");
     btn.disabled = readOnly || hidden;
   }
-  // SP-perio P2b Task 4: plaque toggles — present/absent mark + pressed state
-  // from the active chart's plaque surface set (getToothPlaque). Disabled on
+  // Plaque toggles — present/absent mark + pressed state from the active
+  // chart's plaque surface set (getToothPlaque). Disabled on
   // a non-present tooth (mirrors the PD/GM disable gate).
   const plaque = getToothPlaque(toothNo);
   for (const surface of Object.keys(cells.plaque)) {
@@ -783,8 +768,8 @@ function syncToothCells(
     btn.setAttribute("aria-pressed", present ? "true" : "false");
     btn.disabled = readOnly || hidden;
   }
-  // SP-perio PG-C Task 3: cejVisibility / rootConcavity cycle buttons — face
-  // + value + pressed/disabled state from the active chart (getCejVisibility/
+  // cejVisibility / rootConcavity cycle buttons — face + value +
+  // pressed/disabled state from the active chart (getCejVisibility/
   // getRootConcavity). Same hidden-row disable gate as PD/GM/mobility above
   // (both axes are per-tooth, not gated to a furcated position like furcation).
   if (cells.cejVisibility) {
@@ -803,9 +788,9 @@ function syncToothCells(
     btn.setAttribute("aria-pressed", value !== "none" ? "true" : "false");
     btn.disabled = readOnly || hidden;
   }
-  // SP-perio PG-D Task 4: PI/GI per-surface grade buttons — face + grade +
-  // pressed state from the active chart (getPlaqueIndex/getGingivalIndex).
-  // Same hidden-row disable gate as the plaque toggles above.
+  // PI/GI per-surface grade buttons — face + grade + pressed state from the
+  // active chart (getPlaqueIndex/getGingivalIndex). Same hidden-row disable
+  // gate as the plaque toggles above.
   for (const surface of Object.keys(cells.pi)) {
     const btn = cells.pi[surface];
     if (!btn) continue;
@@ -824,10 +809,10 @@ function syncToothCells(
     btn.setAttribute("aria-pressed", grade > 0 ? "true" : "false");
     btn.disabled = readOnly || hidden;
   }
-  // SP-perio PG-E Task 2: mPI/mBI per-surface grade buttons — mirror PI/GI's
-  // value sync exactly, but IMPLANT-GATED: active only on an implant tooth
-  // (`isToothImplant`, status/plan aware — mirrors `setSurfaceGrade`'s own
-  // implant guard in odontogram.ts). Deliberately NOT gated on `hidden`
+  // mPI/mBI per-surface grade buttons — mirror PI/GI's value sync exactly,
+  // but IMPLANT-GATED: active only on an implant tooth (`isToothImplant`,
+  // status/plan aware — mirrors `setSurfaceGrade`'s own implant guard in
+  // odontogram.ts). Deliberately NOT gated on `hidden`
   // (`isPerioRowHidden`) like every other row above — that predicate hides
   // implant teeth precisely because they have no periodontal PROBING site,
   // the opposite of what these peri-implant indices need; it still respects
@@ -851,15 +836,15 @@ function syncToothCells(
     btn.setAttribute("aria-pressed", grade > 0 ? "true" : "false");
     btn.disabled = readOnly || !implant;
   }
-  // SP-perio PG-D Task 4: KG — a single per-tooth mm number input (mirrors
-  // the pd/gm inputs' omit-when-empty value sync).
+  // KG — a single per-tooth mm number input (mirrors the pd/gm inputs'
+  // omit-when-empty value sync).
   if (cells.kg) {
     const mm = getKeratinizedWidth(toothNo);
     cells.kg.value = mm === null ? "" : String(mm);
     cells.kg.disabled = readOnly || hidden;
   }
-  // SP-perio PG-D Task 4: gingivalThickness / millerClass cycle buttons —
-  // mirror cejVisibility/rootConcavity above exactly.
+  // gingivalThickness / millerClass cycle buttons — mirror
+  // cejVisibility/rootConcavity above exactly.
   if (cells.gingivalThickness) {
     const value = getGingivalThickness(toothNo);
     const btn = cells.gingivalThickness;
@@ -879,18 +864,16 @@ function syncToothCells(
 }
 
 /** One arch band's built grid plus the two placeholder cells the buccal/
- *  palatal tooth-row graphic SVGs are injected into (UI-3a Task 2 — each
- *  spans all tooth columns; `buccalCell` sits above the central perio index
- *  band (Plaque/PI/GI/mPI/mBI), `palatalCell` below it). */
+ *  palatal tooth-row graphic SVGs are injected into (each spans all tooth
+ *  columns; `buccalCell` sits above the central perio index band
+ *  (Plaque/PI/GI/mPI/mBI), `palatalCell` below it). */
 type BuiltArch = { grid: HTMLDivElement; buccalCell: HTMLDivElement; palatalCell: HTMLDivElement };
 
-/** Build ONE tooth's field cell for a given field/site-set — the SAME cell +
- *  `data-perio` locator + `change`-listener wiring P2 shipped, just factored
- *  out of the old single loop so it can be reused by the buccal-aspect rows
- *  (built ABOVE the graphic) and the palatal-aspect rows (built BELOW it).
- *  Every id / `dataset.perio` is byte-identical to before — the keyboard +
- *  sync code locates cells by these, unchanged; only WHERE the cell sits in
- *  the DOM moves. */
+/** Build ONE tooth's field cell for a given field/site-set. Shared by the
+ *  buccal-aspect rows (built ABOVE the graphic) and the palatal-aspect rows
+ *  (built BELOW it). Every id / `dataset.perio` is the stable locator the
+ *  keyboard + sync code uses to find cells — WHERE the cell sits in the DOM
+ *  can move, but those identifiers must not. */
 function buildFieldCell(
   toothNo: number,
   field: "pd" | "gm" | "cal" | "bop",
@@ -948,9 +931,9 @@ function buildFieldCell(
   return cell;
 }
 
-/** SP-perio P2b Task 4: build ONE tooth's FURCATION cell — a compact
- *  cycle-button per {@link furcationEntrances} entrance (Glickman none->I->
- *  II->III->IV->none on click, via `setFurcation`). A tooth with NO furcated
+/** Build ONE tooth's FURCATION cell — a compact cycle-button per
+ *  {@link furcationEntrances} entrance (Glickman none->I->II->III->IV->none
+ *  on click, via `setFurcation`). A tooth with NO furcated
  *  entrance for its position, OR one whose perio rows are hidden (missing /
  *  implant / under-gum / extraction — `isPerioRowHidden`), gets an EMPTY cell
  *  (no controls at all — furcation involvement only exists on a present,
@@ -981,8 +964,8 @@ function buildFurcationCell(
   return cell;
 }
 
-/** SP-perio P2b Task 4: build ONE tooth's PLAQUE cell — a 4-quadrant mark of
- *  toggle buttons (mesial/distal/buccal/lingual), each flipping O'Leary plaque
+/** Build ONE tooth's PLAQUE cell — a 4-quadrant mark of toggle buttons
+ *  (mesial/distal/buccal/lingual), each flipping O'Leary plaque
  *  presence for that surface via `setPlaque` on click. Built for EVERY tooth
  *  (the 4 surfaces are the same fixed set regardless of position) and disabled
  *  on a non-present tooth via `syncToothCells`, mirroring the PD/GM rows. */
@@ -1011,8 +994,8 @@ function buildPlaqueCell(
   return cell;
 }
 
-/** SP-perio PG-C Task 3: build ONE tooth's CEJ-VISIBILITY cell — a single
- *  compact cycle button (none -> detectable -> not-detectable -> none on
+/** Build ONE tooth's CEJ-VISIBILITY cell — a single compact cycle button
+ *  (none -> detectable -> not-detectable -> none on
  *  click, via `setCejVisibility`). Built for EVERY tooth (mirrors the
  *  mobility select below — this axis applies to any present tooth, not just
  *  a furcated-position subset) and disabled on a hidden-row tooth (missing /
@@ -1036,7 +1019,7 @@ function buildCejVisibilityCell(
   return cell;
 }
 
-/** SP-perio PG-C Task 3: build ONE tooth's ROOT-CONCAVITY cell — mirrors
+/** Build ONE tooth's ROOT-CONCAVITY cell — mirrors
  *  {@link buildCejVisibilityCell} exactly (none -> mild -> deep -> none via
  *  `setRootConcavity`). */
 function buildRootConcavityCell(
@@ -1057,19 +1040,17 @@ function buildRootConcavityCell(
   return cell;
 }
 
-/** SP-perio PG-D Task 4: build ONE tooth's PI or GI cell — a 4-quadrant mark
- *  of cycle buttons (mesial/distal/buccal/lingual, mirrors
- *  {@link buildPlaqueCell}'s shape exactly), each cycling its own 0->1->2->3->0
- *  grade via `setPlaqueIndex`/`setGingivalIndex` on click. Built for EVERY
- *  tooth (the 4 surfaces are the same fixed set regardless of position) and
- *  disabled on a hidden-row tooth via `syncToothCells`, mirroring the plaque
- *  toggles.
- *  SP-perio PG-E Task 2 reuses this exact builder for "mpi"/"mbi" (Mombelli
- *  modified Plaque/Bleeding indices, `setPeriImplantPlaque`/
- *  `setPeriImplantBleeding`) — same 4-surface shape, but built for EVERY
- *  tooth and gated ACTIVE-only-on-an-implant in `syncToothCells` (opposite of
- *  the hidden-row gate PI/GI/plaque use, since implants are exactly the
- *  teeth those axes disable). */
+/** Build ONE tooth's PI or GI cell — a 4-quadrant mark of cycle buttons
+ *  (mesial/distal/buccal/lingual, mirrors {@link buildPlaqueCell}'s shape
+ *  exactly), each cycling its own 0->1->2->3->0 grade via
+ *  `setPlaqueIndex`/`setGingivalIndex` on click. Built for EVERY tooth (the 4
+ *  surfaces are the same fixed set regardless of position) and disabled on a
+ *  hidden-row tooth via `syncToothCells`, mirroring the plaque toggles.
+ *  The same builder serves "mpi"/"mbi" (Mombelli modified Plaque/Bleeding
+ *  indices, `setPeriImplantPlaque`/`setPeriImplantBleeding`) — same 4-surface
+ *  shape, but built for EVERY tooth and gated ACTIVE-only-on-an-implant in
+ *  `syncToothCells` (opposite of the hidden-row gate PI/GI/plaque use, since
+ *  implants are exactly the teeth those axes disable). */
 function buildGradeCell(
   toothNo: number,
   mapKey: "pi" | "gi" | "mpi" | "mbi",
@@ -1106,8 +1087,8 @@ function buildGradeCell(
   return cell;
 }
 
-/** SP-perio PG-D Task 4: build ONE tooth's KG (keratinized gingiva width)
- *  cell — a single per-tooth mm number input (0-15, empty clears), mirroring
+/** Build ONE tooth's KG (keratinized gingiva width) cell — a single per-tooth
+ *  mm number input (0-15, empty clears), mirroring
  *  the pd/gm cells' `<input type="number">` shape but with NO site
  *  subdivision (mirrors the mobility cell's one-per-tooth shape). Writes go
  *  through `setKeratinizedWidth` on `change`, like the pd/gm inputs. */
@@ -1131,8 +1112,8 @@ function buildKgCell(
   return cell;
 }
 
-/** SP-perio PG-D Task 4: build ONE tooth's gingival-thickness (GT) cell — a
- *  single compact cycle button (unknown -> thin -> medium -> thick -> unknown
+/** Build ONE tooth's gingival-thickness (GT) cell — a single compact cycle
+ *  button (unknown -> thin -> medium -> thick -> unknown
  *  on click, via `setGingivalThickness`). Mirrors
  *  {@link buildCejVisibilityCell} exactly. */
 function buildGingivalThicknessCell(
@@ -1153,7 +1134,7 @@ function buildGingivalThicknessCell(
   return cell;
 }
 
-/** SP-perio PG-D Task 4: build ONE tooth's Miller-class cell — mirrors
+/** Build ONE tooth's Miller-class cell — mirrors
  *  {@link buildGingivalThicknessCell} exactly (none -> i -> ii -> iii -> iv ->
  *  none via `setMillerClass`). */
 function buildMillerClassCell(
@@ -1176,7 +1157,7 @@ function buildMillerClassCell(
 
 /**
  * Build ONE arch band, laid out buccal-graphic-top → central perio index
- * band → palatal-graphic-bottom (UI-3a Task 2): the tooth-number header and
+ * band → palatal-graphic-bottom: the tooth-number header and
  * the Miller-class row sit at the very top (near the buccal aspect), then
  * the buccal-aspect number rows (PD innermost / nearest the teeth), the
  * furcation row, the BUCCAL tooth graphic (`buccalCell`), a band-orientation
@@ -1188,25 +1169,25 @@ function buildMillerClassCell(
  * graphics (each spanning tracks 2..N+1) and every number column line up in
  * the same coordinate space — the columns are widened to the real per-tooth
  * arch-layout widths once the template cache loads (`applyArchColumns`).
- * Reuses the P2 cell wiring via `buildFieldCell`; built ONCE per active
+ * Reuses the cell wiring via `buildFieldCell`; built ONCE per active
  * session (not React-controlled) — see the calling `useEffect`.
  */
 function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs>, handlers: GridHandlers): BuiltArch {
   const arch = mkEl("div", "perio-fullgrid-arch");
   arch.style.gridTemplateColumns = `${ROW_LABEL_WIDTH}px repeat(${teeth.length}, ${PROVISIONAL_COL_WIDTH}px)`;
   const isUpper = teeth.length > 0 && isUpperTooth(teeth[0]);
-  // UI-2 Task 2: per-index row visibility (Settings -> Periodontal tab). Read
-  // ONCE per build — a rebuild is triggered by the caller whenever the
+  // Per-index row visibility (Settings -> Periodontal tab). Read ONCE per
+  // build — a rebuild is triggered by the caller whenever the
   // underlying flag changes (see the grid effect's `visibilitySig`/`buildGrid`
   // in the PerioChart component below). The tooth-number header + the tooth
   // graphic (below) are NEVER gated.
   const visible = getPerioRowVisibility();
-  // UI-3b Task 3: the peri-implant Mombelli indices (mPI/mBI) are meaningless
-  // without an implant, so their rows only render in an arch that has at
+  // The peri-implant Mombelli indices (mPI/mBI) are meaningless without an
+  // implant, so their rows only render in an arch that has at
   // least one implant tooth. Per-arch because buildArch runs once per arch
   // (UPPER/LOWER) — an upper-only implant must not show a phantom lower row.
   const archHasImplant = teeth.some((n) => isToothImplant(n));
-  // UI-2 Task 3: every row-label text below goes through `indexName(id)`
+  // Every row-label text below goes through `indexName(id)`
   // (`src/perioIndexNames.ts`) instead of a raw `t(...)` call, so a row's
   // NAME switches between the localized string and a fixed English/Latin
   // canonical form per `getPerioIndexNameMode()`. The `infoKey` (2nd arg to
@@ -1216,7 +1197,7 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   // mode once per build, same as `visible` above.
 
   // Initialise every tooth's cell registry up front — the buccal rows built
-  // below reference these before the header row (which used to create them).
+  // below reference these entries before any later row does.
   for (const toothNo of teeth) {
     registry.set(toothNo, {
       pd: {}, gm: {}, bop: {}, cal: {}, mobility: null, furcation: {}, plaque: {},
@@ -1232,7 +1213,7 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   // Append one full field row (label cell + one field cell per tooth). The
   // row-label's info button always wires to `perio.info.<field>` — PD/GM/CAL/
   // BOP each has exactly ONE explanation, shared by both its buccal- and
-  // palatal-aspect rows (SP-perio PG-B Task 1).
+  // palatal-aspect rows.
   const appendFieldRow = (
     field: "pd" | "gm" | "cal" | "bop",
     sites: readonly PerioSite[],
@@ -1254,9 +1235,9 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
     arch.appendChild(header);
   }
 
-  // --- Miller-class row (single per-tooth cycle button) — UI-3a Task 2 moves
-  //     this to the top buccal area (recession classification reads next to
-  //     the tooth numbers, closest to the buccal aspect it's measured on). ---
+  // --- Miller-class row (single per-tooth cycle button) at the top buccal
+  //     area — recession classification reads next to the tooth numbers,
+  //     closest to the buccal aspect it's measured on. ---
   if (visible.miller) {
     arch.appendChild(mkRowLabelCell(indexName("miller"), "perio.info.miller"));
     for (const toothNo of teeth) {
@@ -1265,9 +1246,9 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   }
 
   // --- Buccal-aspect rows, ABOVE the graphic (PD innermost / nearest teeth) ---
-  // UI-2 Task 3: the aspect qualifier (buccal/palatal/lingual) stays
-  // translated in BOTH name modes — only the index NAME (`indexName(...)`)
-  // switches between `t(...)` and the canonical form.
+  // The aspect qualifier (buccal/palatal/lingual) stays translated in BOTH
+  // name modes — only the index NAME (`indexName(...)`) switches between
+  // `t(...)` and the canonical form.
   if (visible.bop) appendFieldRow("bop", BUCCAL_SITES, "buccal", `${buccalLabel} ${indexName("bop")}`);
   if (visible.cal) appendFieldRow("cal", BUCCAL_SITES, "buccal", `${buccalLabel} ${indexName("cal")}`);
   if (visible.gm) appendFieldRow("gm", BUCCAL_SITES, "buccal", `${buccalLabel} ${indexName("gm")}`);
@@ -1309,7 +1290,7 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   arch.appendChild(bandLabelTop);
 
   // --- Central perio index band: Plaque -> PI -> GI -> mPI -> mBI, between
-  //     the buccal and palatal graphics (UI-3a Task 2). ---
+  //     the buccal and palatal graphics. ---
   if (visible.plaque) {
     arch.appendChild(mkRowLabelCell(indexName("plaque"), "perio.info.plaque"));
     for (const toothNo of teeth) {
@@ -1318,7 +1299,7 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   }
 
   // --- PI row (Silness-Löe Plaque Index, per-surface graded 0-3) — mirrors
-  //     the O'Leary plaque row's 4-quadrant shape (SP-perio PG-D Task 4). ---
+  //     the O'Leary plaque row's 4-quadrant shape. ---
   if (visible.pi) {
     arch.appendChild(mkRowLabelCell(indexName("pi"), "perio.info.pi"));
     for (const toothNo of teeth) {
@@ -1335,8 +1316,8 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   }
 
   // --- mPI row (Mombelli modified Plaque Index, implant-only, per-surface
-  //     graded 0-3 — SP-perio PG-E Task 2). Built for EVERY tooth like PI/GI,
-  //     but the cells are only ACTIVE on an implant tooth (see syncToothCells). ---
+  //     graded 0-3). Built for EVERY tooth like PI/GI, but the cells are only
+  //     ACTIVE on an implant tooth (see syncToothCells). ---
   if (visible.mpi && archHasImplant) {
     arch.appendChild(mkRowLabelCell(indexName("mpi"), "perio.info.mpi"));
     for (const toothNo of teeth) {
@@ -1402,7 +1383,7 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   }
 
   // --- CEJ-visibility row: single per-tooth cycle button, no site
-  //     subdivision (SP-perio PG-C Task 3 — mirrors the mobility row above). ---
+  //     subdivision (mirrors the mobility row above). ---
   if (visible.cej) {
     arch.appendChild(mkRowLabelCell(indexName("cej"), "perio.info.cej"));
     for (const toothNo of teeth) {
@@ -1437,8 +1418,8 @@ function buildArch(teeth: readonly number[], registry: Map<number, ToothCellRefs
   return { grid: arch, buccalCell, palatalCell };
 }
 
-// UI-1 Task 3b: a small allowance subtracted from the measured scroll
-// container width before fitting columns to it, so the fitted columns never
+// A small allowance subtracted from the measured scroll container width
+// before fitting columns to it, so the fitted columns never
 // sit exactly flush with the container edge (which could otherwise trip a
 // horizontal scrollbar into existing JUST from its own width, oscillating
 // between fitting and not).
@@ -1448,11 +1429,11 @@ const GRID_SCROLLBAR_ALLOWANCE = 2;
  *  arch-layout widths (viewBox width + `TOOTH_GAP`, baked in — NO CSS
  *  column-gap — so the cumulative column edges match the arch SVG's per-tooth
  *  x positions exactly, with no progressive drift), scaled by a DYNAMIC
- *  fill-scale (UI-1 Task 3b) so the arch fills the available width of
- *  `scrollContainer` instead of the old fixed `PERIO_DISPLAY_SCALE`. Called
- *  once the template cache loads AND on every resize of `scrollContainer`
- *  (see the `ResizeObserver` below), so a tooth's number columns keep sitting
- *  directly under/over that tooth in the graphic at any width. `scrollContainer`
+ *  fill-scale so the arch fills the available width of `scrollContainer`.
+ *  Called once the template cache loads AND on every resize of
+ *  `scrollContainer` (see the `ResizeObserver` below), so a tooth's number
+ *  columns keep sitting directly under/over that tooth in the graphic at any
+ *  width. `scrollContainer`
  *  is `.perio-fullgrid-scroll` (the `scrollRef` div, NOT the grid itself —
  *  the grid's own width is a computed OUTPUT of this function, so measuring
  *  it here would be circular / risk a resize feedback loop); its width is
@@ -1461,8 +1442,8 @@ const GRID_SCROLLBAR_ALLOWANCE = 2;
  *  reading `clientWidth` here never reacts to the change this function itself
  *  makes. A `null`/unmounted/zero-width container (including jsdom, which
  *  never lays out `clientWidth`) measures as `0`, which `computeFillScale`
- *  clamps down to `MIN_FILL_SCALE` — reproducing the exact fixed pre-Task-3b
- *  layout when width can't be measured. */
+ *  clamps down to `MIN_FILL_SCALE` — reproducing a fixed layout when width
+ *  can't be measured. */
 function applyArchColumns(
   grid: HTMLElement | null,
   teeth: readonly number[],
@@ -1488,24 +1469,19 @@ function applyArchColumns(
 }
 
 /**
- * Full-screen perio-chart overlay (periodontal-arc sub-project P2). Task 1
- * shipped the shell (dialog contract, open/close API) with an empty
- * `#perioOverlayGrid` placeholder; THIS task (Task 2) fills it with the full-mouth
- * grid + a summary bar, bound to the P1 data core
- * (`setPerioSite`/`getToothPerio`/`getToothCal`/`getPerioSummary`/
- * `getPerioChart`). Keyboard auto-advance between cells is Task 3 — plain
- * `change` listeners are enough here.
- *
- * The 32-tooth x 6-site grid (~450+ interactive cells) is built with plain
- * DOM (`buildArch`), NOT JSX/React state, and updated via targeted
- * `syncToothCells` calls rather than a full React re-render (R3 perf) — see
- * `syncOneTooth`/`fullResync` below. Only the compact summary bar is
- * React-controlled (`useState`), since re-rendering ~4 numbers on every edit
- * is cheap. `suppressResyncRef` prevents the grid's own edits from ALSO
+ * Full-mouth perio-chart. The 32-tooth x 6-site grid (~450+ interactive
+ * cells) is built with plain DOM (`buildArch`), NOT JSX/React state, and
+ * updated via targeted `syncToothCells` calls rather than a full React
+ * re-render — see `syncOneTooth`/`fullResync` below. Only the compact summary
+ * bar is React-controlled (`useState`), since re-rendering ~4 numbers on every
+ * edit is cheap. `suppressResyncRef` prevents the grid's own edits from ALSO
  * triggering a redundant full resync via the `onStateChange` subscription
- * (setPerioSite/setToothMobility both fire it synchronously) — external
- * edits (dual-state chart-mode switch, or another consumer editing perio
- * data while the overlay is open) still trigger the full resync normally.
+ * (setPerioSite/setToothMobility both fire it synchronously) — external edits
+ * (dual-state chart-mode switch, or another consumer editing perio data while
+ * the overlay is open) still trigger the full resync normally. All writes go
+ * through the data core (`setPerioSite`/`getToothPerio`/`getToothCal`/
+ * `getPerioSummary`/`getPerioChart`); keyboard auto-advance between cells is
+ * handled by `handleGridKeyDown`.
  *
  * Layers OVER the odontogram, which it never unmounts: `position: fixed`,
  * full-screen, high z-index (`.perio-overlay` in `index.css`). Mirrors
@@ -1514,17 +1490,15 @@ function applyArchColumns(
  * single element (`#perioOverlay` itself is the dialog; there is no separate
  * backdrop element, unlike `SettingsModal`).
  *
- * **"Dental Chart" graphical redesign, Task 1 (presentation only):** the
- * optional `inline` prop selects a second chrome for the SAME body (grid +
+ * The optional `inline` prop selects a second chrome for the SAME body (grid +
  * summary bar) — a plain panel (`#perioInlinePanel`) meant to fill the chart
  * area in place of the hidden-but-mounted odontogram, instead of the
  * fixed-position modal dialog. `open`/`onClose` are the MODAL chrome's
  * contract and are ignored when `inline` is true (the caller controls
- * mount/unmount of an inline instance directly via conditional rendering,
- * the same way any other React content area would be swapped) — there is
- * nothing to "close" in an embedded panel. Dialog-only concerns (focus
- * trap/restore, Esc-to-close, backdrop click, `role="dialog"`) do not apply
- * to the inline chrome at all.
+ * mount/unmount of an inline instance directly via conditional rendering) —
+ * there is nothing to "close" in an embedded panel. Dialog-only concerns
+ * (focus trap/restore, Esc-to-close, backdrop click, `role="dialog"`) do not
+ * apply to the inline chrome at all.
  */
 export default function PerioChart({
   open = false,
@@ -1543,9 +1517,9 @@ export default function PerioChart({
   const scrollRef = useRef<HTMLDivElement | null>(null);
   // The tooth-row graphic containers (`buccalCell`/`palatalCell`) and the grid
   // elements are created inside the plain-DOM grid build (`buildArch`), NOT
-  // rendered as JSX — the two graphics sit INSIDE the number-row grid now
-  // (buccal graphic above the central index band, palatal below it — UI-3a
-  // Task 2), so these refs are assigned by the grid-building effect and read
+  // rendered as JSX — the two graphics sit INSIDE the number-row grid
+  // (buccal graphic above the central index band, palatal below it), so these
+  // refs are assigned by the grid-building effect and read
   // by the graphic effect (which runs after it on the same commit).
   // `drawArchCurves`/`drawArchOverlay` take the whole arch GRID (not either
   // cell individually) as their "container" argument — both `buccalCell` and
@@ -1568,7 +1542,7 @@ export default function PerioChart({
   // `open`-gated effect below. Replaced with the real summary as soon as
   // that effect's first fullResync() runs.
   const [summary, setSummary] = useState<PerioSummaryData>(EMPTY_SUMMARY);
-  // PG-B Task 2: the active overlay layer, mirrored from the module-level flag
+  // The active overlay layer, mirrored from the module-level flag
   // (odontogram.ts) into React state so the switcher's active button + the
   // header read-out re-render on change. Static default ("none") — like
   // `summary` above, this hook runs on every mount regardless of `open`, so
@@ -1612,46 +1586,44 @@ export default function PerioChart({
     if (el && !el.disabled) el.focus();
   }, []);
 
-  // Task 3: keyboard auto-advance + navigation, delegated on the grid
-  // container (the ~450+ cells are plain DOM, not JSX — see the class-level
-  // doc comment — so this is one native `keydown` listener, not a per-cell
-  // React handler). Cells are located via `data-perio="{toothNo}:{site}:{row}"`
-  // (set in `buildArch`). ALL value writes still go through `setPerioSite`
-  // (never a second mutation path) — this only decides WHAT to write and
-  // WHERE to move focus next; `syncOneTooth` re-syncs the edited cell from
-  // state exactly like the existing `change`-event handlers do.
+  // Keyboard auto-advance + navigation, delegated on the grid container (the
+  // ~450+ cells are plain DOM, not JSX — see the component doc comment — so
+  // this is one native `keydown` listener, not a per-cell React handler).
+  // Cells are located via `data-perio="{toothNo}:{site}:{row}"` (set in
+  // `buildArch`). ALL value writes still go through `setPerioSite` (never a
+  // second mutation path) — this only decides WHAT to write and WHERE to move
+  // focus next; `syncOneTooth` re-syncs the edited cell from state exactly
+  // like the existing `change`-event handlers do.
   //
   // PD digit: a single 2-9 keystroke commits `pd` immediately (0 un-charts —
-  // `setPerioSite`'s own P1 semantics, no special-casing needed here) and
+  // `setPerioSite`'s own semantics, no special-casing needed here) and
   // advances to `nextPerioCell`. A `1` keystroke commits an interim `pd` of
   // 1, primes `dataset.pendingTens` (mirrors `dataset.pendingSign` below —
   // NOT `.value`, for the same jsdom/browser value-sanitization reason), and
-  // withholds the advance so a FOLLOWING `0`-`5` digit can compose 10-15
-  // (deferred P2 fix — PD 10-15 were previously unreachable via single-digit
-  // auto-advance). Any other key while primed (not `0`-`5`) clears the prime
-  // — the already-committed value of 1 stands — and is NOT swallowed: it
-  // falls through to be handled normally below (arrow keys navigate, a
-  // digit 6-9 overwrites+advances as a fresh single-digit entry, anything
-  // else is a no-op at the current cell). GM digit: same auto-advance,
-  // except a leading `-` keystroke first primes the field — tracked ONLY
-  // via a `dataset.pendingSign`
-  // marker on the input, NOT its `.value` (a bare `-` is not a valid
-  // `<input type="number">` value, so the browser's, and jsdom's, own
-  // value-sanitization algorithm silently resets it back to `""` the
+  // withholds the advance so a FOLLOWING `0`-`5` digit can compose 10-15.
+  // Any other key while primed (not `0`-`5`) clears the prime — the
+  // already-committed value of 1 stands — and is NOT swallowed: it falls
+  // through to be handled normally below (arrow keys navigate, a digit 6-9
+  // overwrites+advances as a fresh single-digit entry, anything else is a
+  // no-op at the current cell). GM digit: same auto-advance, except a leading
+  // `-` keystroke first primes the field — tracked ONLY via a
+  // `dataset.pendingSign` marker on the input, NOT its `.value` (a bare `-` is
+  // not a valid `<input type="number">` value, so the browser's, and jsdom's,
+  // own value-sanitization algorithm silently resets it back to `""` the
   // instant it's assigned, making `.value` an unreliable place to stash an
-  // in-progress sign) — so the FOLLOWING digit composes a negative reading;
-  // a bare digit with no primed `-` commits a positive reading. Any other
-  // key on a gm cell (arrows, Tab, etc.) clears a stale prime, so navigating
-  // away via a KEY without finishing the digit never leaks a sign into a
-  // later, unrelated entry; the delegated `focusout` handler below (see
-  // `handleGridFocusOut`) covers the same case for a NON-keyboard focus
-  // change (e.g. a mouse click to another cell), which this keydown handler
-  // alone cannot see. Arrow keys move focus only — never write state.
-  // Space/Enter on a BOP cell toggles it. `getReadOnly()` is checked
-  // explicitly up front (belt-and-braces on top of the cells' own `disabled`
-  // attribute, which already blocks real browser focus/keydown on a
-  // read-only grid) so the no-op is verifiable even when a test dispatches a
-  // keydown directly at a DOM node.
+  // in-progress sign) — so the FOLLOWING digit composes a negative reading; a
+  // bare digit with no primed `-` commits a positive reading. Any other key
+  // on a gm cell (arrows, Tab, etc.) clears a stale prime, so navigating away
+  // via a KEY without finishing the digit never leaks a sign into a later,
+  // unrelated entry; the delegated `focusout` handler below (see
+  // `handleGridFocusOut`) covers the same case for a NON-keyboard focus change
+  // (e.g. a mouse click to another cell), which this keydown handler alone
+  // cannot see. Arrow keys move focus only — never write state. Space/Enter on
+  // a BOP cell toggles it. `getReadOnly()` is checked explicitly up front
+  // (belt-and-braces on top of the cells' own `disabled` attribute, which
+  // already blocks real browser focus/keydown on a read-only grid) so the
+  // no-op is verifiable even when a test dispatches a keydown directly at a
+  // DOM node.
   const handleGridKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (getReadOnly()) return;
@@ -1757,24 +1729,21 @@ export default function PerioChart({
     [focusPerioCell, syncOneTooth],
   );
 
-  // Review fix (P2 Task 3, Finding 1 — silent negative-value bug): a primed
-  // `-` (`dataset.pendingSign`, see the doc comment above `handleGridKeyDown`)
-  // must be cleared on ANY loss of focus from the gm cell that primed it, not
-  // only by a subsequent keydown on that same input. Without this, priming
-  // `-` then leaving the cell via a non-keyboard focus change (mouse click on
-  // another cell — no keydown fires on the primed input at all) leaves the
-  // marker stuck on that DOM node; returning to the SAME cell later and
-  // typing a plain digit would then silently compose a NEGATIVE value even
-  // though no `-` was pressed this time — clinically wrong (gm sign flips
-  // recession vs. pseudopocket meaning). Delegated via `focusout` (bubbles,
-  // unlike `blur`) on the grid container, mirroring the delegated `keydown`
-  // handler. Only ever clears the marker — never touches the cell's value or
-  // calls `setPerioSite`.
-  //
-  // Deferred fix (P2 follow-up, Task 1): the SAME stale-prime bug applies to
-  // a primed PD `dataset.pendingTens` — clear it here too, or leaving a
-  // primed PD cell via a non-keyboard focus change and later returning to
-  // type a plain digit would silently compose it as a tens-completion.
+  // A primed `-` (`dataset.pendingSign`, see the doc comment above
+  // `handleGridKeyDown`) must be cleared on ANY loss of focus from the gm cell
+  // that primed it, not only by a subsequent keydown on that same input.
+  // Without this, priming `-` then leaving the cell via a non-keyboard focus
+  // change (mouse click on another cell — no keydown fires on the primed input
+  // at all) leaves the marker stuck on that DOM node; returning to the SAME
+  // cell later and typing a plain digit would then silently compose a NEGATIVE
+  // value even though no `-` was pressed this time — clinically wrong (gm sign
+  // flips recession vs. pseudopocket meaning). Delegated via `focusout`
+  // (bubbles, unlike `blur`) on the grid container, mirroring the delegated
+  // `keydown` handler. Only ever clears the marker — never touches the cell's
+  // value or calls `setPerioSite`. The same stale-prime hazard applies to a
+  // primed PD `dataset.pendingTens` — cleared here too, so leaving a primed PD
+  // cell via a non-keyboard focus change and later typing a plain digit can't
+  // silently compose it as a tens-completion.
   const handleGridFocusOut = useCallback((e: FocusEvent) => {
     const target = e.target as HTMLElement | null;
     if (target?.dataset?.pendingSign) delete target.dataset.pendingSign;
@@ -1833,9 +1802,9 @@ export default function PerioChart({
         suppressResyncRef.current = false;
         syncOneTooth(toothNo);
       },
-      // SP-perio P2b Task 4: cycle the Glickman grade none->I->II->III->IV->
-      // none for one entrance. The current grade is read from the ACTIVE
-      // chart (getToothFurcation) so a dual-state switch cycles the right
+      // Cycle the Glickman grade none->I->II->III->IV->none for one entrance.
+      // The current grade is read from the ACTIVE chart (getToothFurcation) so
+      // a dual-state switch cycles the right
       // chart; the write always goes through setFurcation (no new mutation
       // path). grade 4 wraps to `null` (clears the entrance).
       onFurcation: (toothNo, entrance) => {
@@ -1846,7 +1815,7 @@ export default function PerioChart({
         suppressResyncRef.current = false;
         syncOneTooth(toothNo);
       },
-      // SP-perio P2b Task 4: toggle one O'Leary plaque surface via setPlaque.
+      // Toggle one O'Leary plaque surface via setPlaque.
       onPlaque: (toothNo, surface) => {
         const present = getToothPlaque(toothNo).includes(surface);
         suppressResyncRef.current = true;
@@ -1854,8 +1823,8 @@ export default function PerioChart({
         suppressResyncRef.current = false;
         syncOneTooth(toothNo);
       },
-      // SP-perio PG-C Task 3: cycle none->detectable->not-detectable->none for
-      // one tooth's CEJ visibility. The current value is read from the ACTIVE
+      // Cycle none->detectable->not-detectable->none for one tooth's CEJ
+      // visibility. The current value is read from the ACTIVE
       // chart (getCejVisibility) so a dual-state switch cycles the right
       // chart; the write always goes through setCejVisibility (no new
       // mutation path).
@@ -1868,8 +1837,8 @@ export default function PerioChart({
         suppressResyncRef.current = false;
         syncOneTooth(toothNo);
       },
-      // SP-perio PG-C Task 3: cycle none->mild->deep->none for one tooth's
-      // root concavity. Mirrors onCejVisibility above.
+      // Cycle none->mild->deep->none for one tooth's root concavity. Mirrors
+      // onCejVisibility above.
       onRootConcavity: (toothNo) => {
         const cur = getRootConcavity(toothNo);
         const idx = ROOT_CONCAVITY_CYCLE.indexOf(cur);
@@ -1879,9 +1848,9 @@ export default function PerioChart({
         suppressResyncRef.current = false;
         syncOneTooth(toothNo);
       },
-      // SP-perio PG-D Task 4: cycle one surface's PI/GI grade 0->1->2->3->0
-      // (0 clears — setPlaqueIndex/setGingivalIndex's own no-op-free "grade 0
-      // clears" semantics). The current grade is read from the ACTIVE chart
+      // Cycle one surface's PI/GI grade 0->1->2->3->0 (0 clears —
+      // setPlaqueIndex/setGingivalIndex's own no-op-free "grade 0 clears"
+      // semantics). The current grade is read from the ACTIVE chart
       // (getPlaqueIndex/getGingivalIndex) so a dual-state switch cycles the
       // right chart.
       onPiSurface: (toothNo, surface) => {
@@ -1898,8 +1867,8 @@ export default function PerioChart({
         suppressResyncRef.current = false;
         syncOneTooth(toothNo);
       },
-      // SP-perio PG-E Task 2: cycle one surface's mPI/mBI grade 0->1->2->3->0,
-      // mirroring onPiSurface/onGiSurface exactly. On a non-implant tooth the
+      // Cycle one surface's mPI/mBI grade 0->1->2->3->0, mirroring
+      // onPiSurface/onGiSurface exactly. On a non-implant tooth the
       // cell is disabled (see syncToothCells) so this never fires from the UI;
       // setPeriImplantPlaque/setPeriImplantBleeding are ALSO implant-gated at
       // the data layer (no-op on a non-implant tooth), so this stays a no-op
@@ -1918,8 +1887,8 @@ export default function PerioChart({
         suppressResyncRef.current = false;
         syncOneTooth(toothNo);
       },
-      // SP-perio PG-D Task 4: KG mm — trimmed-empty clears (mirrors onPd's
-      // empty-un-charts semantics), otherwise the raw string is parsed and
+      // KG mm — trimmed-empty clears (mirrors onPd's empty-un-charts
+      // semantics), otherwise the raw string is parsed and
       // clamped by setKeratinizedWidth itself.
       onKg: (toothNo, raw) => {
         const trimmed = raw.trim();
@@ -1928,8 +1897,8 @@ export default function PerioChart({
         suppressResyncRef.current = false;
         syncOneTooth(toothNo);
       },
-      // SP-perio PG-D Task 4: cycle unknown->thin->medium->thick->unknown for
-      // one tooth's gingival thickness. Mirrors onCejVisibility above.
+      // Cycle unknown->thin->medium->thick->unknown for one tooth's gingival
+      // thickness. Mirrors onCejVisibility above.
       onGingivalThickness: (toothNo) => {
         const cur = getGingivalThickness(toothNo);
         const idx = GINGIVAL_THICKNESS_CYCLE.indexOf(cur);
@@ -1939,8 +1908,8 @@ export default function PerioChart({
         suppressResyncRef.current = false;
         syncOneTooth(toothNo);
       },
-      // SP-perio PG-D Task 4: cycle none->i->ii->iii->iv->none for one tooth's
-      // Miller class. Mirrors onRootConcavity above.
+      // Cycle none->i->ii->iii->iv->none for one tooth's Miller class. Mirrors
+      // onRootConcavity above.
       onMillerClass: (toothNo) => {
         const cur = getMillerClass(toothNo);
         const idx = MILLER_CLASS_CYCLE.indexOf(cur);
@@ -1952,21 +1921,20 @@ export default function PerioChart({
       },
     };
 
-    // UI-2 Task 2/3 + UI-3b Task 3: current Settings -> Periodontal-tab
-    // row-visibility + index-name-mode + implant-set snapshot, as a compact
-    // string so the rebuild below only fires when any of them actually
-    // changes (mirrors the "Dental Chart" graphical redesign's `implantSig`
+    // Current Settings -> Periodontal-tab row-visibility + index-name-mode +
+    // implant-set snapshot, as a compact string so the rebuild below only
+    // fires when any of them actually changes (mirrors the `implantSig`
     // pattern for the tooth-row graphic, see the effect further down).
-    // `buildArch` reads `getPerioRowVisibility()` (T2), `getPerioIndexNameMode()`
-    // (T3), and each arch's implant set (`archHasImplant`, UI-3b T3) once per
-    // build, so a rebuild triggered by any of them changing re-renders row
-    // presence (including the per-arch mPI/mBI gate) AND row label text from
-    // the current snapshot.
+    // `buildArch` reads `getPerioRowVisibility()`, `getPerioIndexNameMode()`,
+    // and each arch's implant set (`archHasImplant`) once per build, so a
+    // rebuild triggered by any of them changing re-renders row presence
+    // (including the per-arch mPI/mBI gate) AND row label text from the
+    // current snapshot.
     const visibilitySig = () => JSON.stringify([
       getPerioRowVisibility(),
       getPerioIndexNameMode(),
-      // UI-3b Task 3: the mPI/mBI rows are gated per-arch on whether that arch
-      // contains an implant (see `archHasImplant` in `buildArch`) — the
+      // The mPI/mBI rows are gated per-arch on whether that arch contains an
+      // implant (see `archHasImplant` in `buildArch`) — the
       // implant SET affects row presence, so a rebuild must also fire when it
       // changes (adding/removing an implant), not just on a visibility/name
       // flag flip.
@@ -2004,9 +1972,8 @@ export default function PerioChart({
       if (cache) {
         applyArchColumns(gridUpperRef.current, UPPER_ARCH, cache, scrollRef.current);
         applyArchColumns(gridLowerRef.current, LOWER_ARCH, cache, scrollRef.current);
-        // UI-3a Task 2: each aspect gets its OWN grid cell — buccal into
-        // `buccalCell`, palatal into `palatalCell` — instead of T1's temporary
-        // stacked-into-one-cell mount.
+        // Each aspect gets its OWN grid cell — buccal into `buccalCell`,
+        // palatal into `palatalCell`.
         buccalUpperRef.current.appendChild(buildBuccalArchSvg(cache, UPPER_ARCH, isToothImplant, undefined, getPerioToothKind));
         palatalUpperRef.current.appendChild(buildPalatalArchSvg(cache, UPPER_ARCH, isToothImplant, undefined, getPerioToothKind));
         buccalLowerRef.current.appendChild(buildBuccalArchSvg(cache, LOWER_ARCH, isToothImplant, undefined, getPerioToothKind));
@@ -2047,29 +2014,27 @@ export default function PerioChart({
     };
   }, [active, fullResync, syncOneTooth, handleGridKeyDown, handleGridFocusOut]);
 
-  // "Dental Chart" graphical redesign, Task 2: the tooth-row graphic — draws
-  // the perio arch by reusing the odontogram's own `tooth-base` artwork
-  // (see `perioGraphic.ts`). Fully READ-ONLY (no pointer handlers) and
-  // independent of the grid-building effect above — it fetches + parses the
-  // 4 tooth templates once (`loadTemplateCache()`, memoized at module scope
-  // in `perioGraphic.ts`, so re-opening/re-mounting this component never
-  // re-fetches) and, once loaded, builds one composite arch SVG per arch
-  // band into its own container. A load failure (e.g. no network) is
-  // swallowed — this graphic is a presentation enhancement over the
-  // existing data grid, never a hard dependency for charting to work.
+  // The tooth-row graphic — draws the perio arch by reusing the odontogram's
+  // own `tooth-base` artwork (see `perioGraphic.ts`). Fully READ-ONLY (no
+  // pointer handlers) and independent of the grid-building effect above — it
+  // fetches + parses the 4 tooth templates once (`loadTemplateCache()`,
+  // memoized at module scope in `perioGraphic.ts`, so re-opening/re-mounting
+  // this component never re-fetches) and, once loaded, builds one composite
+  // arch SVG per arch band into its own container. A load failure (e.g. no
+  // network) is swallowed — this graphic is a presentation enhancement over
+  // the existing data grid, never a hard dependency for charting to work.
   //
-  // "Dental Chart" graphical redesign, Task 3: the curve overlay (CEJ +
-  // gingival-margin + pocket-base line + a filled band) is drawn OVER each
-  // arch SVG here, driven by the per-site PD/GM data via `perioCurve` /
-  // `buildPerioCurveLayer` (see `drawArchCurves`). It reuses the SAME layout
-  // constants (`archToothLayout` / `ROW_BASELINE_Y`) the teeth are laid out
-  // with, so it can never drift out of alignment. A dedicated
-  // `onStateChange` subscription (NOT gated by `suppressResyncRef` — the grid
-  // suppress flag only exists to skip a redundant *grid* fullResync on the
-  // grid's own edit; the curve genuinely must redraw on every edit, grid or
-  // external) recomputes the curves from the active chart, so they live-update
-  // and reflect the status/plan chart. All still READ-ONLY — no pointer
-  // handlers, all data via the P1 API.
+  // The curve overlay (CEJ + gingival-margin + pocket-base line + a filled
+  // band) is drawn OVER each arch SVG here, driven by the per-site PD/GM data
+  // via `perioCurve` / `buildPerioCurveLayer` (see `drawArchCurves`). It
+  // reuses the SAME layout constants (`archToothLayout` / `ROW_BASELINE_Y`)
+  // the teeth are laid out with, so it can never drift out of alignment. A
+  // dedicated `onStateChange` subscription (NOT gated by `suppressResyncRef` —
+  // the grid suppress flag only exists to skip a redundant *grid* fullResync
+  // on the grid's own edit; the curve genuinely must redraw on every edit,
+  // grid or external) recomputes the curves from the active chart, so they
+  // live-update and reflect the status/plan chart. All still READ-ONLY — no
+  // pointer handlers, all data via the data core API.
   useEffect(() => {
     if (!active) return;
     let cancelled = false;
@@ -2114,7 +2079,7 @@ export default function PerioChart({
       const cache = archCacheRef.current;
       if (!cache) return;
       // Rebuild the teeth first if the implant set changed (cheap 32-tooth check),
-      // then (re)draw the curves + the PG-B Task 2 discrete overlay into the
+      // then (re)draw the curves + the discrete overlay into the
       // fresh/existing arch SVGs. The overlay reads the active layer from the
       // module flag (getPerioOverlayLayer), so switching layers — which fires
       // notifyStateChange -> this redraw — repaints it.
@@ -2125,8 +2090,8 @@ export default function PerioChart({
       drawArchOverlay(cache, gridUpperRef.current, UPPER_ARCH, layer);
       drawArchOverlay(cache, gridLowerRef.current, LOWER_ARCH, layer);
     };
-    // UI-1 Task 3b: (re-)fit both arches' tooth columns to the CURRENT
-    // `scrollRef` width — shared by the initial cache-load path and the
+    // (Re-)fit both arches' tooth columns to the CURRENT `scrollRef` width —
+    // shared by the initial cache-load path and the
     // `ResizeObserver` callback below, so there is exactly one place that
     // reads the container width and calls `applyArchColumns`.
     const fitColumns = () => {
@@ -2147,9 +2112,8 @@ export default function PerioChart({
         if (cancelled) return;
         archCacheRef.current = cache;
         // Align the number-row columns to the real per-tooth arch widths,
-        // scaled to fill the available container width (resolves the
-        // T2-deferred "grid doesn't line up column-for-column with the teeth"
-        // and, later, the T3b "fixed width leaves empty space" gap).
+        // scaled to fill the available container width, so the grid lines up
+        // column-for-column with the teeth and leaves no empty space.
         fitColumns();
         buildArches(cache);
         drawArchCurves(cache, gridUpperRef.current, UPPER_ARCH);
@@ -2166,8 +2130,8 @@ export default function PerioChart({
       if (!cancelled) redraw();
     });
 
-    // UI-1 Task 3b: re-fit the columns whenever the SCROLL CONTAINER's own
-    // width changes (window resize, sidebar collapse/expand, modal/inline
+    // Re-fit the columns whenever the SCROLL CONTAINER's own width changes
+    // (window resize, sidebar collapse/expand, modal/inline
     // chrome swap, etc.) — mirrors `setupBridgeOverlayResize` in
     // odontogram.ts (same guard + debounce shape). Observes `scrollRef`
     // (`.perio-fullgrid-scroll`) deliberately, NOT the grid this resizes: the
@@ -2200,8 +2164,8 @@ export default function PerioChart({
     };
   }, [active]);
 
-  // PG-B Task 2: mirror the module-level overlay-layer flag into React state
-  // so the switcher's active button + header read-out re-render on change.
+  // Mirror the module-level overlay-layer flag into React state so the
+  // switcher's active button + header read-out re-render on change.
   // Active-gated (like every other real-module effect here) so a closed/
   // unmounted PerioChart never touches "./odontogram". `setPerioOverlayLayer`
   // fires notifyStateChange, so a click anywhere (this instance or another
@@ -2212,9 +2176,6 @@ export default function PerioChart({
     const unsubscribe = onStateChange(() => setOverlayLayer(getPerioOverlayLayer()));
     return unsubscribe;
   }, [active]);
-
-  // UI-1 Task 1: the case-metadata/classification mirror effect moved to
-  // `PerioSidebar.tsx` along with the panel JSX it fed.
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -2246,16 +2207,14 @@ export default function PerioChart({
 
   if (!active) return null;
 
-  // PG-B Task 2: the Dental Chart index switcher — a radio-style toggle row
-  // that drives `setPerioOverlayLayer`, showing the active selection and, when
-  // the active layer is a rate index, the matching whole-mouth read-out (%BOP
-  // for BOP, PI% for plaque). Rendered in the Dental Chart header (inline
-  // chrome) and the overlay header (popup chrome).
-  // PG-E Task 2 CONSOLIDATION: every graded overlay (pi/gi/kg/mpi/mbi) now
-  // also gets a whole-mouth read-out, sourced from `summary` (closes the
-  // PG-D-era gap where only bop/plaque had one) — labelled via
-  // `t("perio.overlay.<layer>")`, showing "—" when the score is null
-  // (e.g. a graded index with nothing charted yet).
+  // The Dental Chart index switcher — a radio-style toggle row that drives
+  // `setPerioOverlayLayer`, showing the active selection and the matching
+  // whole-mouth read-out. Rendered in the Dental Chart header (inline chrome)
+  // and the overlay header (popup chrome). Every read-out-bearing overlay
+  // (bop/plaque/pi/gi/kg/mpi/mbi) sources its score from `summary` — labelled
+  // via `t("perio.overlay.<layer>")` (or the dedicated %BOP/plaque% label),
+  // showing "—" when the score is null (e.g. a graded index with nothing
+  // charted yet).
   const overlayReadout =
     overlayLayer === "bop"
       ? `${t("perio.bopPercent")} ${summary.bopPercent}%`
@@ -2295,20 +2254,19 @@ export default function PerioChart({
     </div>
   );
 
-  // UI-1 Task 1: the whole-mouth summary bar + the case-metadata/2017
-  // classification panel ("Páciens adatok") moved out into a standalone
-  // `<PerioSidebar/>` component (`src/PerioSidebar.tsx`) — the shared right
-  // `<aside className="panel">` in `<App/>` now renders it in place of the
-  // odontogram controls whenever the perio (Dental Chart) view is active, so
-  // it no longer belongs in the chart's own body for the INLINE chrome. The
-  // POPUP chrome (this component's `!inline` branch, below) still renders it
-  // directly — the modal overlay must stay a complete surface on its own,
-  // since `<App/>`'s aside is NOT perio-gated while `viewMode === "popup"`.
+  // The whole-mouth summary bar + case-metadata/2017 classification panel
+  // live in a standalone `<PerioSidebar/>` (`src/PerioSidebar.tsx`). The
+  // shared right `<aside className="panel">` in `<App/>` renders it in place
+  // of the odontogram controls whenever the perio (Dental Chart) view is
+  // active, so the INLINE chrome doesn't repeat it in the chart body. The
+  // POPUP chrome (this component's `!inline` branch, below) DOES render it
+  // directly — the modal overlay must be a complete surface on its own, since
+  // `<App/>`'s aside is NOT perio-gated while `viewMode === "popup"`.
   //
-  // `gridBody` is now just the grid itself, shared unchanged by both chrome
+  // `gridBody` is just the grid itself, shared unchanged by both chrome
   // variants — only the wrapping id/class differs (`#perioInlineGrid` vs
   // `#perioOverlayGrid`) so the two never collide with each other or with the
-  // P1 tooth-panel's always-present `#perioGrid`.
+  // tooth-panel's always-present `#perioGrid`.
   const gridBody = (
     <div id={inline ? "perioInlineGrid" : "perioOverlayGrid"} className="perio-overlay-body" aria-label={t("perio.chart.title")}>
       <div className="perio-fullgrid-scroll" ref={scrollRef}></div>

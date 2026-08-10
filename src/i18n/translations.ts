@@ -77,7 +77,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "toothInfo.periodontalTitle": "Fogágy állapota",
     "toothInfo.periodontalHealthy": "a fogágy egészséges",
     "toothInfo.periodontalInflamed": "a fogágyban a következő fogakon található gyulladás: {{list}}",
-    // P4a Task 2: case-level metadata panel (Dental Chart) + summary line.
+    // Case-level metadata panel (Dental Chart) + summary line.
     "case.panelTitle": "Páciens adatok",
     "case.patientName": "Páciens neve",
     "case.patientDob": "Születési dátum",
@@ -107,7 +107,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "case.summary.rbl": "max. csontveszteség {{value}}%",
     "case.summary.toothLossOne": "{{n}} fog elvesztve parodontitis miatt",
     "case.summary.toothLossOther": "{{n}} fog elvesztve parodontitis miatt",
-    // P4b Task 4: 2017 classification panel (diagnosis/stage/grade/extent) + summary line.
+    // 2017 periodontal classification panel (diagnosis/stage/grade/extent) + summary line.
     "perio.class.title": "Parodontális klasszifikáció (2017)",
     "perio.class.diagnosis": "Diagnózis",
     "perio.class.stage": "Stádium",
@@ -988,7 +988,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "toothInfo.periodontalTitle": "Periodontal status",
     "toothInfo.periodontalHealthy": "the periodontium is healthy",
     "toothInfo.periodontalInflamed": "inflammation is present on the following teeth: {{list}}",
-    // P4a Task 2: case-level metadata panel (Dental Chart) + summary line.
+    // Case-level metadata panel (Dental Chart) + summary line.
     "case.panelTitle": "Patient data",
     "case.patientName": "Patient name",
     "case.patientDob": "Date of birth",
@@ -1018,7 +1018,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "case.summary.rbl": "max RBL {{value}}%",
     "case.summary.toothLossOne": "{{n}} tooth lost to periodontitis",
     "case.summary.toothLossOther": "{{n}} teeth lost to periodontitis",
-    // P4b Task 4: 2017 classification panel (diagnosis/stage/grade/extent) + summary line.
+    // 2017 periodontal classification panel (diagnosis/stage/grade/extent) + summary line.
     "perio.class.title": "Periodontal classification (2017)",
     "perio.class.diagnosis": "Diagnosis",
     "perio.class.stage": "Stage",
@@ -1899,7 +1899,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "toothInfo.periodontalTitle": "Parodontaler Status",
     "toothInfo.periodontalHealthy": "das Parodontium ist gesund",
     "toothInfo.periodontalInflamed": "an folgenden Zähnen liegt eine Entzündung vor: {{list}}",
-    // P4a Task 2: case-level metadata panel (Dental Chart) + summary line.
+    // Case-level metadata panel (Dental Chart) + summary line.
     "case.panelTitle": "Patientendaten",
     "case.patientName": "Patientenname",
     "case.patientDob": "Geburtsdatum",
@@ -1929,7 +1929,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "case.summary.rbl": "max. Knochenverlust {{value}}%",
     "case.summary.toothLossOne": "{{n}} Zahn durch Parodontitis verloren",
     "case.summary.toothLossOther": "{{n}} Zähne durch Parodontitis verloren",
-    // P4b Task 4: 2017 classification panel (diagnosis/stage/grade/extent) + summary line.
+    // 2017 periodontal classification panel (diagnosis/stage/grade/extent) + summary line.
     "perio.class.title": "Parodontale Klassifikation (2017)",
     "perio.class.diagnosis": "Diagnose",
     "perio.class.stage": "Stadium",
@@ -2810,7 +2810,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "toothInfo.periodontalTitle": "Estado periodontal",
     "toothInfo.periodontalHealthy": "el periodonto está sano",
     "toothInfo.periodontalInflamed": "hay inflamación en los siguientes dientes: {{list}}",
-    // P4a Task 2: case-level metadata panel (Dental Chart) + summary line.
+    // Case-level metadata panel (Dental Chart) + summary line.
     "case.panelTitle": "Datos del paciente",
     "case.patientName": "Nombre del paciente",
     "case.patientDob": "Fecha de nacimiento",
@@ -2840,7 +2840,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "case.summary.rbl": "pérdida ósea máx. {{value}}%",
     "case.summary.toothLossOne": "{{n}} diente perdido por periodontitis",
     "case.summary.toothLossOther": "{{n}} dientes perdidos por periodontitis",
-    // P4b Task 4: 2017 classification panel (diagnosis/stage/grade/extent) + summary line.
+    // 2017 periodontal classification panel (diagnosis/stage/grade/extent) + summary line.
     "perio.class.title": "Clasificación periodontal (2017)",
     "perio.class.diagnosis": "Diagnóstico",
     "perio.class.stage": "Estadio",
@@ -3721,7 +3721,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "toothInfo.periodontalTitle": "Stato parodontale",
     "toothInfo.periodontalHealthy": "il parodonto è sano",
     "toothInfo.periodontalInflamed": "è presente infiammazione sui seguenti denti: {{list}}",
-    // P4a Task 2: case-level metadata panel (Dental Chart) + summary line.
+    // Case-level metadata panel (Dental Chart) + summary line.
     "case.panelTitle": "Dati del paziente",
     "case.patientName": "Nome paziente",
     "case.patientDob": "Data di nascita",
@@ -3751,7 +3751,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "case.summary.rbl": "perdita ossea max {{value}}%",
     "case.summary.toothLossOne": "{{n}} dente perso per parodontite",
     "case.summary.toothLossOther": "{{n}} denti persi per parodontite",
-    // P4b Task 4: 2017 classification panel (diagnosis/stage/grade/extent) + summary line.
+    // 2017 periodontal classification panel (diagnosis/stage/grade/extent) + summary line.
     "perio.class.title": "Classificazione parodontale (2017)",
     "perio.class.diagnosis": "Diagnosi",
     "perio.class.stage": "Stadio",
@@ -4632,7 +4632,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "toothInfo.periodontalTitle": "Stav parodontu",
     "toothInfo.periodontalHealthy": "parodont je zdravý",
     "toothInfo.periodontalInflamed": "zápal je prítomný na nasledujúcich zuboch: {{list}}",
-    // P4a Task 2: case-level metadata panel (Dental Chart) + summary line.
+    // Case-level metadata panel (Dental Chart) + summary line.
     "case.panelTitle": "Údaje o pacientovi",
     "case.patientName": "Meno pacienta",
     "case.patientDob": "Dátum narodenia",
@@ -4662,7 +4662,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "case.summary.rbl": "max. strata kosti {{value}}%",
     "case.summary.toothLossOne": "{{n}} zub stratený v dôsledku parodontitídy",
     "case.summary.toothLossOther": "{{n}} zubov stratených v dôsledku parodontitídy",
-    // P4b Task 4: 2017 classification panel (diagnosis/stage/grade/extent) + summary line.
+    // 2017 periodontal classification panel (diagnosis/stage/grade/extent) + summary line.
     "perio.class.title": "Parodontálna klasifikácia (2017)",
     "perio.class.diagnosis": "Diagnóza",
     "perio.class.stage": "Štádium",
@@ -5543,7 +5543,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "toothInfo.periodontalTitle": "Stan przyzębia",
     "toothInfo.periodontalHealthy": "przyzębie jest zdrowe",
     "toothInfo.periodontalInflamed": "stan zapalny występuje na następujących zębach: {{list}}",
-    // P4a Task 2: case-level metadata panel (Dental Chart) + summary line.
+    // Case-level metadata panel (Dental Chart) + summary line.
     "case.panelTitle": "Dane pacjenta",
     "case.patientName": "Imię i nazwisko pacjenta",
     "case.patientDob": "Data urodzenia",
@@ -5573,7 +5573,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "case.summary.rbl": "maks. utrata kości {{value}}%",
     "case.summary.toothLossOne": "{{n}} ząb utracony z powodu zapalenia przyzębia",
     "case.summary.toothLossOther": "{{n}} zębów utraconych z powodu zapalenia przyzębia",
-    // P4b Task 4: 2017 classification panel (diagnosis/stage/grade/extent) + summary line.
+    // 2017 periodontal classification panel (diagnosis/stage/grade/extent) + summary line.
     "perio.class.title": "Klasyfikacja periodontologiczna (2017)",
     "perio.class.diagnosis": "Diagnoza",
     "perio.class.stage": "Stadium",
@@ -6454,7 +6454,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "toothInfo.periodontalTitle": "Состояние пародонта",
     "toothInfo.periodontalHealthy": "пародонт здоров",
     "toothInfo.periodontalInflamed": "воспаление присутствует на следующих зубах: {{list}}",
-    // P4a Task 2: case-level metadata panel (Dental Chart) + summary line.
+    // Case-level metadata panel (Dental Chart) + summary line.
     "case.panelTitle": "Данные пациента",
     "case.patientName": "Имя пациента",
     "case.patientDob": "Дата рождения",
@@ -6484,7 +6484,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "case.summary.rbl": "макс. потеря кости {{value}}%",
     "case.summary.toothLossOne": "{{n}} зуб утрачен из-за пародонтита",
     "case.summary.toothLossOther": "{{n}} зубов утрачено из-за пародонтита",
-    // P4b Task 4: 2017 classification panel (diagnosis/stage/grade/extent) + summary line.
+    // 2017 periodontal classification panel (diagnosis/stage/grade/extent) + summary line.
     "perio.class.title": "Пародонтологическая классификация (2017)",
     "perio.class.diagnosis": "Диагноз",
     "perio.class.stage": "Стадия",
@@ -7365,7 +7365,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "toothInfo.periodontalTitle": "Estado periodontal",
     "toothInfo.periodontalHealthy": "o periodonto está saudável",
     "toothInfo.periodontalInflamed": "há inflamação nos seguintes dentes: {{list}}",
-    // P4a Task 2: case-level metadata panel (Dental Chart) + summary line.
+    // Case-level metadata panel (Dental Chart) + summary line.
     "case.panelTitle": "Dados do paciente",
     "case.patientName": "Nome do paciente",
     "case.patientDob": "Data de nascimento",
@@ -7395,7 +7395,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "case.summary.rbl": "perda óssea máx. {{value}}%",
     "case.summary.toothLossOne": "{{n}} dente perdido por periodontite",
     "case.summary.toothLossOther": "{{n}} dentes perdidos por periodontite",
-    // P4b Task 4: 2017 classification panel (diagnosis/stage/grade/extent) + summary line.
+    // 2017 periodontal classification panel (diagnosis/stage/grade/extent) + summary line.
     "perio.class.title": "Classificação periodontal (2017)",
     "perio.class.diagnosis": "Diagnóstico",
     "perio.class.stage": "Estágio",
