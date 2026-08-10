@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.4.0] - 2026-08-09
+## [2.4.0] - 2026-08-11
 
 ### Added
 
@@ -59,8 +59,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (complex per-surface / simple whole-tooth toggle with an all-surfaces defect
   select), per-material availability (amalgam/composite/glass-ionomer/temporary),
   and fissure-sealing availability.
+- **Collapsible panel state + API.** The five side-panel cards (Controls,
+  Statuses, Caries, Fillings, Root/Periodontium) track their collapsed/expanded
+  state, exposed via `getCollapsedCards()` / `isCardCollapsed(id)` /
+  `setCollapsedCard(id, collapsed)` / `toggleCollapsedCard(id)`. This is
+  session-only UI-layout state — **not** serialized to the export payload (the
+  payload version is unchanged), the same convention as `perioViewMode`.
 
 ### Changed
+
+- **Idempotent session-flag setters.** `setPulpDetailLevel`, `setSurfaceNotation`,
+  `setPerioViewMode`, `setPerioRowVisibility`, `setPerioIndexNameMode`, and
+  `setPerioOverlayLayer` now return early when the new value equals the current
+  one, avoiding a redundant `notifyStateChange()` and re-render.
+- **Debounced persistence.** localStorage saves are debounced so a burst of
+  edits coalesces into a single write; `disablePersistence()` flushes any pending
+  save so the last edit is never lost.
 
 - **Export Settings apply to the image exports too.** Show bone / show healthy
   pulp / tooth spacing / tooth-number size / chart border (+ the perio settings)
@@ -99,6 +113,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tooth codes, ICDAS/CARS coding). The SVG parity goldens
   (`src/__tests__/parity/svg-fingerprints.json`) were regenerated only for the
   fissure-sealant-on-premolars addition; all other tooth renders are unchanged.
+
+### Docs
+
+- **Codebase-wide comment cleanup.** Removed phase/task bookkeeping tags and
+  removed-feature archaeology across all source files and rewrote the lasting
+  comments into plain present-tense English (comment-only — no code changed).
+- **README re-translations.** The Brazilian Portuguese and French READMEs were
+  fully re-translated from the current English source; citation version, badges,
+  and the UI-language list were corrected across every language README.
+
+### Chore
+
+- Added test coverage: `importStatus` fully-replaces-state isolation tests,
+  no-op guard tests for the idempotent setters, and a recurrent-caries parity
+  case (appended after the per-template loop to keep fixture indices stable).
 
 ## [2.3.0] - 2026-08-09
 
