@@ -1,7 +1,7 @@
 # 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.3.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.4.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -152,7 +152,8 @@ Or load it with a client-only dynamic import: `dynamic(() => import("./Odontogra
 - 📊 Predefined status presets (reset, primary dentition, mixed dentition, edentulous)
 - 📦 34 predefined restoration templates (bridges, removable dentures, bar dentures with implants)
 - 💾 Status export/import in JSON (version 2.20; imports still accept legacy 1.4 and 2.0 through 2.19 and migrate automatically, with plugin custom states and per-tooth notes)
-- 🔗 HL7 FHIR R4 export (collection Bundle of per-tooth Observations, ISO 3950 tooth coding for permanent dentition, local code system — SNOMED CT mapping planned)
+- 💽 Opt-in localStorage persistence (`enablePersistence`/`disablePersistence`/`clearPersistedState`/`isPersistenceEnabled`) — disabled by default; auto-saves the status chart (and, optionally, the plan chart) on every state change and restores it the next time the component mounts, with a 4 MB size guard and storage/parse errors routed to an `onError` callback (or `console.warn`) instead of throwing
+- 🔗 HL7 FHIR R4 export (collection Bundle of per-tooth Observations, ISO 3950 tooth coding for permanent dentition **and** deciduous milk teeth (51-85, lossless round-trip on import), local code system — SNOMED CT mapping planned); a caries component with a charted severity also carries a scoring-system coding — ICDAS on a primary (unfilled) surface, CARS on a recurrent (filled) one
 - ✚ Cross/plus surface selection UI (B/M/O/D/L) for caries and fillings
 - 🧱 Per-surface restoration materials (mixed fillings, e.g. buccal amalgam + distal composite)
 - 🖼️ PNG/JPG/SVG image export of the chart (downloadable; PNG/JPG rasterized from vector SVG)
@@ -186,7 +187,8 @@ Or load it with a client-only dynamic import: `dynamic(() => import("./Odontogra
 - 🌗 Dark mode support with toggle button (standalone or controlled by parent app)
 - 🎨 Custom theme configuration (`themeConfig` prop) with CSS custom properties (`--odon-*`)
 - 📱 Mobile touch UX: tap-to-zoom popover, long-press context menu, pinch-to-zoom, WCAG 44px touch targets, arch toggle navigation
-- 🔌 Custom SVG plugin system: inject visual overlays, per-tooth custom state, JSON export/import support
+- 🔌 Custom SVG plugin system: inject visual overlays, per-tooth custom state, JSON export/import support — plugin `renderSvg()` output is sanitized with DOMPurify (SVG profile) before insertion into the live chart; plugins still run as trusted code, so only load plugins from sources you trust
+- 🛡️ Content-Security-Policy: the demo's production build injects a CSP meta tag (dev server unaffected) — host apps embedding the component should set their own
 - ⚠️ State validation warnings for incompatible tooth state combinations
 - 🏷️ Automatic state tooltip on tooth tiles (shows all active states)
 - 🩺 Modernized per-tooth tooltip and whole-mouth summary panel: both surface the full set of clinical findings (pulp/apical diagnosis + lesion subtype, root resorption, peri-implant status, graded root caries, calculus, crown marginal leakage, fracture, contact loss, typed edge/cervical wear), with a dedicated "Diagnoses" section in the panel, a dedicated "Wear" section, and a coarse caries-severity qualifier (superficial/moderate/deep)
@@ -578,6 +580,44 @@ npm run docs           # Generate TypeDoc docs in docs/
 | `setImportFormat(format)` | Set the next file import's parser — `"status"` or `"fhir"` |
 | `startIntroTour()` | Launch the 12-step interactive intro tour |
 
+### 💾 State persistence (localStorage)
+
+Opt-in `localStorage` persistence for the odontogram's case state (`src/persistence.ts`, re-exported from the package entry point). Disabled by default — existing integrations are unaffected unless a host app explicitly enables it, and it should be called **after** the odontogram has mounted (restore repaints the live DOM via `importStatus()`):
+
+```ts
+import {
+  enablePersistence, disablePersistence,
+  clearPersistedState, isPersistenceEnabled,
+} from "react-advanced-odontogram";
+
+enablePersistence({
+  key: "my-app-odontogram",   // default: "react-advanced-odontogram"
+  includePlan: true,          // also persist the plan chart; default: false
+  onError: (err) => console.error("odontogram persistence:", err),
+});
+```
+
+| Function | Description |
+|---|---|
+| `enablePersistence(options?)` | Restores a previously saved case (if any) via `importStatus()`, then saves the status chart to `localStorage` on every state change. Idempotent — calling it again replaces the previous subscription/options. **Must be called after the odontogram has mounted.** |
+| `disablePersistence()` | Stops persisting; the stored entry is left in place. |
+| `clearPersistedState()` | Removes the stored entry for the active (or default) key. |
+| `isPersistenceEnabled()` | `true` while a state-change subscription is active. |
+
+**`PersistenceOptions`:**
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `key` | `string` | `"react-advanced-odontogram"` | The `localStorage` key. |
+| `includePlan` | `boolean` | `false` | Also persist the plan chart (the payload's `plan` field). |
+| `onError` | `(err: Error) => void` | — | Called on any storage/parse error instead of `console.warn`. |
+
+Notes: nothing is read from or written to `localStorage` unless `enablePersistence()` is called; a 4 MB size guard skips an oversized save (reported via `onError`/`console.warn`) rather than throwing; every storage/JSON failure — quota exceeded, a locked-down iframe, corrupt or unrecognized stored data, etc. — is caught and reported. This module never throws.
+
+Note: enabling persistence restores the saved case via `importStatus()`, which replaces the current case — including an in-progress plan chart if the saved payload has none. Enable persistence at startup (right after mount), not mid-session.
+
+Note: the persisted payload can include patient-identifying case data (patient name, exam date) in plaintext `localStorage`. If you chart such data, ensure device-level protection or clear it with `clearPersistedState()` when appropriate.
+
 ### 💾 Status Export/Import Format
 The export creates a JSON file (version `2.20`; imports also accept legacy `1.4` and `2.0` through `2.19` and migrate automatically) containing:
 
@@ -682,6 +722,17 @@ Beyond the odontogram's own Status JSON / FHIR / PNG / JPG / SVG export, the **p
 - The odontogram engine uses its own internal state (not React state) for performance and simplicity.
 - Milk teeth have a reduced set of available materials (no amalgam fillings, no pin-based endo).
 - Implant teeth have a different set of crown/abutment options than natural teeth.
+
+### 🔒 Security notes
+
+- **Plugins run as trusted code.** A plugin's `renderSvg()` return value is injected into the live chart's SVG. That output is sanitized with [DOMPurify](https://github.com/cure53/DOMPurify) (SVG profile, plus `svgFilters`) before insertion — `<script>`, `<iframe>`, `<object>`, `<embed>` and `<foreignObject>` are forbidden outright, and wholly-malicious output is dropped rather than partially rendered. This reduces the blast radius of a compromised or buggy plugin, but plugins should still only be loaded from sources you trust — sanitization is a safety net, not a substitute for vetting.
+- **Content-Security-Policy.** The demo's **production build** injects this policy via a `<meta http-equiv="Content-Security-Policy">` tag (the dev server is unaffected):
+
+  ```
+  default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'
+  ```
+
+  Host applications embedding `OdontogramShell` should set their own CSP appropriate to their deployment — the component does not inject one when used as a library.
 
 ### 📖 How to cite
 

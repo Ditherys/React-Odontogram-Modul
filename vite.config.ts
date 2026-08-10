@@ -11,8 +11,30 @@ import { readFileSync } from 'fs'
 // without bundling package.json into the output.
 const pkgVersion = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')).version
 
+// Spec policy plus three additive hardenings: `blob:` in img-src (the PNG/JPG
+// export path rasterizes the SVG through a blob URL <img>), object-src 'none',
+// and base-uri 'self'. Build-only: the dev server needs Vite's inline preamble.
+const CSP_CONTENT =
+  "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+  "img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; " +
+  "object-src 'none'; base-uri 'self'";
+
+function injectCsp() {
+  return {
+    name: "inject-csp",
+    apply: "build" as const,
+    transformIndexHtml() {
+      return [{
+        tag: "meta",
+        attrs: { "http-equiv": "Content-Security-Policy", content: CSP_CONTENT },
+        injectTo: "head-prepend" as const,
+      }];
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), injectCsp()],
   define: {
     __APP_VERSION__: JSON.stringify(pkgVersion),
   },

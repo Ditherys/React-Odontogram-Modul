@@ -5,6 +5,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-08-09
+
+### Added
+
+- **Opt-in localStorage persistence.** `enablePersistence(options?)` /
+  `disablePersistence()` / `clearPersistedState()` / `isPersistenceEnabled()`
+  (new `src/persistence.ts`, re-exported from `src/App.tsx`) auto-save the
+  status chart (and, optionally, the plan chart via `includePlan`) to
+  `localStorage` on every state change and restore it on the next mount.
+  Disabled by default — nothing is read from or written to storage unless a
+  host app calls `enablePersistence()`, and it must be called **after** the
+  odontogram has mounted (restore repaints the live DOM via `importStatus()`).
+  A 4 MB size guard skips an oversized save instead of throwing; every
+  storage/JSON failure is caught and routed to an optional `onError` callback
+  (or `console.warn`) — this module never throws.
+- **FHIR: deciduous ISO 3950 tooth codes.** Milk teeth now export the correct
+  ISO 3950 deciduous bodySite codes (51-55/61-65/71-75/81-85 for FDI
+  11-15/21-25/31-35/41-45) instead of the permanent-tooth code; import maps
+  them back losslessly. A permanent-molar position incorrectly flagged
+  `milktooth` (no deciduous equivalent) still exports its permanent code, with
+  a console warning.
+- **FHIR: ICDAS/CARS scoring coding on caries components.** A caries component
+  with a charted severity now also carries a scoring-system coding alongside
+  the surface coding — ICDAS (`https://www.icdas.org`, code `ICDAS-<n>`) on a
+  primary (unfilled) surface, CARS (local code system, code `cars-<n>`) on a
+  recurrent (filled) one. `valueInteger` is unchanged; round-trip import is
+  unaffected.
+- **CSP for the demo production build.** The Vite build now injects a
+  `Content-Security-Policy` meta tag (`default-src 'self'; script-src 'self';
+  style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src
+  'self'; connect-src 'self'; object-src 'none'; base-uri 'self'`) into the
+  built `index.html`; the dev server is unaffected. Host apps embedding the
+  component should set their own CSP.
+
+### Security
+
+- **Plugin SVG sanitization.** A plugin's `renderSvg()` return value is now
+  passed through [DOMPurify](https://github.com/cure53/DOMPurify) (SVG
+  profile + `svgFilters`, with `script`/`iframe`/`object`/`embed`/
+  `foreignObject` forbidden outright) before it is inserted into the live
+  chart via `innerHTML`; wholly-malicious output is dropped rather than
+  partially rendered. Unwrapping the sanitized fragment is done structurally
+  (DOM tree walk + `XMLSerializer`), not via regex, closing a theoretical
+  `</svg>`-breakout gap. `dompurify` is a new bundled runtime dependency.
+  Plugins still run as trusted code — only load plugins from sources you
+  trust.
+- **SNOMED dev server hardened** (loopback-only bind, input validation, 1 MB
+  request body cap, rate limiting). This is an untracked local dev tool, not
+  part of the published npm package.
+- **npm audit:** fixed 16 vulnerabilities in dev dependencies (1 low, 3
+  moderate, 11 high, 1 critical) → 0 remaining; lockfile-only change, no
+  runtime dependency affected.
+
+### Note
+
+- The FHIR golden fixture (`src/__tests__/parity/fhir-golden.json`) was
+  regenerated to reflect the two intentional export changes above (deciduous
+  tooth codes, ICDAS/CARS coding). SVG render parity is unchanged.
+
 ## [2.3.0] - 2026-08-09
 
 ### Added

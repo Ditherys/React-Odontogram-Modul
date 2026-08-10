@@ -1,7 +1,7 @@
 # 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.3.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.4.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -154,7 +154,8 @@ export default function OdontogramClient() {
 - 📊 预设状态模板（重置、乳牙列、混合牙列、无牙颌）
 - 📦 34 种预定义修复体模板（桥、可摘义齿、带种植体的杆卡义齿）
 - 💾 JSON 格式的状态导出/导入（版本 2.20；导入仍接受旧版 1.4 及 2.0 至 2.19 版本，并自动迁移，包含插件自定义状态及每颗牙齿的备注）
-- 🔗 HL7 FHIR R4 导出（每颗牙齿一个 Observation 组成的 collection Bundle，恒牙列采用 ISO 3950 牙位编码，使用本地代码系统——SNOMED CT 映射计划中）
+- 💽 可选的 localStorage 状态持久化（`enablePersistence`/`disablePersistence`/`clearPersistedState`/`isPersistenceEnabled`）——默认关闭；启用后会在每次状态变化时自动保存状态图表（可选同时保存计划图表），并在组件下次挂载时自动恢复，附带 4 MB 容量上限，存储/解析错误会通过 `onError` 回调（或 `console.warn`）上报，而不会抛出异常
+- 🔗 HL7 FHIR R4 导出（每颗牙齿一个 Observation 组成的 collection Bundle，**恒牙及乳牙**均采用 ISO 3950 牙位编码（乳牙 51-85，导入时可无损还原），使用本地代码系统——SNOMED CT 映射计划中）；已记录严重度的龋齿分量还会附带评分体系编码——原发（未充填）牙面采用 ICDAS，继发（已充填）牙面采用 CARS
 - ✚ 十字/加号式牙面选择界面（B/M/O/D/L）用于龋齿和充填记录
 - 🧱 每个牙面独立的修复材料（混合充填，例如颊侧银汞合金 + 远中复合树脂）
 - 🖼️ 图表的 PNG/JPG/SVG 图像导出（可下载；PNG/JPG 由矢量 SVG 栅格化而成）
@@ -188,7 +189,8 @@ export default function OdontogramClient() {
 - 🌗 支持深色模式，附带切换按钮（独立控制或由父应用控制）
 - 🎨 通过 CSS 自定义属性（`--odon-*`）实现的自定义主题配置（`themeConfig` 属性）
 - 📱 移动端触控体验：点按缩放弹出层、长按上下文菜单、双指缩放、符合 WCAG 标准的 44px 触控目标、牙弓切换导航
-- 🔌 自定义 SVG 插件系统：注入视觉叠加层、每颗牙齿的自定义状态、支持 JSON 导出/导入
+- 🔌 自定义 SVG 插件系统：注入视觉叠加层、每颗牙齿的自定义状态、支持 JSON 导出/导入——插件 `renderSvg()` 的输出在插入实时图表前会经过 DOMPurify 净化（SVG 配置文件）；插件本质上仍作为受信任代码运行，因此请仅使用来源可信的插件
+- 🛡️ 内容安全策略（CSP）：演示站点的生产构建会注入 CSP meta 标签（开发服务器不受影响）——嵌入本组件的宿主应用应自行设置其 CSP
 - ⚠️ 针对不兼容牙齿状态组合的状态校验警告
 - 🏷️ 牙齿方块上的自动状态提示（显示所有当前激活的状态）
 - 🩺 现代化的按牙位提示信息与全口摘要面板：两者均展示完整的一整套临床发现（牙髓/根尖诊断 + 病损亚型、牙根吸收、种植体周状态、分级根面龋、牙石、牙冠边缘微渗漏、折裂、接触丧失、分类的切端/颈部磨耗），面板中设有专门的“诊断”区块、专门的“磨耗”区块，以及一个粗粒度的龋齿严重度限定符（浅/中/深）
@@ -580,6 +582,44 @@ npm run docs           # 在 docs/ 目录生成 TypeDoc 文档
 | `setImportFormat(format)` | 设置下一次文件导入所用的解析器——`"status"` 或 `"fhir"` |
 | `startIntroTour()` | 启动 12 步交互式新手导览 |
 
+### 💾 状态持久化（localStorage）
+
+为牙位图案例状态提供的可选 `localStorage` 持久化功能（`src/persistence.ts`，从包入口重新导出）。默认关闭——除非宿主应用显式启用，否则不影响现有集成；应在牙位图挂载**之后**调用（恢复操作会通过 `importStatus()` 重绘实时 DOM）：
+
+```ts
+import {
+  enablePersistence, disablePersistence,
+  clearPersistedState, isPersistenceEnabled,
+} from "react-advanced-odontogram";
+
+enablePersistence({
+  key: "my-app-odontogram",   // 默认值："react-advanced-odontogram"
+  includePlan: true,          // 是否同时持久化计划图表；默认：false
+  onError: (err) => console.error("odontogram persistence:", err),
+});
+```
+
+| 函数 | 说明 |
+|---|---|
+| `enablePersistence(options?)` | 通过 `importStatus()` 恢复此前保存的案例（如果存在），随后在每次状态变化时将状态图表保存到 `localStorage`。幂等——再次调用会替换之前的订阅/选项。**必须在牙位图挂载之后调用。** |
+| `disablePersistence()` | 停止持久化；已保存的条目保留不变。 |
+| `clearPersistedState()` | 移除当前（或默认）键对应的已保存条目。 |
+| `isPersistenceEnabled()` | 当状态变化订阅处于激活状态时为 `true`。 |
+
+**`PersistenceOptions`：**
+
+| 字段 | 类型 | 默认值 | 说明 |
+|---|---|---|---|
+| `key` | `string` | `"react-advanced-odontogram"` | `localStorage` 的键名。 |
+| `includePlan` | `boolean` | `false` | 是否同时持久化计划图表（数据中的 `plan` 字段）。 |
+| `onError` | `(err: Error) => void` | — | 出现任何存储/解析错误时调用，用于替代 `console.warn`。 |
+
+说明：除非调用 `enablePersistence()`，否则不会对 `localStorage` 进行任何读写；当序列化后的数据超过 4 MB 容量上限时会跳过保存（并通过 `onError`/`console.warn` 上报），而不会抛出异常；任何存储/JSON 相关的失败——例如超出配额、受限的 iframe 环境、已损坏或无法识别的存储数据等——都会被捕获并上报。该模块永远不会抛出异常。
+
+说明：启用持久化会通过 `importStatus()` 恢复已保存的病例，这会替换当前病例——如果已保存的数据中没有计划图表，也会替换正在进行中的计划图表。请在启动时（挂载牙位图后立即）启用持久化，而不要在会话中途启用。
+
+说明：持久化的数据可能以明文形式在 `localStorage` 中包含患者身份信息（患者姓名、检查日期）。如果您在牙位图中记录了此类数据，请确保设备级别的保护，或在适当时使用 `clearPersistedState()` 将其清除。
+
 ### 💾 状态导出/导入格式
 导出会生成一个 JSON 文件（版本 `2.20`；导入同时也接受旧版 `1.4` 及 `2.0` 至 `2.19`，并自动迁移），其中包含：
 
@@ -684,6 +724,17 @@ npm run docs           # 在 docs/ 目录生成 TypeDoc 文档
 - 牙位图引擎出于性能和简洁性考虑，使用自身内部状态（而非 React 状态）。
 - 乳牙可用材料集合有所精简（不支持银汞合金充填，不支持基于桩钉的根管治疗）。
 - 种植牙的牙冠/基台选项集合与天然牙不同。
+
+### 🔒 安全说明
+
+- **插件作为受信任代码运行。** 插件 `renderSvg()` 的返回值会被注入到实时图表的 SVG 中。该输出在插入前会经过 [DOMPurify](https://github.com/cure53/DOMPurify)（SVG 配置文件，含 `svgFilters`）净化——`<script>`、`<iframe>`、`<object>`、`<embed>` 及 `<foreignObject>` 一律被禁止，完全恶意的输出会被整体丢弃，而非部分渲染。此举降低了因插件被攻破或存在缺陷而带来的影响范围，但插件仍应仅从可信来源加载——净化是一道安全防线，而非审查把关的替代品。
+- **内容安全策略（CSP）。** 演示站点的**生产构建**会通过 `<meta http-equiv="Content-Security-Policy">` 标签注入以下策略（开发服务器不受影响）：
+
+  ```
+  default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'
+  ```
+
+  嵌入 `OdontogramShell` 的宿主应用应根据自身部署环境设置相应的 CSP——本组件作为库使用时不会自行注入 CSP。
 
 ### 📖 如何引用
 
