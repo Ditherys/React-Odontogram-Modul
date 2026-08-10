@@ -39,6 +39,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   built `index.html`; the dev server is unaffected. Host apps embedding the
   component should set their own CSP.
 
+- **Settings panel reorganization.** The Settings dialog was restructured into
+  General / Odontogram / Periodontal Chart / Tooth details / Caries / Fillings /
+  Export Settings tabs (Panels→Odontogram, Periodontal→Periodontal Chart moved
+  up, PDF Settings→Export Settings; the Pulp and Notes tabs were folded into
+  Tooth details; a new Fillings tab was added). All additions are app-level
+  session config with no payload/FHIR impact.
+- **Export/import availability controls (General tab).** Per-format export
+  (PNG/JPG/SVG/PDF) and per-source import (Status JSON / FHIR JSON) toggles — a
+  disabled format/source is hidden from the export/import menu, and turning PDF
+  off also disables the Export Settings tab.
+- **On-screen odontogram controls (Odontogram tab).** A Plan-mode availability
+  toggle (hides the Status|Plan switch), plus on-screen tooth spacing and
+  tooth-number size (distinct from the export/PDF equivalents).
+- **Periodontal Chart availability toggle** — hides the perio entry point and
+  disables the rest of the tab when off.
+- **Adjustable tooth-selection colour + border style** (Tooth details tab).
+- **Fillings tab (new).** Filling-defect availability, filling complexity
+  (complex per-surface / simple whole-tooth toggle with an all-surfaces defect
+  select), per-material availability (amalgam/composite/glass-ionomer/temporary),
+  and fissure-sealing availability.
+
+### Changed
+
+- **Export Settings apply to the image exports too.** Show bone / show healthy
+  pulp / tooth spacing / tooth-number size / chart border (+ the perio settings)
+  now affect the PNG/JPG/SVG exports, not only the PDF report — via shared
+  `buildOdontogramSvgForExport` / `buildPerioSvgForExport` helpers.
+- **Fissure sealing** is now offered on premolars as well as first/second molars
+  (previously molars only). The parity goldens were regenerated accordingly.
+
+### Fixed
+
+- The grouped dentition-summary table is now theme-aware (legible in dark mode).
+
 ### Security
 
 - **Plugin SVG sanitization.** A plugin's `renderSvg()` return value is now
@@ -62,7 +96,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The FHIR golden fixture (`src/__tests__/parity/fhir-golden.json`) was
   regenerated to reflect the two intentional export changes above (deciduous
-  tooth codes, ICDAS/CARS coding). SVG render parity is unchanged.
+  tooth codes, ICDAS/CARS coding). The SVG parity goldens
+  (`src/__tests__/parity/svg-fingerprints.json`) were regenerated only for the
+  fissure-sealant-on-premolars addition; all other tooth renders are unchanged.
 
 ## [2.3.0] - 2026-08-09
 
