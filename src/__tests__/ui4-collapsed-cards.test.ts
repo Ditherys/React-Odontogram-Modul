@@ -20,7 +20,6 @@ describe("collapsed cards state", () => {
 
   it("getCollapsedCards returns a copy, not a reference", () => {
     const cards1 = getCollapsedCards();
-    const cards2 = getCollapsedCards();
     cards1.controls = true;
     // mutating the returned object must not affect module state
     const cards3 = getCollapsedCards();

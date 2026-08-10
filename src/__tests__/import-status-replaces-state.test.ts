@@ -11,7 +11,6 @@ import {
   __getStatusStateForTest,
   getOdontogramSummary,
   getStatusChart,
-  exportStatus,
 } from "../odontogram";
 
 beforeEach(() => {
