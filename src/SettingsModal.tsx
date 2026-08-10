@@ -35,6 +35,20 @@ type TFn = (key: string, params?: Record<string, string | number>) => string;
  * accessor — the modal never owns behavior, it only surfaces the controls.
  * New settings are added here and wired into a tab's `render()`.
  */
+/** Round 2 (Stage 3): on-SCREEN odontogram layout controls (distinct from the
+ *  PDF/export equivalents). Spacing = inter-tooth gap in the live grid; number
+ *  size = the tooth-number font size. Session-only, no payload/render-parity
+ *  impact (pure CSS via data-attributes on the grid). */
+export type ScreenToothSpacing = "wide" | "normal" | "close";
+export type ScreenToothNumberSize = "small" | "normal" | "xlarge";
+/** Round 2 (Stage 5): selection-ring border style (the current default is dashed). */
+export type SelectionBorderStyle = "solid" | "dashed" | "dotted";
+/** Round 2 (Stage 6): Fillings card complexity — "complex" = per-surface grid
+ *  (default), "simple" = one filled/not-filled toggle for the whole tooth. */
+export type FillingComplexity = "complex" | "simple";
+/** The four filling materials whose availability is configurable. */
+export const FILLING_MATERIAL_KEYS = ["amalgam", "composite", "gic", "temporary"] as const;
+
 export type SettingsState = {
   numbering: NumberingSystem;
   onNumbering: (value: NumberingSystem) => void;
@@ -44,6 +58,21 @@ export type SettingsState = {
   onToggleDark: () => void;
   toothInfo: boolean;
   onToothInfo: (value: boolean) => void;
+  // Round 2 (Stage 2): per-format export availability + per-source import
+  // availability. When a format/source is off, its export/import menu item is
+  // hidden; when PDF is off, the Export Settings tab is also disabled.
+  exportPng: boolean;
+  onExportPng: (value: boolean) => void;
+  exportJpg: boolean;
+  onExportJpg: (value: boolean) => void;
+  exportSvg: boolean;
+  onExportSvg: (value: boolean) => void;
+  exportPdf: boolean;
+  onExportPdf: (value: boolean) => void;
+  importStatus: boolean;
+  onImportStatus: (value: boolean) => void;
+  importFhir: boolean;
+  onImportFhir: (value: boolean) => void;
   secondaryCariesMode: SecondaryCariesMode;
   onSecondaryCariesMode: (value: SecondaryCariesMode) => void;
   icdas: boolean;
@@ -54,6 +83,11 @@ export type SettingsState = {
   onRootCariesMode: (value: RootCariesMode) => void;
   radiographicDepthMode: RadiographicDepthMode;
   onRadiographicDepthMode: (value: RadiographicDepthMode) => void;
+  // Round 2 (Stage 5): adjustable tooth-selection colour + border style.
+  selectionColor: string;
+  onSelectionColor: (value: string) => void;
+  selectionBorderStyle: SelectionBorderStyle;
+  onSelectionBorderStyle: (value: SelectionBorderStyle) => void;
   pulpLevel: PulpDetailLevel;
   onPulpLevel: (value: PulpDetailLevel) => void;
   wearDetailLevel: ToothDetailLevel;
@@ -64,16 +98,36 @@ export type SettingsState = {
   onSurfaceNotation: (value: SurfaceNotation) => void;
   notes: boolean;
   onNotes: (value: boolean) => void;
+  // Round 2 (Stage 3): Odontogram-tab on-screen controls.
+  planModeAvailable: boolean;
+  onPlanModeAvailable: (value: boolean) => void;
+  screenToothSpacing: ScreenToothSpacing;
+  onScreenToothSpacing: (value: ScreenToothSpacing) => void;
+  screenToothNumberSize: ScreenToothNumberSize;
+  onScreenToothNumberSize: (value: ScreenToothNumberSize) => void;
   showStatusCard: boolean;
   onShowStatusCard: (value: boolean) => void;
   showOrthoCard: boolean;
   onShowOrthoCard: (value: boolean) => void;
+  // Round 2 (Stage 4): Periodontal Chart availability. When off, the perio
+  // entry points are hidden and the tab's other perio settings are disabled.
+  perioChartAvailable: boolean;
+  onPerioChartAvailable: (value: boolean) => void;
   perioViewMode: PerioViewMode;
   onPerioViewMode: (value: PerioViewMode) => void;
   perioRowVisibility: Record<PerioRowId, boolean>;
   onPerioRowVisibility: (id: PerioRowId, visible: boolean) => void;
   perioIndexNameMode: PerioIndexNameMode;
   onPerioIndexNameMode: (value: PerioIndexNameMode) => void;
+  // Round 2 (Stage 6): Fillings tab config.
+  fillingDefectEnabled: boolean;
+  onFillingDefectEnabled: (value: boolean) => void;
+  fillingComplexity: FillingComplexity;
+  onFillingComplexity: (value: FillingComplexity) => void;
+  fillingMaterials: Record<string, boolean>;
+  onFillingMaterial: (material: string, value: boolean) => void;
+  fissureSealingEnabled: boolean;
+  onFissureSealingEnabled: (value: boolean) => void;
   pdfSettings: PdfSettings;
   onPdfSettings: (patch: Partial<PdfSettings>) => void;
 };
@@ -150,6 +204,31 @@ const PERIO_VIEW_MODE_OPTIONS: { value: PerioViewMode; labelKey: string }[] = [
   { value: "toggle", labelKey: "settings.perioViewMode.toggle" },
   { value: "popup", labelKey: "settings.perioViewMode.popup" },
 ];
+
+const SCREEN_SPACING_OPTIONS: { value: ScreenToothSpacing; labelKey: string }[] = [
+  { value: "wide", labelKey: "settings.screen.spacing.wide" },
+  { value: "normal", labelKey: "settings.screen.spacing.normal" },
+  { value: "close", labelKey: "settings.screen.spacing.close" },
+];
+const SCREEN_NUMBER_SIZE_OPTIONS: { value: ScreenToothNumberSize; labelKey: string }[] = [
+  { value: "small", labelKey: "settings.screen.numberSize.small" },
+  { value: "normal", labelKey: "settings.screen.numberSize.normal" },
+  { value: "xlarge", labelKey: "settings.screen.numberSize.xlarge" },
+];
+const SELECTION_BORDER_OPTIONS: { value: SelectionBorderStyle; labelKey: string }[] = [
+  { value: "solid", labelKey: "settings.selection.border.solid" },
+  { value: "dashed", labelKey: "settings.selection.border.dashed" },
+  { value: "dotted", labelKey: "settings.selection.border.dotted" },
+];
+const FILLING_COMPLEXITY_OPTIONS: { value: FillingComplexity; labelKey: string }[] = [
+  { value: "complex", labelKey: "settings.filling.complexity.complex" },
+  { value: "simple", labelKey: "settings.filling.complexity.simple" },
+];
+// Filling-material availability labels reuse the existing filling.option.* keys.
+const FILLING_MATERIAL_LABEL_KEYS: Record<string, string> = {
+  amalgam: "filling.option.amalgam", composite: "filling.option.composite",
+  gic: "filling.option.gic", temporary: "filling.option.temporary",
+};
 
 const PERIO_INDEX_NAME_MODE_OPTIONS: { value: PerioIndexNameMode; labelKey: string }[] = [
   { value: "translated", labelKey: "settings.perioIndexNameMode.translated" },
@@ -241,12 +320,14 @@ function ToggleRow({
   descKey,
   checked,
   onChange,
+  disabled = false,
 }: {
   t: TFn;
   label: string;
   descKey: string;
   checked: boolean;
   onChange: (value: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <SettingRow t={t} label={label} descKey={descKey}>
@@ -255,6 +336,7 @@ function ToggleRow({
           type="checkbox"
           aria-label={label}
           checked={checked}
+          disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
         />
         <span className="odon-settings-switch-track" aria-hidden="true" />
@@ -400,6 +482,81 @@ export const SETTINGS_TABS: SettingsTab[] = [
           checked={s.isDark}
           onChange={() => s.onToggleDark()}
         />
+        <div className="odon-settings-group-title">{t("settings.export.section")}</div>
+        <ToggleRow
+          t={t}
+          label={t("settings.export.png")}
+          descKey="settings.export.png.desc"
+          checked={s.exportPng}
+          onChange={s.onExportPng}
+        />
+        <ToggleRow
+          t={t}
+          label={t("settings.export.jpg")}
+          descKey="settings.export.jpg.desc"
+          checked={s.exportJpg}
+          onChange={s.onExportJpg}
+        />
+        <ToggleRow
+          t={t}
+          label={t("settings.export.svg")}
+          descKey="settings.export.svg.desc"
+          checked={s.exportSvg}
+          onChange={s.onExportSvg}
+        />
+        <ToggleRow
+          t={t}
+          label={t("settings.export.pdf")}
+          descKey="settings.export.pdf.desc"
+          checked={s.exportPdf}
+          onChange={s.onExportPdf}
+        />
+        <div className="odon-settings-group-title">{t("settings.import.section")}</div>
+        <ToggleRow
+          t={t}
+          label={t("settings.import.status")}
+          descKey="settings.import.status.desc"
+          checked={s.importStatus}
+          onChange={s.onImportStatus}
+        />
+        <ToggleRow
+          t={t}
+          label={t("settings.import.fhir")}
+          descKey="settings.import.fhir.desc"
+          checked={s.importFhir}
+          onChange={s.onImportFhir}
+        />
+      </>
+    ),
+  },
+  {
+    id: "odontogram",
+    titleKey: "settings.tab.odontogram",
+    render: ({ t, s }) => (
+      <>
+        <ToggleRow
+          t={t}
+          label={t("settings.planMode")}
+          descKey="settings.planMode.desc"
+          checked={s.planModeAvailable}
+          onChange={s.onPlanModeAvailable}
+        />
+        <SelectRow<ScreenToothSpacing>
+          t={t}
+          label={t("settings.screen.spacing")}
+          descKey="settings.screen.spacing.desc"
+          value={s.screenToothSpacing}
+          options={SCREEN_SPACING_OPTIONS}
+          onChange={s.onScreenToothSpacing}
+        />
+        <SelectRow<ScreenToothNumberSize>
+          t={t}
+          label={t("settings.screen.numberSize")}
+          descKey="settings.screen.numberSize.desc"
+          value={s.screenToothNumberSize}
+          options={SCREEN_NUMBER_SIZE_OPTIONS}
+          onChange={s.onScreenToothNumberSize}
+        />
         <ToggleRow
           t={t}
           label={t("settings.toothInfo")}
@@ -407,23 +564,6 @@ export const SETTINGS_TABS: SettingsTab[] = [
           checked={s.toothInfo}
           onChange={s.onToothInfo}
         />
-        <div className="odon-settings-row odon-settings-row-disabled" aria-disabled="true">
-          <div className="odon-settings-row-text">
-            <div className="odon-settings-row-label">
-              {t("settings.exportImport.title")}{" "}
-              <span className="odon-settings-badge">{t("settings.comingSoon")}</span>
-            </div>
-            <div className="odon-settings-row-desc">{t("settings.exportImport.desc")}</div>
-          </div>
-        </div>
-      </>
-    ),
-  },
-  {
-    id: "panels",
-    titleKey: "settings.tab.panels",
-    render: ({ t, s }) => (
-      <>
         <ToggleRow
           t={t}
           label={t("settings.panels.statuses")}
@@ -438,6 +578,22 @@ export const SETTINGS_TABS: SettingsTab[] = [
           checked={s.showOrthoCard}
           onChange={s.onShowOrthoCard}
         />
+      </>
+    ),
+  },
+  {
+    id: "periodontalChart",
+    titleKey: "settings.tab.periodontalChart",
+    render: ({ t, s }) => (
+      <>
+        <div className="odon-settings-group-title">{t("settings.perio.group.general")}</div>
+        <ToggleRow
+          t={t}
+          label={t("settings.perioChart.available")}
+          descKey="settings.perioChart.available.desc"
+          checked={s.perioChartAvailable}
+          onChange={s.onPerioChartAvailable}
+        />
         <SelectRow<PerioViewMode>
           t={t}
           label={t("settings.perioViewMode")}
@@ -445,6 +601,32 @@ export const SETTINGS_TABS: SettingsTab[] = [
           value={s.perioViewMode}
           options={PERIO_VIEW_MODE_OPTIONS}
           onChange={s.onPerioViewMode}
+          disabled={!s.perioChartAvailable}
+        />
+        {PERIO_ROW_GROUPS.map((group) => (
+          <div key={group.titleKey}>
+            <div className="odon-settings-group-title">{t(group.titleKey)}</div>
+            {group.ids.map((id) => (
+              <ToggleRow
+                key={id}
+                t={t}
+                label={t(`settings.perio.row.${id}`)}
+                descKey={`settings.perio.row.${id}.desc`}
+                checked={s.perioRowVisibility[id]}
+                onChange={(v) => s.onPerioRowVisibility(id, v)}
+                disabled={!s.perioChartAvailable}
+              />
+            ))}
+          </div>
+        ))}
+        <SelectRow<PerioIndexNameMode>
+          t={t}
+          label={t("settings.perioIndexNameMode")}
+          descKey="settings.perioIndexNameMode.desc"
+          value={s.perioIndexNameMode}
+          options={PERIO_INDEX_NAME_MODE_OPTIONS}
+          onChange={s.onPerioIndexNameMode}
+          disabled={!s.perioChartAvailable}
         />
       </>
     ),
@@ -454,6 +636,30 @@ export const SETTINGS_TABS: SettingsTab[] = [
     titleKey: "settings.tab.toothDetails",
     render: ({ t, s }) => (
       <>
+        <InputRow
+          t={t}
+          label={t("settings.selection.color")}
+          descKey="settings.selection.color.desc"
+          type="color"
+          value={s.selectionColor}
+          onChange={s.onSelectionColor}
+        />
+        <SelectRow<SelectionBorderStyle>
+          t={t}
+          label={t("settings.selection.border")}
+          descKey="settings.selection.border.desc"
+          value={s.selectionBorderStyle}
+          options={SELECTION_BORDER_OPTIONS}
+          onChange={s.onSelectionBorderStyle}
+        />
+        <SelectRow<PulpDetailLevel>
+          t={t}
+          label={t("pulp.level.label")}
+          descKey="settings.pulpLevel.desc"
+          value={s.pulpLevel}
+          options={PULP_OPTIONS}
+          onChange={s.onPulpLevel}
+        />
         <SelectRow<ToothDetailLevel>
           t={t}
           label={t("settings.wearDetail.label")}
@@ -477,6 +683,13 @@ export const SETTINGS_TABS: SettingsTab[] = [
           value={s.surfaceNotation}
           options={SURFACE_NOTATION_OPTIONS}
           onChange={s.onSurfaceNotation}
+        />
+        <ToggleRow
+          t={t}
+          label={t("settings.notes")}
+          descKey="settings.notes.desc"
+          checked={s.notes}
+          onChange={s.onNotes}
         />
       </>
     ),
@@ -528,68 +741,52 @@ export const SETTINGS_TABS: SettingsTab[] = [
     ),
   },
   {
-    id: "pulpa",
-    titleKey: "settings.tab.pulpa",
-    render: ({ t, s }) => (
-      <SelectRow<PulpDetailLevel>
-        t={t}
-        label={t("pulp.level.label")}
-        descKey="settings.pulpLevel.desc"
-        value={s.pulpLevel}
-        options={PULP_OPTIONS}
-        onChange={s.onPulpLevel}
-      />
-    ),
-  },
-  {
-    id: "notes",
-    titleKey: "settings.tab.notes",
-    render: ({ t, s }) => (
-      <ToggleRow
-        t={t}
-        label={t("settings.notes")}
-        descKey="settings.notes.desc"
-        checked={s.notes}
-        onChange={s.onNotes}
-      />
-    ),
-  },
-  {
-    id: "periodontal",
-    titleKey: "settings.tab.periodontal",
+    id: "fillings",
+    titleKey: "settings.tab.fillings",
     render: ({ t, s }) => (
       <>
-        {PERIO_ROW_GROUPS.map((group) => (
-          <div key={group.titleKey}>
-            <div className="odon-settings-group-title">{t(group.titleKey)}</div>
-            {group.ids.map((id) => (
-              <ToggleRow
-                key={id}
-                t={t}
-                label={t(`settings.perio.row.${id}`)}
-                descKey={`settings.perio.row.${id}.desc`}
-                checked={s.perioRowVisibility[id]}
-                onChange={(v) => s.onPerioRowVisibility(id, v)}
-              />
-            ))}
-          </div>
-        ))}
-        <SelectRow<PerioIndexNameMode>
+        <ToggleRow
           t={t}
-          label={t("settings.perioIndexNameMode")}
-          descKey="settings.perioIndexNameMode.desc"
-          value={s.perioIndexNameMode}
-          options={PERIO_INDEX_NAME_MODE_OPTIONS}
-          onChange={s.onPerioIndexNameMode}
+          label={t("settings.filling.defect")}
+          descKey="settings.filling.defect.desc"
+          checked={s.fillingDefectEnabled}
+          onChange={s.onFillingDefectEnabled}
+        />
+        <SelectRow<FillingComplexity>
+          t={t}
+          label={t("settings.filling.complexity")}
+          descKey="settings.filling.complexity.desc"
+          value={s.fillingComplexity}
+          options={FILLING_COMPLEXITY_OPTIONS}
+          onChange={s.onFillingComplexity}
+        />
+        <div className="odon-settings-group-title">{t("settings.filling.materials")}</div>
+        {FILLING_MATERIAL_KEYS.map((m) => (
+          <ToggleRow
+            key={m}
+            t={t}
+            label={t(FILLING_MATERIAL_LABEL_KEYS[m])}
+            descKey="settings.filling.material.desc"
+            checked={s.fillingMaterials[m] ?? true}
+            onChange={(v) => s.onFillingMaterial(m, v)}
+          />
+        ))}
+        <ToggleRow
+          t={t}
+          label={t("settings.filling.fissure")}
+          descKey="settings.filling.fissure.desc"
+          checked={s.fissureSealingEnabled}
+          onChange={s.onFissureSealingEnabled}
         />
       </>
     ),
   },
   {
-    id: "pdf",
-    titleKey: "settings.tab.pdf",
+    id: "export",
+    titleKey: "settings.tab.export",
     render: ({ t, s }) => (
       <>
+        <div className="odon-settings-note">{t("settings.export.appliesNote")}</div>
         <InputRow
           t={t}
           label={t("settings.pdf.defaultName")}
@@ -877,7 +1074,12 @@ export default function SettingsModal({
 
   if (!open) return null;
 
-  const current = SETTINGS_TABS.find((tab) => tab.id === activeTab) ?? SETTINGS_TABS[0];
+  const resolvedTab = SETTINGS_TABS.find((tab) => tab.id === activeTab) ?? SETTINGS_TABS[0];
+  // Round 2 (Stage 2): never show the Export Settings panel when PDF export is
+  // off (the tab is disabled) — fall back to the first tab.
+  const current = resolvedTab.id === "export" && settings.exportPdf === false
+    ? SETTINGS_TABS[0]
+    : resolvedTab;
 
   return (
     <div
@@ -929,7 +1131,11 @@ export default function SettingsModal({
             aria-label={t("settings.title")}
             onKeyDown={onTabListKeyDown}
           >
-            {SETTINGS_TABS.map((tab) => (
+            {SETTINGS_TABS.map((tab) => {
+              // Round 2 (Stage 2): the Export Settings tab is disabled when PDF
+              // export is turned off in General — its settings would have no effect.
+              const tabDisabled = tab.id === "export" && settings.exportPdf === false;
+              return (
               <button
                 key={tab.id}
                 type="button"
@@ -937,15 +1143,18 @@ export default function SettingsModal({
                 id={`odon-settings-tab-${tab.id}`}
                 aria-selected={tab.id === activeTab}
                 aria-controls={`odon-settings-panel-${tab.id}`}
+                aria-disabled={tabDisabled || undefined}
                 tabIndex={tab.id === activeTab ? 0 : -1}
                 className={
-                  "odon-settings-tab" + (tab.id === activeTab ? " is-active" : "")
+                  "odon-settings-tab" + (tab.id === activeTab ? " is-active" : "") +
+                  (tabDisabled ? " is-disabled" : "")
                 }
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => { if (!tabDisabled) setActiveTab(tab.id); }}
               >
                 {t(tab.titleKey)}
               </button>
-            ))}
+              );
+            })}
           </div>
           <div
             className="odon-settings-panel"

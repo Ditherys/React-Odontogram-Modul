@@ -44224,6 +44224,16 @@
         "cls": ""
       },
       {
+        "id": "fissure-sealing",
+        "opacity": "",
+        "cls": ""
+      },
+      {
+        "id": "fissure-sealing-occlusal",
+        "opacity": "",
+        "cls": ""
+      },
+      {
         "id": "restorations",
         "opacity": "",
         "cls": ""
@@ -83521,6 +83531,16 @@
       },
       {
         "id": "contact-point",
+        "opacity": "",
+        "cls": ""
+      },
+      {
+        "id": "fissure-sealing",
+        "opacity": "",
+        "cls": ""
+      },
+      {
+        "id": "fissure-sealing-occlusal",
         "opacity": "",
         "cls": ""
       },

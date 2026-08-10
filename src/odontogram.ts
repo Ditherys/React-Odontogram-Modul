@@ -96,7 +96,10 @@ const GROUPS = {
 };
 
 const MILKTOOTH_BLOCKED = new Set([16,17,18,26,27,28,36,37,38,46,47,48]);
-const FISSURE_ALLOWED = new Set([16,17,26,27,36,37,46,47]);
+// Round 2 (Stage 6 fix): fissure sealing applies to the occlusal posterior
+// teeth — premolars AND first/second molars (previously molars only, which made
+// the control almost never appear). Third molars are excluded (rarely sealed).
+const FISSURE_ALLOWED = new Set([14,15,16,17,24,25,26,27,34,35,36,37,44,45,46,47]);
 const BROKEN_VARIANTS = new Set([
   "tooth-broken-incisal",
   "tooth-broken-distal-incisal",
@@ -1410,21 +1413,49 @@ function getEndoOptions(isMilktooth: Any){
   return optionsFor("endo", { isMilktooth: !!isMilktooth }).map(o => ({ value: o.value, label: t(o.labelKey) }));
 }
 
-function getFillingOptions(isMilktooth: Any){
-  if(isMilktooth){
-    return [
-      {value:"none", label:t("filling.option.none")},
-      {value:"composite", label:t("filling.option.composite")},
-      {value:"gic", label:t("filling.option.gic")},
-      {value:"temporary", label:t("filling.option.temporary")},
-    ];
+// ── Round 2 (Stage 6): Fillings-card session configuration ──────────────────
+// App-level UI config (not part of the export payload), read by the Fillings
+// card render/wiring. Mirrors the perioViewMode/pulpDetailLevel session-flag
+// precedent: a setter updates the flag then re-syncs the active tooth's controls.
+let fillingDefectEnabled = true;
+let fillingComplexity: "complex" | "simple" = "complex";
+let fissureSealingEnabled = true;
+const FILLING_MATERIALS = ["amalgam", "composite", "gic", "temporary"] as const;
+const fillingMaterialAvail: Record<string, boolean> = { amalgam: true, composite: true, gic: true, temporary: true };
+
+export function getFillingDefectEnabled(){ return fillingDefectEnabled; }
+export function setFillingDefectEnabled(v: boolean){ fillingDefectEnabled = !!v; if(activeTooth) syncControlsFromState(toothState.get(activeTooth)); }
+export function getFillingComplexity(): "complex" | "simple" { return fillingComplexity; }
+export function setFillingComplexity(v: "complex" | "simple"){ fillingComplexity = v === "simple" ? "simple" : "complex"; if(activeTooth) syncControlsFromState(toothState.get(activeTooth)); }
+export function getFissureSealingEnabled(){ return fissureSealingEnabled; }
+export function setFissureSealingEnabled(v: boolean){ fissureSealingEnabled = !!v; if(activeTooth) syncControlsFromState(toothState.get(activeTooth)); }
+export function getFillingMaterialAvailability(): Record<string, boolean> { return { ...fillingMaterialAvail }; }
+export function setFillingMaterialAvailability(material: string, v: boolean){
+  if(Object.prototype.hasOwnProperty.call(fillingMaterialAvail, material)){
+    fillingMaterialAvail[material] = !!v;
+    if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
   }
+}
+/** The filling materials currently available (Stage 6 config), in canonical order. */
+function availableFillingMaterials(): readonly string[] {
+  return FILLING_MATERIALS.filter((m) => fillingMaterialAvail[m]);
+}
+/** Round 2 (Stage 6): filling-defect options for the simple-mode select. */
+function fillingDefectOptions(){
+  return ["none", "marginal", "fracture", "wear"].map((v) => ({ value: v, label: t("fillingDefect." + v) }));
+}
+
+function getFillingOptions(isMilktooth: Any){
+  const labels: Record<string, string> = {
+    amalgam: t("filling.option.amalgam"), composite: t("filling.option.composite"),
+    gic: t("filling.option.gic"), temporary: t("filling.option.temporary"),
+  };
+  // Milk teeth never offer amalgam (unchanged); Stage 6 additionally filters by
+  // the per-material availability config.
+  const mats = availableFillingMaterials().filter((m) => !(isMilktooth && m === "amalgam"));
   return [
-    {value:"none", label:t("filling.option.none")},
-    {value:"amalgam", label:t("filling.option.amalgam")},
-    {value:"composite", label:t("filling.option.composite")},
-    {value:"gic", label:t("filling.option.gic")},
-    {value:"temporary", label:t("filling.option.temporary")},
+    { value: "none", label: t("filling.option.none") },
+    ...mats.map((m) => ({ value: m, label: labels[m] })),
   ];
 }
 
@@ -3870,7 +3901,34 @@ function syncControlsFromState(state: Any){
     else setDisabled(c, hasRestoration || hasCrown);
   });
   const showFillingSurfaces = state.fillingMaterial !== "none" && !hasCrown;
-  $("#fillingSurfaceChecks").classList.toggle("hidden", !showFillingSurfaces);
+  // Round 2 (Stage 6): in "simple" complexity, the per-surface grid is replaced
+  // by a single filled/not-filled toggle (both gated on showFillingSurfaces).
+  const simpleFilling = fillingComplexity === "simple";
+  $("#fillingSurfaceChecks").classList.toggle("hidden", !showFillingSurfaces || simpleFilling);
+  const simpleRow = $("#fillingSimpleRow") as HTMLElement | null;
+  if(simpleRow){
+    simpleRow.classList.toggle("hidden", !showFillingSurfaces || !simpleFilling);
+    const simpleInput = simpleRow.querySelector("input") as HTMLInputElement | null;
+    if(simpleInput) simpleInput.checked = state.fillingSurfaceMaterials.size > 0;
+  }
+  // Round 2 (Stage 6): in simple mode, a defect button (applying to ALL filled
+  // surfaces) shows only when the defect feature is on and the tooth is filled.
+  const simpleDefectRow = $("#fillingSimpleDefectRow") as HTMLElement | null;
+  if(simpleDefectRow){
+    const showSimpleDefect = showFillingSurfaces && simpleFilling && fillingDefectEnabled && state.fillingSurfaceMaterials.size > 0;
+    simpleDefectRow.classList.toggle("hidden", !showSimpleDefect);
+    const sel = $("#fillingSimpleDefectSelect") as HTMLSelectElement | null;
+    if(sel){
+      // Reflect the representative (first filled surface's) defect; applying via
+      // the select writes the chosen value to EVERY filled surface.
+      const firstSurf = [...state.fillingSurfaceMaterials.keys()][0];
+      const cur = firstSurf ? (state.fillingDefect?.get(firstSurf) ?? "none") : "none";
+      setSelectOptions(sel, fillingDefectOptions(), cur);
+    }
+  }
+  // Round 2 (Stage 6): hide the per-surface filling-defect indicator when the
+  // defect feature is turned off in Settings → Fillings.
+  $("#fillingSurfaceChecks").classList.toggle("defect-disabled", !fillingDefectEnabled);
 
   // endo only if tooth present
   const endoDisabled = !isToothPresent(state.toothSelection) || underGum || extraction;
@@ -3962,7 +4020,8 @@ function syncControlsFromState(state: Any){
   $("#bruxismRow").classList.toggle("hidden", !bruxismAllowed);
   $("#discolorationRow").classList.toggle("hidden", !discolorationRowAllowed);
   $("#orthoCard").classList.toggle("hidden", !orthoCardAllowed);
-  $("#fissureSealingRow").classList.toggle("hidden", !fissureAllowed);
+  // Round 2 (Stage 6): also hidden when fissure sealing is turned off in Settings.
+  $("#fissureSealingRow").classList.toggle("hidden", !fissureAllowed || !fissureSealingEnabled);
   const extractionPlanAllowed = selectedList.length > 0 && selectedList.every(tn => {
     const s = toothState.get(tn);
     return s && ["tooth-base","milktooth","implant","tooth-under-gum"].includes(s.toothSelection);
@@ -7665,13 +7724,63 @@ function buildOdontogramSvgMeasured(grid: HTMLElement, opts: { labelFontScale?: 
 }
 
 /** Export the odontogram as a downloadable, scalable SVG file. */
+// Round 2 (Stage 7): the Export Settings apply to the IMAGE exports (PNG/JPG/SVG)
+// too, not just the PDF. Border thickness in SVG-image px (the PDF uses mm).
+const PDF_BORDER_WIDTH_PX: Record<PdfBorderThickness, number> = { thin: 2, medium: 3.5, thick: 6 };
+
+/** Round 2 (Stage 7): build the odontogram export SVG with the current Export
+ *  Settings applied — bone/healthy-pulp layer visibility, tooth spacing
+ *  (packFactor) and tooth-number size. When `withBorder` is true, a chart-border
+ *  rect (theme-accent colour) is drawn into the SVG for the image exports; the
+ *  PDF passes false and draws its own border in mm via jsPDF. Shared by
+ *  exportSvg/exportImage and exportPdf so all three honour the same settings. */
+function buildOdontogramSvgForExport(withBorder: boolean): { xml: string; width: number; height: number } | null {
+  const settings = getPdfSettings();
+  const prevBase = showBase, prevPulp = showHealthyPulp;
+  if(settings.showBone !== showBase) setShowBase(settings.showBone);
+  if(settings.showHealthyPulp !== showHealthyPulp) setHealthyPulpVisible(settings.showHealthyPulp);
+  let built: { xml: string; width: number; height: number } | null;
+  try{
+    built = buildOdontogramSvg({
+      labelFontScale: TOOTH_NUMBER_SCALE[settings.toothNumberSize],
+      packFactor: ODONTO_PACK[settings.toothSpacing],
+    });
+  }finally{
+    if(showBase !== prevBase) setShowBase(prevBase);
+    if(showHealthyPulp !== prevPulp) setHealthyPulpVisible(prevPulp);
+  }
+  if(built && withBorder && settings.border){
+    const w = PDF_BORDER_WIDTH_PX[settings.borderThickness];
+    const [r, g, b] = PDF_PALETTES[settings.colorTheme].header;
+    const inset = w / 2;
+    const rect = `<rect x="${inset}" y="${inset}" width="${built.width - w}" height="${built.height - w}" fill="none" stroke="rgb(${r},${g},${b})" stroke-width="${w}"/>`;
+    built = { ...built, xml: built.xml.replace("</svg>", `${rect}</svg>`) };
+  }
+  return built;
+}
+
+/** Round 2 (Stage 7): build the perio export SVG with the current Export
+ *  Settings applied (perio font size, tooth spacing, empty-row skipping, label
+ *  placement). Shared by exportPerioSvg/exportPerioImage and exportPdf. */
+function buildPerioSvgForExport(): Promise<{ xml: string; width: number; height: number } | null> {
+  const settings = getPdfSettings();
+  const pf = PERIO_FONT_SIZE[settings.perioFontSize];
+  return buildPerioSvg({
+    fontSize: pf.fontSize,
+    rowHeight: pf.rowHeight,
+    toothGap: PERIO_SPACING_GAP[settings.perioToothSpacing],
+    showEmptyRows: settings.perioShowEmptyRows,
+    labelPlacement: settings.perioLabelPlacement,
+  });
+}
+
 export async function exportSvg(){
   if(exportInProgress) return;
   exportInProgress = true;
   showExportOverlay();
   setExportProgress(30, "export.progress.preparing");
   try{
-    const built = buildOdontogramSvg();
+    const built = buildOdontogramSvgForExport(true);
     if(!built) throw new Error("Odontogram grid not found");
     setExportProgress(90, "export.progress.encoding");
     const blob = new Blob([built.xml], { type: "image/svg+xml;charset=utf-8" });
@@ -7742,7 +7851,7 @@ export async function exportImage(format: "png" | "jpg" = "png"){
   showExportOverlay();
   setExportProgress(10, "export.progress.preparing");
   try{
-    const built = buildOdontogramSvg();
+    const built = buildOdontogramSvgForExport(true);
     if(!built) throw new Error("Odontogram grid not found");
     setExportProgress(40, "export.progress.rendering");
     const canvas = await rasterizeSvgToCanvas(built.xml, built.width, built.height);
@@ -7768,7 +7877,7 @@ export async function exportPerioSvg(): Promise<void> {
   showExportOverlay();
   setExportProgress(10, "export.progress.preparing");
   try{
-    const built = await buildPerioSvg();
+    const built = await buildPerioSvgForExport();
     if(!built) throw new Error("Perio chart could not be built");
     const blob = new Blob([built.xml], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -7790,7 +7899,7 @@ export async function exportPerioImage(format: "png" | "jpg" = "png"): Promise<v
   showExportOverlay();
   setExportProgress(10, "export.progress.preparing");
   try{
-    const built = await buildPerioSvg();
+    const built = await buildPerioSvgForExport();
     if(!built) throw new Error("Perio chart could not be built");
     setExportProgress(40, "export.progress.rendering");
     const canvas = await rasterizeSvgToCanvas(built.xml, built.width, built.height);
@@ -8034,23 +8143,12 @@ export async function exportPdf(opts: PdfExportOptions): Promise<void> {
   setExportProgress(10, "export.progress.preparing");
   try{
     const settings = getPdfSettings();
-    // 2.2.3 Stage B: apply the PDF-only odontogram settings to the live chart
-    // (bone/pulp layer flags + tooth spacing) under the export overlay, build,
-    // then restore — the on-screen chart is unchanged once export completes.
+    // Stage B / Round 2 Stage 7: apply the Export Settings via the shared
+    // buildOdontogramSvgForExport helper (bone/pulp/spacing/number-size) — the
+    // PDF draws its OWN border in mm (jsPDF), so it passes withBorder=false.
     let odontoBuilt: { xml: string; width: number; height: number } | null = null;
     if(opts.odontogramChart){
-      const prevBase = showBase, prevPulp = showHealthyPulp;
-      if(settings.showBone !== showBase) setShowBase(settings.showBone);
-      if(settings.showHealthyPulp !== showHealthyPulp) setHealthyPulpVisible(settings.showHealthyPulp);
-      try{
-        odontoBuilt = buildOdontogramSvg({
-          labelFontScale: TOOTH_NUMBER_SCALE[settings.toothNumberSize],
-          packFactor: ODONTO_PACK[settings.toothSpacing],
-        });
-      }finally{
-        if(showBase !== prevBase) setShowBase(prevBase);
-        if(showHealthyPulp !== prevPulp) setHealthyPulpVisible(prevPulp);
-      }
+      odontoBuilt = buildOdontogramSvgForExport(false);
       if(!odontoBuilt) throw new Error("Odontogram grid not found");
     }
     setExportProgress(30, "export.progress.rendering");
@@ -8064,14 +8162,7 @@ export async function exportPdf(opts: PdfExportOptions): Promise<void> {
     let perioImageSize: { width: number; height: number } | undefined;
     if(perioNeeded){
       setExportProgress(50, "export.progress.rendering");
-      const pf = PERIO_FONT_SIZE[settings.perioFontSize];
-      const perioBuilt = await buildPerioSvg({
-        fontSize: pf.fontSize,
-        rowHeight: pf.rowHeight,
-        toothGap: PERIO_SPACING_GAP[settings.perioToothSpacing],
-        showEmptyRows: settings.perioShowEmptyRows,
-        labelPlacement: settings.perioLabelPlacement,
-      });
+      const perioBuilt = await buildPerioSvgForExport();
       if(!perioBuilt) throw new Error("Perio chart could not be built");
       perioPng = await rasterizeSvgToPng(perioBuilt.xml, perioBuilt.width, perioBuilt.height);
       perioImageSize = { width: perioBuilt.width, height: perioBuilt.height };
@@ -9041,10 +9132,37 @@ function wireControls(){
     const ind = el("span", { class: "surf-defect", title: t("fillingDefect.label") }, [ el("i") ]);
     ind.addEventListener("click", (e: Any)=>{
       e.preventDefault(); e.stopPropagation();
-      if(!input.checked || readOnly) return;
+      // Round 2 (Stage 6): no-op when the filling-defect feature is disabled.
+      if(!input.checked || readOnly || !fillingDefectEnabled) return;
       showFillingDefectPopup(surface, ind, activeTooth);
     });
     cell.insertBefore(ind, cell.firstChild); // LEFT side
+  });
+
+  // Round 2 (Stage 6): "simple" filling complexity — one filled/not-filled toggle
+  // applying the current material to ALL surfaces (or clearing them).
+  $("#fillingSimpleToggle")?.addEventListener("change", (e)=>{
+    const on = (e.target as HTMLInputElement).checked;
+    applyToSelected((s)=>{
+      if(on){
+        const mat = s.fillingMaterial !== "none" ? s.fillingMaterial : "composite";
+        for(const surf of ["buccal", "mesial", "occlusal", "distal", "lingual"]){ s.fillingSurfaceMaterials.set(surf, mat); s.fillingSurfaces.add(surf); }
+      }else{
+        s.fillingSurfaceMaterials.clear();
+        s.fillingSurfaces.clear();
+        s.fillingDefect.clear();
+      }
+    });
+  });
+  // Round 2 (Stage 6): simple-mode filling-defect button — applies a defect to
+  // ALL filled surfaces via the shared popup (applyAll = true).
+  $("#fillingSimpleDefectSelect")?.addEventListener("change", (e: Any)=>{
+    const value = String((e.target as HTMLSelectElement).value);
+    applyToSelected((s)=>{
+      for(const surf of (s.fillingSurfaceMaterials as Map<string, string>).keys()){
+        applyFillingDefect(s.fillingDefect, surf, value);
+      }
+    });
   });
 
   // Fissure sealing
