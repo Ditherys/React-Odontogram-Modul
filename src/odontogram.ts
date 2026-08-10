@@ -869,6 +869,26 @@ let suppressEdentulousSync = false;
 let numberingSystem: NumberingSystem = "FDI";
 let readOnly = false;
 let notesEnabled = false;
+/** Per-card collapse state: maps a card id to collapsed (true) / expanded (false).
+ *  Keys mirror the btnToggle* button ids without the prefix, lowercased: controls,
+ *  status, caries, filling, rootPeriodontium. Session-only state — never serialized
+ *  to the export payload, like perioViewMode and the other UI-layout flags. */
+const VALID_CARD_IDS = new Set(["controls", "status", "caries", "filling", "rootPeriodontium"]);
+let collapsedCards: Record<string, boolean> = {};
+export function getCollapsedCards(): Record<string, boolean> { return { ...collapsedCards }; }
+export function isCardCollapsed(id: string): boolean {
+  return VALID_CARD_IDS.has(id) ? !!collapsedCards[id] : false;
+}
+export function setCollapsedCard(id: string, collapsed: boolean): void {
+  if(!VALID_CARD_IDS.has(id)) return;
+  collapsedCards[id] = !!collapsed;
+  notifyStateChange();
+}
+export function toggleCollapsedCard(id: string): void {
+  if(!VALID_CARD_IDS.has(id)) return;
+  collapsedCards[id] = !collapsedCards[id];
+  notifyStateChange();
+}
 let icdasEnabled = false;
 export function setIcdasEnabled(value: boolean){ icdasEnabled = !!value; if(activeTooth) syncControlsFromState(toothState.get(activeTooth)); }
 export function getIcdasEnabled(): boolean { return icdasEnabled; }
@@ -1207,6 +1227,15 @@ const CARD_TOGGLE_LABELS: Record<string, string> = {
   btnToggleRootPeriodontiumCard: "card.rootPeriodontium",
 };
 
+// Maps each collapse-toggle button id to its session-state card id.
+const BTN_TO_CARD_ID: Record<string, string> = {
+  btnToggleControlsCard: "controls",
+  btnToggleStatusCard: "status",
+  btnToggleCariesCard: "caries",
+  btnToggleFillingCard: "filling",
+  btnToggleRootPeriodontiumCard: "rootPeriodontium",
+};
+
 // Delegated handler for all card collapse toggles. Attached once to `document`
 // so it survives React StrictMode double-mount and async init timing — per-button
 // listeners wired in wireControls() proved unreliable under those conditions.
@@ -1215,6 +1244,8 @@ function onCardToggleClick(e: Any){
   const btn = target?.closest?.(".icon-btn");
   if(!btn) return;
   const icon = btn.querySelector(".toggle-icon");
+  const cardId = BTN_TO_CARD_ID[btn.id];
+  if(!cardId) return; // not a recognised card toggle button
   // Controls card collapses its actions container (uses `.hidden`), not the card.
   if(btn.id === "btnToggleControlsCard"){
     const actions = document.querySelector("#controlsActions");
@@ -1222,6 +1253,8 @@ function onCardToggleClick(e: Any){
     const hidden = actions.classList.toggle("hidden");
     applyToggleA11y(btn, "panel.controls", hidden);
     if(icon) icon.textContent = hidden ? "+" : "−";
+    collapsedCards.controls = hidden;
+    notifyStateChange();
     return;
   }
   const labelKey = CARD_TOGGLE_LABELS[btn.id];
@@ -1231,6 +1264,8 @@ function onCardToggleClick(e: Any){
   const collapsed = card.classList.toggle("collapsed");
   applyToggleA11y(btn, labelKey, collapsed);
   if(icon) icon.textContent = collapsed ? "+" : "−";
+  collapsedCards[cardId] = collapsed;
+  notifyStateChange();
 }
 
 // Delegated handler for the global `setX(!current)` visibility toggles. A stable
@@ -2846,6 +2881,7 @@ export function __resetChartStateForTest(): void {
   chartMode = "status";
   toothState = charts.status;
   resetCaseMeta();
+  collapsedCards = {};
 }
 
 /** TEST-ONLY: set the active tooth (and lazily vivify its
