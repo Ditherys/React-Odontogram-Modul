@@ -1431,8 +1431,10 @@ function getEndoOptions(isMilktooth: Any){
 
 // ── Fillings-card session configuration ─────────────────────────────────────
 // App-level UI config (not part of the export payload), read by the Fillings
-// card render/wiring. Each setter updates the flag then re-syncs the active
-// tooth's controls.
+// card render/wiring. Each setter is idempotent (early-returns when the value
+// is unchanged), re-syncs the active tooth's controls, then fires
+// notifyStateChange() so onStateChange subscribers observe the change — the
+// same session-flag convention as setPulpDetailLevel/setSurfaceNotation.
 let fillingDefectEnabled = true;
 let fillingComplexity: "complex" | "simple" = "complex";
 let fissureSealingEnabled = true;
@@ -1440,17 +1442,37 @@ const FILLING_MATERIALS = ["amalgam", "composite", "gic", "temporary"] as const;
 const fillingMaterialAvail: Record<string, boolean> = { amalgam: true, composite: true, gic: true, temporary: true };
 
 export function getFillingDefectEnabled(){ return fillingDefectEnabled; }
-export function setFillingDefectEnabled(v: boolean){ fillingDefectEnabled = !!v; if(activeTooth) syncControlsFromState(toothState.get(activeTooth)); }
+export function setFillingDefectEnabled(v: boolean){
+  const next = !!v;
+  if(next === fillingDefectEnabled) return;
+  fillingDefectEnabled = next;
+  if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
+  notifyStateChange();
+}
 export function getFillingComplexity(): "complex" | "simple" { return fillingComplexity; }
-export function setFillingComplexity(v: "complex" | "simple"){ fillingComplexity = v === "simple" ? "simple" : "complex"; if(activeTooth) syncControlsFromState(toothState.get(activeTooth)); }
+export function setFillingComplexity(v: "complex" | "simple"){
+  const next = v === "simple" ? "simple" : "complex";
+  if(next === fillingComplexity) return;
+  fillingComplexity = next;
+  if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
+  notifyStateChange();
+}
 export function getFissureSealingEnabled(){ return fissureSealingEnabled; }
-export function setFissureSealingEnabled(v: boolean){ fissureSealingEnabled = !!v; if(activeTooth) syncControlsFromState(toothState.get(activeTooth)); }
+export function setFissureSealingEnabled(v: boolean){
+  const next = !!v;
+  if(next === fissureSealingEnabled) return;
+  fissureSealingEnabled = next;
+  if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
+  notifyStateChange();
+}
 export function getFillingMaterialAvailability(): Record<string, boolean> { return { ...fillingMaterialAvail }; }
 export function setFillingMaterialAvailability(material: string, v: boolean){
-  if(Object.prototype.hasOwnProperty.call(fillingMaterialAvail, material)){
-    fillingMaterialAvail[material] = !!v;
-    if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
-  }
+  if(!Object.prototype.hasOwnProperty.call(fillingMaterialAvail, material)) return;
+  const next = !!v;
+  if(fillingMaterialAvail[material] === next) return;
+  fillingMaterialAvail[material] = next;
+  if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
+  notifyStateChange();
 }
 /** The filling materials currently available, in canonical order. */
 function availableFillingMaterials(): readonly string[] {

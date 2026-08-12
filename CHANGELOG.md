@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `FillingComplexity` is re-exported from the shell. Session-only state: no
   payload/FHIR/render change (SVG-fingerprint, FHIR-golden, and roundtrip
   fixtures byte-identical; payload version unchanged).
+- **Fillings session-flag setters notify + are idempotent.** The four
+  fillings setters (`setFillingDefectEnabled`, `setFillingComplexity`,
+  `setFissureSealingEnabled`, `setFillingMaterialAvailability`) now follow the
+  same convention as `setPulpDetailLevel`/`setSurfaceNotation`: an early
+  return when the value is unchanged (no redundant
+  `notifyStateChange()`/re-render), and a `notifyStateChange()` on every real
+  change so `onStateChange` subscribers (e.g. hosts persisting preferences)
+  observe fillings-setting changes. `setFillingMaterialAvailability` also
+  ignores unknown materials without notifying.
 
 ## [2.4.0] - 2026-08-11
 
