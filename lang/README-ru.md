@@ -76,9 +76,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | Зарегистрировать пользовательские плагины состояния / дополнительные слои. |
 | `enableNotes` | `boolean` | `false` | Включить заметки по каждому зубу. |
 | `enableIcdas` | `boolean` | `false` | Включить оценку кариеса по ICDAS II. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | Сложность пломбы: `"simple"` (один материал на зуб) или `"complex"` (материалы по поверхностям). |
+| `fillingDefectEnabled` | `boolean` | `true` | Включает фиксацию дефектов пломбы на карточке «Пломбы». |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | все доступны | Доступные пломбировочные материалы в виде логической карты по `amalgam`/`composite`/`gic`/`temporary` (неизвестные ключи игнорируются). |
+| `fissureSealingEnabled` | `boolean` | `true` | Включает герметизацию фиссур на карточке «Пломбы». |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Срабатывает, когда пользователь меняет соответствующую настройку в Настройки → Пломбы. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Срабатывает, когда пользователь меняет настройку через интерфейс. |
 
 Также принимаются более тонкие пропсы уровня детализации (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) — полный типизированный список см. в поставляемых типах `.d.ts`.
+
+Четыре пропса заполнений выше предназначены **только для восстановления**: пропущенный пропс никогда не пишет в движок (императивный вызов `setFillingComplexity()` до монтирования сохраняется, автономный режим не меняется), а переданный пропс записывает движок и состояние модального окна «Настройки» вместе, поэтому окно никогда не показывает устаревшее значение. `fillingMaterialAvailability` применяется через diff по каноническому сериализованному ключу — повторный рендер с inline-литералом идентичного содержимого никогда не перезаписывает движок. Соответствующие колбэки `on*Change` вызываются из Настройки → Пломбы: это путь обратной записи для хостов, сохраняющих предпочтения.
 
 #### Публичный API (именованные экспорты)
 

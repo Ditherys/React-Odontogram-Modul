@@ -78,9 +78,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | Registriert benutzerdefinierte Zustands-Plugins / zusätzliche Ebenen. |
 | `enableNotes` | `boolean` | `false` | Aktiviert Notizen pro Zahn. |
 | `enableIcdas` | `boolean` | `false` | Aktiviert ICDAS-II-Kariesbewertung. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | Füllungskomplexität: `"simple"` (ein Material pro Zahn) oder `"complex"` (Materialien pro Fläche). |
+| `fillingDefectEnabled` | `boolean` | `true` | Aktiviert Füllungsdefekt-Befunde auf der Füllungs-Karte. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | alle verfügbar | Verfügbare Füllungsmaterialien als boolesche Zuordnung über `amalgam`/`composite`/`gic`/`temporary` (unbekannte Schlüssel werden ignoriert). |
+| `fissureSealingEnabled` | `boolean` | `true` | Aktiviert die Fissurenversiegelung auf der Füllungs-Karte. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Wird ausgelöst, wenn der Benutzer die entsprechende Einstellung über Einstellungen → Füllungen ändert. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Wird ausgelöst, wenn der Benutzer die Einstellung über die UI ändert. |
 
 Feiner granulare Detailstufen-Props (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) werden ebenfalls akzeptiert — die vollständige, typisierte Liste finden Sie in den mitgelieferten `.d.ts`-Typen.
+
+Die vier Füllungs-Props oben sind **reine Wiederherstellungs-Props**: Ein weggelassenes Prop schreibt nie in die Engine (ein imperativer `setFillingComplexity()`-Aufruf vor dem Mount bleibt erhalten, der Einzelbetrieb bleibt unverändert), während ein bereitgestelltes Prop Engine und Einstellungs-Modal-Zustand gemeinsam schreibt, sodass das Modal nie einen veralteten Wert anzeigt. `fillingMaterialAvailability` wird per Diff über einen kanonischen serialisierten Schlüssel angewendet — ein erneutes Rendern mit einem Inline-Literal identischen Inhalts schreibt die Engine nie neu. Die passenden `on*Change`-Callbacks werden über Einstellungen → Füllungen ausgelöst — der Rückschreibpfad für Hosts, die Präferenzen speichern.
 
 #### Öffentliche API (benannte Exporte)
 

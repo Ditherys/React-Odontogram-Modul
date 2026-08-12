@@ -76,9 +76,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | Registra plugins de estado / capas adicionales. |
 | `enableNotes` | `boolean` | `false` | Habilita las notas por diente. |
 | `enableIcdas` | `boolean` | `false` | Habilita la puntuación de caries ICDAS II. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | Complejidad de la obturación: `"simple"` (un material por diente) o `"complex"` (materiales por superficie). |
+| `fillingDefectEnabled` | `boolean` | `true` | Activa los hallazgos de defectos de obturación en la tarjeta Obturaciones. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | todos disponibles | Materiales de obturación disponibles como un mapa booleano sobre `amalgam`/`composite`/`gic`/`temporary` (se ignoran claves desconocidas). |
+| `fissureSealingEnabled` | `boolean` | `true` | Activa el sellado de fisuras en la tarjeta Obturaciones. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Se disparan cuando el usuario cambia el ajuste correspondiente desde Ajustes → Obturaciones. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Se disparan cuando el usuario cambia el ajuste desde la interfaz. |
 
 También se aceptan props de nivel de detalle más finas (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) — consulta los tipos `.d.ts` incluidos para la lista completa y tipada.
+
+Las cuatro props de obturación anteriores son **solo de restauración**: una prop omitida nunca escribe en el motor (se conserva una llamada imperativa a `setFillingComplexity()` antes del montaje y el modo independiente no cambia), mientras que una prop proporcionada escribe el motor y el estado del modal de Ajustes a la vez, de modo que el modal nunca muestra un valor obsoleto. `fillingMaterialAvailability` se aplica como diff mediante una clave serializada canónica, por lo que volver a renderizar con un literal inline de contenido idéntico nunca reescribe el motor. Las devoluciones `on*Change` se disparan desde Ajustes → Obturaciones: la vía de escritura para que los hosts persistan preferencias.
 
 #### API pública (exports con nombre)
 

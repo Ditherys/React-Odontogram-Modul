@@ -76,9 +76,16 @@ Az `OdontogramShell` egy vezérelt (controlled) komponens. A leggyakoribb propok
 | `plugins` | `OdontogramPlugin[]` | — | Egyedi állapot pluginek / extra rétegek regisztrálása. |
 | `enableNotes` | `boolean` | `false` | Fogankénti megjegyzések engedélyezése. |
 | `enableIcdas` | `boolean` | `false` | ICDAS II caries pontozás engedélyezése. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | A tömés komplexitása: `"simple"` (egy anyag foganként) vagy `"complex"` (anyagok felületenként). |
+| `fillingDefectEnabled` | `boolean` | `true` | Bekapcsolja a tömési defektusok rögzítését a Tömések kártyán. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | mind elérhető | Elérhető tömőanyagok logikai leképezésként a `amalgam`/`composite`/`gic`/`temporary` kulcsokon (ismeretlen kulcsok figyelmen kívül hagyva). |
+| `fissureSealingEnabled` | `boolean` | `true` | Bekapcsolja a barázdazárást a Tömések kártyán. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Akkor aktiválódik, amikor a felhasználó módosítja az adott beállítást a Beállítások → Tömések menüben. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Akkor hívódik meg, amikor a felhasználó módosítja a beállítást a felületen. |
 
 Finomabb részletezettségi szintet meghatározó propok (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) is elfogadottak — a teljes, típusos listáért lásd a mellékelt `.d.ts` típusdefiníciókat.
+
+A fenti négy tömésekkel kapcsolatos prop **csak visszaállításra** szolgál: a kihagyott prop soha nem ír a motorba (a mount előtti imperatív `setFillingComplexity()` hívás megmarad, a standalone mód pedig változatlan), míg a megadott prop a motorba és a Beállítások modál állapotába egyszerre ír, így a modál soha nem mutat elavult értéket. A `fillingMaterialAvailability` diff-szerűen, kanonikus szerializált kulcson keresztül kerül alkalmazásra — az azonos tartalmú inline literállal történő újrarenderelés soha nem írja újra a motort. A hozzá tartozó `on*Change` visszahívások a Beállítások → Tömések menüből aktiválódnak: ez a visszaírási út a preferenciákat mentő hosztok számára.
 
 #### Nyilvános API (elnevezett exportok)
 

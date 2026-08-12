@@ -76,9 +76,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | Register custom state plugins / extra layers. |
 | `enableNotes` | `boolean` | `false` | Enable per-tooth notes. |
 | `enableIcdas` | `boolean` | `false` | Enable ICDAS II caries scoring. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | Filling-card complexity: `"simple"` (one material per tooth) or `"complex"` (per-surface materials). |
+| `fillingDefectEnabled` | `boolean` | `true` | Enable filling-defect findings on the Fillings card. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | all available | Available filling materials as a boolean map over `amalgam`/`composite`/`gic`/`temporary` (unknown keys ignored). |
+| `fissureSealingEnabled` | `boolean` | `true` | Enable fissure sealing on the Fillings card. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Fire when the user changes the matching setting from Settings → Fillings. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Fire when the user changes the setting from the UI. |
 
 Finer-grained detail-level props (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) are also accepted — see the shipped `.d.ts` types for the full, typed list.
+
+The four fillings props above are **restore-only**: an omitted prop never writes the engine (an imperative `setFillingComplexity()` call before mount is preserved and standalone mode is unchanged), while a provided prop writes the engine and the Settings-modal state together, so the modal never shows a stale value. `fillingMaterialAvailability` is applied diff-wise against a canonical serialized key, so re-rendering with an inline literal of identical content never re-writes the engine. The matching `on*Change` callbacks fire from Settings → Fillings — the write-back path for hosts persisting preferences.
 
 #### Public API (named exports)
 

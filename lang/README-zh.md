@@ -78,9 +78,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | 注册自定义状态插件 / 额外图层。 |
 | `enableNotes` | `boolean` | `false` | 启用逐牙备注。 |
 | `enableIcdas` | `boolean` | `false` | 启用 ICDAS II 龋齿评分。 |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | 充填复杂度：`"simple"`（每颗牙一种材料）或 `"complex"`（按牙面选择材料）。 |
+| `fillingDefectEnabled` | `boolean` | `true` | 在充填卡片上启用充填缺陷发现项。 |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | 全部可用 | 可用充填材料，以 `amalgam`/`composite`/`gic`/`temporary` 为键的布尔映射（未知键被忽略）。 |
+| `fissureSealingEnabled` | `boolean` | `true` | 在充填卡片上启用窝沟封闭。 |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | 当用户在设置 → 充填中更改相应设置时触发。 |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | 当用户在界面中更改该设置时触发。 |
 
 还接受更细粒度的详情级别 props（`pulpDetailLevel`、`secondaryCariesMode`、`rootCariesMode`、`radiographicDepthMode`、`wearDetailLevel`、`discolorationDetailLevel`、`surfaceNotation`、`showStatusCard`、`showOrthoCard`）——完整的带类型列表请参见随附的 `.d.ts` 类型定义。
+
+上述四个充填 props 仅用于**恢复**：省略时绝不会写入引擎（挂载前的 `setFillingComplexity()` 命令式调用得以保留，独立模式不变）；提供时会同时写入引擎和设置对话框状态，因此对话框永远不会显示过期值。`fillingMaterialAvailability` 通过规范化序列化键按差异应用，因此以内联字面量传入相同内容的重渲染永远不会重写引擎。对应的 `on*Change` 回调在设置 → 充填中触发：这是宿主持久化偏好的回写路径。
 
 #### 公共 API（具名导出）
 

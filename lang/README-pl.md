@@ -76,9 +76,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | Rejestruje niestandardowe wtyczki stanu / dodatkowe warstwy. |
 | `enableNotes` | `boolean` | `false` | Włącza notatki dla poszczególnych zębów. |
 | `enableIcdas` | `boolean` | `false` | Włącza ocenę próchnicy wg ICDAS II. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | Złożoność wypełnienia: `"simple"` (jeden materiał na ząb) lub `"complex"` (materiały na powierzchnię). |
+| `fillingDefectEnabled` | `boolean` | `true` | Włącza wykrywanie defektów wypełnienia na karcie Wypełnienia. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | wszystkie dostępne | Dostępne materiały wypełnień jako mapa wartości logicznych nad `amalgam`/`composite`/`gic`/`temporary` (nieznane klucze są ignorowane). |
+| `fissureSealingEnabled` | `boolean` | `true` | Włącza lakowanie bruzd na karcie Wypełnienia. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Wywoływane, gdy użytkownik zmienia odpowiednie ustawienie w Ustawienia → Wypełnienia. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Wywoływane, gdy użytkownik zmienia ustawienie z poziomu interfejsu. |
 
 Akceptowane są także bardziej szczegółowe propsy poziomu detali (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) — pełną, otypowaną listę znajdziesz w dołączonych typach `.d.ts`.
+
+Cztery propsy wypełnień powyżej służą **wyłącznie do przywracania**: pominięty prop nigdy nie zapisuje do silnika (imperatywne wywołanie `setFillingComplexity()` przed montażem jest zachowane, a tryb samodzielny pozostaje niezmieniony), natomiast dostarczony prop zapisuje silnik i stan modala Ustawienia razem, dzięki czemu modal nigdy nie pokazuje nieaktualnej wartości. `fillingMaterialAvailability` jest stosowana różnicowo za pomocą kanonicznego, serializowanego klucza — ponowne renderowanie z literałem inline o identycznej zawartości nigdy nie przepisuje silnika. Pasujące wywołania `on*Change` uruchamiają się z Ustawienia → Wypełnienia: to ścieżka zapisu zwrotnego dla hostów zapisujących preferencje.
 
 #### Publiczne API (eksporty nazwane)
 

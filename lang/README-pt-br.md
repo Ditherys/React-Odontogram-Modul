@@ -76,9 +76,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | Registra plugins de estado personalizados / camadas extras. |
 | `enableNotes` | `boolean` | `false` | Habilita anotações por dente. |
 | `enableIcdas` | `boolean` | `false` | Habilita a pontuação de cáries ICDAS II. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | Complexidade da restauração: `"simple"` (um material por dente) ou `"complex"` (materiais por superfície). |
+| `fillingDefectEnabled` | `boolean` | `true` | Habilita achados de defeito de restauração no cartão Restaurações. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | todos disponíveis | Materiais de restauração disponíveis como um mapa booleano sobre `amalgam`/`composite`/`gic`/`temporary` (chaves desconhecidas são ignoradas). |
+| `fissureSealingEnabled` | `boolean` | `true` | Habilita o selante de fissura no cartão Restaurações. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Disparam quando o usuário altera a configuração correspondente em Configurações → Restaurações. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Disparam quando o usuário altera a configuração pela interface. |
 
 Props de nível de detalhe mais granulares (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) também são aceitas — consulte os tipos `.d.ts` incluídos para a lista completa e tipada.
+
+As quatro props de restauração acima são **apenas de recuperação**: uma prop omitida nunca escreve no motor (uma chamada imperativa a `setFillingComplexity()` antes da montagem é preservada e o modo autônomo permanece inalterado), enquanto uma prop fornecida escreve no motor e no estado do modal Configurações juntos, de modo que o modal nunca mostra um valor obsoleto. `fillingMaterialAvailability` é aplicada por diff via uma chave serializada canônica — re-renders com um literal inline de conteúdo idêntico nunca reescrevem o motor. Os callbacks `on*Change` correspondentes disparam em Configurações → Restaurações: o caminho de escrita para hosts persistirem preferências.
 
 #### API pública (exports nomeados)
 

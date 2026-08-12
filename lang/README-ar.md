@@ -78,9 +78,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | تسجيل إضافات حالة مخصّصة / طبقات إضافية. |
 | `enableNotes` | `boolean` | `false` | تفعيل الملاحظات لكل سن. |
 | `enableIcdas` | `boolean` | `false` | تفعيل تقييم النخر وفق ICDAS II. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | تعقيد الحشوة: `"simple"` (مادة واحدة لكل سن) أو `"complex"` (مواد حسب السطح). |
+| `fillingDefectEnabled` | `boolean` | `true` | تفعيل تسجيل عيوب الحشوة في بطاقة الحشوات. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | جميعها متاحة | المواد المتاحة للحشو كخريطة منطقية على `amalgam`/`composite`/`gic`/`temporary` (تُتجاهل المفاتيح غير المعروفة). |
+| `fissureSealingEnabled` | `boolean` | `true` | تفعيل غلق الشقوق في بطاقة الحشوات. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | تُستدعى عندما يغيّر المستخدم الإعداد المقابل في الإعدادات ← الحشوات. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | تُستدعى عندما يغيّر المستخدم الإعداد من الواجهة. |
 
 تُقبَل أيضًا خصائص أدقّ لمستوى التفصيل (`pulpDetailLevel`، `secondaryCariesMode`، `rootCariesMode`، `radiographicDepthMode`، `wearDetailLevel`، `discolorationDetailLevel`، `surfaceNotation`، `showStatusCard`، `showOrthoCard`) — راجع أنواع `.d.ts` المرفقة للاطلاع على القائمة الكاملة المُنمَّطة.
+
+الخصائص الأربع للحشوات أعلاه مخصّصة **للاستعادة فقط**: الخاصية المحذوفة لا تكتب أبدًا في المحرك (يُحفظ الاستدعاء الأمرّي `setFillingComplexity()` قبل التركيب ويبقى الوضع المستقل دون تغيير)، بينما الخاصية المقدَّمة تكتب في المحرك وحالة نافذة الإعدادات معًا، بحيث لا تعرض النافذة قيمة قديمة أبدًا. تُطبَّق `fillingMaterialAvailability` بالفرق عبر مفتاح تسلسلي قياسي، لذا فإن إعادة العرض بكتابة حرفية inline بنفس المحتوى لا تُعيد الكتابة إلى المحرك أبدًا. تُستدعى ردود `on*Change` المقابلة من الإعدادات ← الحشوات: هذا هو مسار الكتابة العكسية للمضيفات التي تخزّن التفضيلات.
 
 #### واجهة برمجية عامة (تصديرات مسمّاة)
 

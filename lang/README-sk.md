@@ -76,9 +76,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | Registrácia vlastných stavových pluginov / ďalších vrstiev. |
 | `enableNotes` | `boolean` | `false` | Povolí poznámky pre jednotlivé zuby. |
 | `enableIcdas` | `boolean` | `false` | Povolí hodnotenie kazu podľa ICDAS II. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | Zložitosť výplne: `"simple"` (jeden materiál na zub) alebo `"complex"` (materiály podľa plôch). |
+| `fillingDefectEnabled` | `boolean` | `true` | Zapína záchyt defektov výplne na karte Výplne. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | všetky dostupné | Dostupné výplňové materiály ako boolovská mapa nad `amalgam`/`composite`/`gic`/`temporary` (neznáme kľúče sa ignorujú). |
+| `fissureSealingEnabled` | `boolean` | `true` | Zapína zapečatenie fisúr na karte Výplne. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Spustí sa, keď používateľ zmení príslušné nastavenie v Nastavenia → Výplne. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Spustí sa, keď používateľ zmení nastavenie z rozhrania. |
 
 Akceptujú sa aj jemnejšie vlastnosti úrovne detailu (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) — úplný, typovaný zoznam nájdete v dodaných typoch `.d.ts`.
+
+Štyri vlastnosti výplní vyššie slúžia **iba na obnovenie**: vynechaná vlastnosť nikdy nezapisuje do enginu (imperatívne volanie `setFillingComplexity()` pred pripojením sa zachová, samostatný režim sa nemení), zatiaľ čo dodaná vlastnosť zapisuje engine aj stav modalu Nastavenia súčasne, takže modal nikdy nezobrazuje zastaranú hodnotu. `fillingMaterialAvailability` sa aplikuje rozdielovo cez kanonický serializovaný kľúč — opätovné vykreslenie s inline literálom rovnakého obsahu nikdy neprepisuje engine. Príslušné spätné volania `on*Change` sa spúšťajú z Nastavenia → Výplne: cesta spätného zápisu pre hostiteľov ukladajúcich preferencie.
 
 #### Verejné API (pomenované exporty)
 

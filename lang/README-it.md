@@ -76,9 +76,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | Registra plugin di stato personalizzati / livelli aggiuntivi. |
 | `enableNotes` | `boolean` | `false` | Abilita le note per dente. |
 | `enableIcdas` | `boolean` | `false` | Abilita il punteggio delle carie ICDAS II. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | Complessità dell'otturazione: `"simple"` (un materiale per dente) o `"complex"` (materiali per superficie). |
+| `fillingDefectEnabled` | `boolean` | `true` | Abilita i riscontri di difetti dell'otturazione sulla scheda Otturazioni. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | tutti disponibili | Materiali di otturazione disponibili come mappa booleana su `amalgam`/`composite`/`gic`/`temporary` (le chiavi sconosciute vengono ignorate). |
+| `fissureSealingEnabled` | `boolean` | `true` | Abilita la sigillatura dei solchi sulla scheda Otturazioni. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Si attivano quando l'utente modifica l'impostazione corrispondente da Impostazioni → Otturazioni. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Si attivano quando l'utente cambia l'impostazione dall'interfaccia. |
 
 Sono accettate anche proprietà più granulari a livello di dettaglio (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) — consulta i tipi `.d.ts` distribuiti per l'elenco completo e tipizzato.
+
+Le quattro prop di otturazione sopra sono **solo di ripristino**: una prop omessa non scrive mai nel motore (una chiamata imperativa a `setFillingComplexity()` prima del montaggio viene preservata e la modalità autonoma è invariata), mentre una prop fornita scrive insieme il motore e lo stato del modal Impostazioni, così il modal non mostra mai un valore obsoleto. `fillingMaterialAvailability` viene applicata per diff tramite una chiave serializzata canonica — un re-render con un letterale inline di contenuto identico non riscrive mai il motore. I callback `on*Change` scattano da Impostazioni → Otturazioni: il percorso di riscrittura per gli host che persistono le preferenze.
 
 #### API pubblica (export con nome)
 

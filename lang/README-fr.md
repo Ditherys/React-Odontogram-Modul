@@ -78,9 +78,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | Enregistre des plugins d'état personnalisés / des calques supplémentaires. |
 | `enableNotes` | `boolean` | `false` | Active les notes par dent. |
 | `enableIcdas` | `boolean` | `false` | Active le système d'évaluation des caries ICDAS II. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | Complexité de l'obturation : `"simple"` (un matériau par dent) ou `"complex"` (matériaux par surface). |
+| `fillingDefectEnabled` | `boolean` | `true` | Active les constats de défaut d'obturation sur la carte Obturations. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | tous disponibles | Matériaux d'obturation disponibles sous forme de mappage booléen sur `amalgam`/`composite`/`gic`/`temporary` (les clés inconnues sont ignorées). |
+| `fissureSealingEnabled` | `boolean` | `true` | Active le scellement des sillons sur la carte Obturations. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Déclenché lorsque l'utilisateur modifie le paramètre correspondant depuis Paramètres → Obturations. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Déclenché lorsque l'utilisateur modifie le paramètre depuis l'interface. |
 
 Des props de niveau de détail plus fines (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) sont également acceptées — voir les types `.d.ts` fournis pour la liste complète et typée.
+
+Les quatre props d'obturation ci-dessus sont de type **« restauration uniquement »** : une prop omise n'écrit jamais dans le moteur (un appel impératif à `setFillingComplexity()` avant le montage est préservé et le mode autonome est inchangé), tandis qu'une prop fournie écrit le moteur et l'état du modal Paramètres ensemble, de sorte que le modal n'affiche jamais de valeur obsolète. `fillingMaterialAvailability` est appliquée par diff via une clé sérialisée canonique — un re-rendu avec un littéral inline de contenu identique ne réécrit jamais le moteur. Les callbacks `on*Change` se déclenchent depuis Paramètres → Obturations : le chemin d'écriture pour les hôtes qui persistent les préférences.
 
 #### API publique (exports nommés)
 
