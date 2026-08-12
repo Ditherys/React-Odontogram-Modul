@@ -1,7 +1,7 @@
 // Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { destroyOdontogram, initOdontogram, setNumberingSystem, clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, openPerioOverlay, closePerioOverlay, isPerioOverlayOpen, getPerioViewMode, setPerioViewMode, getPerioRowVisibility, setPerioRowVisibility, getPerioIndexNameMode, setPerioIndexNameMode, getPdfSettings, setPdfSettings, isDualStateConfirmPending, acceptDualStateConfirm, cancelDualStateConfirm, hasAnyPerioData, getChartMode, setChartMode, getStatusChart, getPlanChart, setPlanChart, getPlanChanges, exportStatus, importStatus, exportPdf, exportPerioImage, exportPerioSvg, getFillingDefectEnabled, setFillingDefectEnabled, getFillingComplexity, setFillingComplexity, getFissureSealingEnabled, setFissureSealingEnabled, getFillingMaterialAvailability, setFillingMaterialAvailability } from "./odontogram";
 export { clearSelection, setOcclusalVisible, setWisdomVisible, setShowBase, setHealthyPulpVisible, registerPlugins, setPluginState, getPluginState, getToothStateSummary, getOdontogramSummary, formatToothLabel, onStateChange, setReadOnly, getReadOnly, setNotesEnabled, getNotesEnabled, setIcdasEnabled, getIcdasEnabled, setPulpDetailLevel, getPulpDetailLevel, setSecondaryCariesMode, getSecondaryCariesMode, setRootCariesMode, getRootCariesMode, setRadiographicDepthMode, getRadiographicDepthMode, setCariesDepthEnabled, getCariesDepthEnabled, setWearDetailLevel, getWearDetailLevel, setDiscolorationDetailLevel, getDiscolorationDetailLevel, setSurfaceNotation, getSurfaceNotation, exportFhir, exportImage, exportSvg, setImportFormat, getPerioViewMode, setPerioViewMode, getPerioRowVisibility, setPerioRowVisibility, getPerioIndexNameMode, setPerioIndexNameMode, getPdfSettings, setPdfSettings, isDualStateConfirmPending, acceptDualStateConfirm, cancelDualStateConfirm, initOdontogram, destroyOdontogram, setNumberingSystem, getChartMode, setChartMode, getStatusChart, getPlanChart, setPlanChart, getPlanChanges, openPerioOverlay, closePerioOverlay, isPerioOverlayOpen, hasAnyPerioData, exportStatus, importStatus, exportPdf, exportPerioImage, exportPerioSvg, getFillingDefectEnabled, setFillingDefectEnabled, getFillingComplexity, setFillingComplexity, getFissureSealingEnabled, setFissureSealingEnabled, getFillingMaterialAvailability, setFillingMaterialAvailability };
 export { default as PerioChart } from "./PerioChart";
@@ -17,6 +17,7 @@ export {
 export type { PersistenceOptions } from "./persistence";
 import { useI18n } from "./i18n/useI18n";
 import SettingsModal, { type SettingsState, type ScreenToothSpacing, type ScreenToothNumberSize, type SelectionBorderStyle, type FillingComplexity } from "./SettingsModal";
+export type { FillingComplexity } from "./SettingsModal";
 import PerioChart from "./PerioChart";
 import PerioSidebar from "./PerioSidebar";
 import DualStateConfirm from "./DualStateConfirm";
@@ -162,6 +163,53 @@ type AppProps = {
    * the panel to render.
    */
   showOrthoCard?: boolean;
+  /**
+   * Filling-complexity level for the Fillings card: `"simple"` (one material
+   * per tooth, no per-surface picker) or `"complex"` (per-surface materials,
+   * default). Contrast with {@link settings.panels} — this one mirrors the
+   * `fillingComplexity` engine flag (Settings → Fillings). When provided, the
+   * value overrides the engine/UI default; when omitted, whatever the engine
+   * holds (module default or a prior `setFillingComplexity` call) stays put.
+   */
+  fillingComplexity?: FillingComplexity;
+  /**
+   * Called after the user changes the filling-complexity level in the
+   * Settings modal: `(value: FillingComplexity) => void`. Not fired for
+   * prop-driven restores. The write-back counterpart of {@link fillingComplexity}.
+   */
+  onFillingComplexityChange?: (value: FillingComplexity) => void;
+  /**
+   * Whether filling-defect findings are enabled on the Fillings card. Default
+   * `true`. Mirrors the `fillingDefectEnabled` engine flag (Settings →
+   * Fillings); same controlled/standalone contract as {@link fillingComplexity}.
+   */
+  fillingDefectEnabled?: boolean;
+  /** See {@link onFillingComplexityChange} — the defect toggle's counterpart. */
+  onFillingDefectEnabledChange?: (enabled: boolean) => void;
+  /**
+   * Available filling materials as a `Record<material, boolean>` over
+   * `"amalgam" | "composite" | "gic" | "temporary"` (unknown keys are
+   * ignored). Default: all four available. Mirrors the `fillingMaterialAvail`
+   * engine map (Settings → Fillings). Hosts may pass an inline literal — the
+   * sync effect keys on a canonical serialized form, so re-renders with
+   * identical content do not re-fire.
+   */
+  fillingMaterialAvailability?: Record<string, boolean>;
+  /**
+   * Called after the user toggles a material in the Settings modal:
+   * `(material: string, enabled: boolean) => void` — per-material, mirroring
+   * the engine's `setFillingMaterialAvailability` setter (no whole-record
+   * change ever happens). Not fired for prop-driven restores.
+   */
+  onFillingMaterialAvailabilityChange?: (material: string, enabled: boolean) => void;
+  /**
+   * Whether fissure-sealing is offered on the Fillings card. Default `true`.
+   * Mirrors the `fissureSealingEnabled` engine flag (Settings → Fillings);
+   * same controlled/standalone contract as {@link fillingComplexity}.
+   */
+  fissureSealingEnabled?: boolean;
+  /** See {@link onFillingComplexityChange} — the fissure-sealing toggle's counterpart. */
+  onFissureSealingEnabledChange?: (enabled: boolean) => void;
 };
 
 const LANGUAGE_OPTIONS: { value: Language; labelKey: string }[] = [
@@ -235,6 +283,14 @@ export default function App({
   surfaceNotation,
   showStatusCard: showStatusCardProp,
   showOrthoCard: showOrthoCardProp,
+  fillingComplexity,
+  onFillingComplexityChange,
+  fillingDefectEnabled: fillingDefectEnabledProp,
+  onFillingDefectEnabledChange,
+  fillingMaterialAvailability,
+  onFillingMaterialAvailabilityChange,
+  fissureSealingEnabled: fissureSealingEnabledProp,
+  onFissureSealingEnabledChange,
 }: AppProps){
   const { lang, setLang, t } = useI18n({ language, onLanguageChange });
   const [internalNumbering, setInternalNumbering] = useState<NumberingSystem>(numberingSystem ?? "FDI");
@@ -271,11 +327,13 @@ export default function App({
   // Adjustable tooth-selection colour + border style.
   const [selectionColor, setSelectionColor] = useState<string>("#3b7bff");
   const [selectionBorderStyle, setSelectionBorderStyle] = useState<SelectionBorderStyle>("dashed");
-  // Fillings-tab config (mirrors odontogram.ts module flags).
-  const [fillingDefectOn, setFillingDefectOn] = useState<boolean>(() => getFillingDefectEnabled());
-  const [fillingComplexityState, setFillingComplexityState] = useState<FillingComplexity>(() => getFillingComplexity());
-  const [fissureSealingOn, setFissureSealingOn] = useState<boolean>(() => getFissureSealingEnabled());
-  const [fillingMaterialsState, setFillingMaterialsState] = useState<Record<string, boolean>>(() => getFillingMaterialAvailability());
+  // Fillings-tab config (mirrors odontogram.ts module flags). The initializers
+  // prefer a provided prop, falling back to the engine's current module value —
+  // an imperative setX call before mount is never clobbered by a plain default.
+  const [fillingDefectOn, setFillingDefectOn] = useState<boolean>(() => fillingDefectEnabledProp ?? getFillingDefectEnabled());
+  const [fillingComplexityState, setFillingComplexityState] = useState<FillingComplexity>(() => fillingComplexity ?? getFillingComplexity());
+  const [fissureSealingOn, setFissureSealingOn] = useState<boolean>(() => fissureSealingEnabledProp ?? getFissureSealingEnabled());
+  const [fillingMaterialsState, setFillingMaterialsState] = useState<Record<string, boolean>>(() => fillingMaterialAvailability ?? getFillingMaterialAvailability());
   const [showStatusCard, setShowStatusCard] = useState<boolean>(showStatusCardProp ?? true);
   const [showOrthoCard, setShowOrthoCard] = useState<boolean>(showOrthoCardProp ?? true);
   const [summary, setSummary] = useState<OdontogramSummary | null>(null);
@@ -428,6 +486,44 @@ export default function App({
   useEffect(() => { setShowStatusCard(showStatusCardProp ?? true); }, [showStatusCardProp]);
   useEffect(() => { setShowOrthoCard(showOrthoCardProp ?? true); }, [showOrthoCardProp]);
 
+  // Fillings-tab controlled props (Settings → Fillings). Unlike the settings
+  // above, these sync DEFINED-GATED: an omitted prop must never write the
+  // engine, because the fillings flags genuinely live in module state (a host
+  // may call setFillingComplexity() etc. before mounting and the initializers
+  // above read that value). Provided prop → engine + local React state are
+  // written together, so the Settings modal never shows a stale value.
+  useEffect(() => {
+    if (fillingComplexity !== undefined) { setFillingComplexity(fillingComplexity); setFillingComplexityState(fillingComplexity); }
+  }, [fillingComplexity]);
+  useEffect(() => {
+    if (fillingDefectEnabledProp !== undefined) { setFillingDefectEnabled(fillingDefectEnabledProp); setFillingDefectOn(fillingDefectEnabledProp); }
+  }, [fillingDefectEnabledProp]);
+  useEffect(() => {
+    if (fissureSealingEnabledProp !== undefined) { setFissureSealingEnabled(fissureSealingEnabledProp); setFissureSealingOn(fissureSealingEnabledProp); }
+  }, [fissureSealingEnabledProp]);
+  // Canonical serialized key over the material record — an inline-literal prop
+  // re-renders every time, but the effect below only fires when the CONTENT
+  // changes (sorted keys, so key order never matters). `null` = prop absent.
+  const fillingMaterialsKey = useMemo(() => {
+    if (fillingMaterialAvailability === undefined) return null;
+    const entries = Object.keys(fillingMaterialAvailability).sort().map((m) => [m, !!fillingMaterialAvailability[m]]);
+    return JSON.stringify(entries);
+  }, [fillingMaterialAvailability]);
+  // The engine's setters are idempotent; diff against the last applied record
+  // so only materials whose availability actually changed are written.
+  const prevMaterialsRef = useRef<Record<string, boolean> | null>(null);
+  useEffect(() => {
+    if (fillingMaterialsKey === null) { prevMaterialsRef.current = null; return; }
+    const entries = JSON.parse(fillingMaterialsKey) as [string, boolean][];
+    const next = Object.fromEntries(entries);
+    const prev = prevMaterialsRef.current ?? {};
+    for (const [m, on] of entries) {
+      if (prev[m] !== on) setFillingMaterialAvailability(m, on);
+    }
+    prevMaterialsRef.current = next;
+    setFillingMaterialsState({ ...next });
+  }, [fillingMaterialsKey]);
+
   // Refresh the tooth-information summary while its panel is open. Recomputes on
   // every state change, and when language/numbering change (which affect labels).
   useEffect(() => {
@@ -578,13 +674,13 @@ export default function App({
     perioIndexNameMode,
     onPerioIndexNameMode: (v) => setPerioIndexNameMode(v),
     fillingDefectEnabled: fillingDefectOn,
-    onFillingDefectEnabled: (v) => { setFillingDefectOn(v); setFillingDefectEnabled(v); },
+    onFillingDefectEnabled: (v) => { setFillingDefectOn(v); setFillingDefectEnabled(v); onFillingDefectEnabledChange?.(v); },
     fillingComplexity: fillingComplexityState,
-    onFillingComplexity: (v) => { setFillingComplexityState(v); setFillingComplexity(v); },
+    onFillingComplexity: (v) => { setFillingComplexityState(v); setFillingComplexity(v); onFillingComplexityChange?.(v); },
     fillingMaterials: fillingMaterialsState,
-    onFillingMaterial: (m, v) => { setFillingMaterialsState((prev) => ({ ...prev, [m]: v })); setFillingMaterialAvailability(m, v); },
+    onFillingMaterial: (m, v) => { setFillingMaterialsState((prev) => ({ ...prev, [m]: v })); setFillingMaterialAvailability(m, v); onFillingMaterialAvailabilityChange?.(m, v); },
     fissureSealingEnabled: fissureSealingOn,
-    onFissureSealingEnabled: (v) => { setFissureSealingOn(v); setFissureSealingEnabled(v); },
+    onFissureSealingEnabled: (v) => { setFissureSealingOn(v); setFissureSealingEnabled(v); onFissureSealingEnabledChange?.(v); },
     pdfSettings,
     onPdfSettings: (patch) => { setPdfSettings(patch); setPdfSettingsState(getPdfSettings()); },
   };
