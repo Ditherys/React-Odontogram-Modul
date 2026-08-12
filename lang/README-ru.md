@@ -1,7 +1,7 @@
 # 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.4.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.5.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -76,9 +76,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | Зарегистрировать пользовательские плагины состояния / дополнительные слои. |
 | `enableNotes` | `boolean` | `false` | Включить заметки по каждому зубу. |
 | `enableIcdas` | `boolean` | `false` | Включить оценку кариеса по ICDAS II. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | Сложность пломбы: `"simple"` (один материал на зуб) или `"complex"` (материалы по поверхностям). |
+| `fillingDefectEnabled` | `boolean` | `true` | Включает фиксацию дефектов пломбы на карточке «Пломбы». |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | все доступны | Доступные пломбировочные материалы в виде логической карты по `amalgam`/`composite`/`gic`/`temporary` (неизвестные ключи игнорируются). |
+| `fissureSealingEnabled` | `boolean` | `true` | Включает герметизацию фиссур на карточке «Пломбы». |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Срабатывает, когда пользователь меняет соответствующую настройку в Настройки → Пломбы. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Срабатывает, когда пользователь меняет настройку через интерфейс. |
 
 Также принимаются более тонкие пропсы уровня детализации (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) — полный типизированный список см. в поставляемых типах `.d.ts`.
+
+Четыре пропса заполнений выше предназначены **только для восстановления**: пропущенный пропс никогда не пишет в движок (императивный вызов `setFillingComplexity()` до монтирования сохраняется, автономный режим не меняется), а переданный пропс записывает движок и состояние модального окна «Настройки» вместе, поэтому окно никогда не показывает устаревшее значение. `fillingMaterialAvailability` применяется через diff по каноническому сериализованному ключу — повторный рендер с inline-литералом идентичного содержимого никогда не перезаписывает движок. Соответствующие колбэки `on*Change` вызываются из Настройки → Пломбы: это путь обратной записи для хостов, сохраняющих предпочтения.
 
 #### Публичный API (именованные экспорты)
 
@@ -738,14 +745,14 @@ enablePersistence({
 
 Если вы используете этот модуль в своей работе, пожалуйста, процитируйте его.
 
-**Эта версия (v2.4.0):**
-> Dul, Z. (2026). *React Advanced Odontogram* (v2.4.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
+**Эта версия (v2.5.0):**
+> Dul, Z. (2026). *React Advanced Odontogram* (v2.5.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **Все версии (концептуальный DOI):** https://doi.org/10.5281/zenodo.21156787
 
 > Указанный выше концептуальный DOI для всех версий всегда указывает на самый
 > последний заархивированный релиз; DOI для конкретной версии присваивается
-> при каждом релизе в момент его архивирования на Zenodo. Пока v2.4.0 не
+> при каждом релизе в момент его архивирования на Zenodo. Пока v2.5.0 не
 > заархивирована, ссылайтесь на неё через концептуальный DOI.
 
 Машиночитаемые метаданные для цитирования находятся в файле [`CITATION.cff`](../CITATION.cff).

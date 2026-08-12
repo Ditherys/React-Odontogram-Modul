@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-08-11
+
+### Added
+
+- **Fillings settings as controlled props (issue #17).** `<OdontogramShell>`
+  now accepts the four fillings-tab settings as optional props —
+  `fillingComplexity?: "complex" | "simple"`,
+  `fillingDefectEnabled?: boolean`,
+  `fillingMaterialAvailability?: Record<string, boolean>` (over
+  `"amalgam" | "composite" | "gic" | "temporary"`, unknown keys ignored), and
+  `fissureSealingEnabled?: boolean` — plus their write-back callbacks
+  `onFillingComplexityChange(v)`, `onFillingDefectEnabledChange(v)`,
+  `onFillingMaterialAvailabilityChange(material, enabled)` (per-material,
+  mirroring the engine setter) and `onFissureSealingEnabledChange(v)`, fired
+  from the Settings → Fillings tab. Unlike the `pulpDetailLevel`-style props,
+  the sync is **defined-gated**: an omitted prop never writes the engine, so
+  an imperative `setFillingComplexity()` call before mount is preserved and
+  standalone mode is unchanged; a provided prop writes the engine and the
+  React state together, so the Settings modal never shows a stale value. The
+  `fillingMaterialAvailability` prop is dependency-keyed on a canonical
+  serialized form (sorted keys) with a diff against the last applied record —
+  an inline literal with identical content does not re-fire the engine writes.
+  `FillingComplexity` is re-exported from the shell. Session-only state: no
+  payload/FHIR/render change (SVG-fingerprint, FHIR-golden, and roundtrip
+  fixtures byte-identical; payload version unchanged).
+
 ## [2.4.0] - 2026-08-11
 
 ### Added

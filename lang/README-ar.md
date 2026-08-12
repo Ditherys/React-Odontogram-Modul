@@ -1,7 +1,7 @@
 # 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.4.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.5.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -17,7 +17,7 @@
 
 ## 🇸🇦 العربية
 
-*(النسخة العربية من هذا الملف التعريفي (README) — مترجمة عن النسخة الإنجليزية الأصلية، بحسب الإصدار v2.4.0)*
+*(النسخة العربية من هذا الملف التعريفي (README) — مترجمة عن النسخة الإنجليزية الأصلية، بحسب الإصدار v2.5.0)*
 
 ### 📋 نظرة عامة
 هذا المشروع محرر تخطيط أسنان (أودونتوغرام) تفاعلي يعمل داخل المتصفح، ويدعم تسجيل حالة الأسنان بسرعة من خلال واجهة مستخدم نظيفة وواضحة. يعرض المشروع قوالب أسنان بصيغة SVG متعددة الطبقات لتمثيل الترميمات، والنخر (التسوس)، وحالة العلاج اللبي (علاج قناة الجذر)، ودرجة حركة السن، وتفاصيل سريرية أخرى، مع توفير إمكانية التحديد المتعدد، ومرشحات التحديد، وأنماط حالة جاهزة مسبقًا.
@@ -78,9 +78,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | تسجيل إضافات حالة مخصّصة / طبقات إضافية. |
 | `enableNotes` | `boolean` | `false` | تفعيل الملاحظات لكل سن. |
 | `enableIcdas` | `boolean` | `false` | تفعيل تقييم النخر وفق ICDAS II. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | تعقيد الحشوة: `"simple"` (مادة واحدة لكل سن) أو `"complex"` (مواد حسب السطح). |
+| `fillingDefectEnabled` | `boolean` | `true` | تفعيل تسجيل عيوب الحشوة في بطاقة الحشوات. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | جميعها متاحة | المواد المتاحة للحشو كخريطة منطقية على `amalgam`/`composite`/`gic`/`temporary` (تُتجاهل المفاتيح غير المعروفة). |
+| `fissureSealingEnabled` | `boolean` | `true` | تفعيل غلق الشقوق في بطاقة الحشوات. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | تُستدعى عندما يغيّر المستخدم الإعداد المقابل في الإعدادات ← الحشوات. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | تُستدعى عندما يغيّر المستخدم الإعداد من الواجهة. |
 
 تُقبَل أيضًا خصائص أدقّ لمستوى التفصيل (`pulpDetailLevel`، `secondaryCariesMode`، `rootCariesMode`، `radiographicDepthMode`، `wearDetailLevel`، `discolorationDetailLevel`، `surfaceNotation`، `showStatusCard`، `showOrthoCard`) — راجع أنواع `.d.ts` المرفقة للاطلاع على القائمة الكاملة المُنمَّطة.
+
+الخصائص الأربع للحشوات أعلاه مخصّصة **للاستعادة فقط**: الخاصية المحذوفة لا تكتب أبدًا في المحرك (يُحفظ الاستدعاء الأمرّي `setFillingComplexity()` قبل التركيب ويبقى الوضع المستقل دون تغيير)، بينما الخاصية المقدَّمة تكتب في المحرك وحالة نافذة الإعدادات معًا، بحيث لا تعرض النافذة قيمة قديمة أبدًا. تُطبَّق `fillingMaterialAvailability` بالفرق عبر مفتاح تسلسلي قياسي، لذا فإن إعادة العرض بكتابة حرفية inline بنفس المحتوى لا تُعيد الكتابة إلى المحرك أبدًا. تُستدعى ردود `on*Change` المقابلة من الإعدادات ← الحشوات: هذا هو مسار الكتابة العكسية للمضيفات التي تخزّن التفضيلات.
 
 #### واجهة برمجية عامة (تصديرات مسمّاة)
 
@@ -740,13 +747,13 @@ enablePersistence({
 
 إذا استخدمت هذه الوحدة في عملك، يُرجى الاستشهاد بها.
 
-**هذا الإصدار (v2.4.0):**
-> Dul, Z. (2026). *React Advanced Odontogram* (v2.4.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
+**هذا الإصدار (v2.5.0):**
+> Dul, Z. (2026). *React Advanced Odontogram* (v2.5.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **كل الإصدارات (معرّف DOI المفاهيمي):** https://doi.org/10.5281/zenodo.21156787
 
 > يشير معرّف DOI المفاهيمي أعلاه، الشامل لكل الإصدارات، دائمًا إلى أحدث
 > إصدار مؤرشف؛ ويُصدَر معرّف DOI خاص بكل إصدار عند أرشفته على Zenodo.
-> وإلى حين أرشفة الإصدار v2.4.0، يُرجى الاستشهاد به عبر معرّف DOI المفاهيمي.
+> وإلى حين أرشفة الإصدار v2.5.0، يُرجى الاستشهاد به عبر معرّف DOI المفاهيمي.
 
 البيانات الوصفية للاستشهاد القابلة للقراءة الآلية موجودة في [`CITATION.cff`](../CITATION.cff).

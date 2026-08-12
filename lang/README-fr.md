@@ -1,7 +1,7 @@
 # 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.4.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.5.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -78,9 +78,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | Enregistre des plugins d'état personnalisés / des calques supplémentaires. |
 | `enableNotes` | `boolean` | `false` | Active les notes par dent. |
 | `enableIcdas` | `boolean` | `false` | Active le système d'évaluation des caries ICDAS II. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | Complexité de l'obturation : `"simple"` (un matériau par dent) ou `"complex"` (matériaux par surface). |
+| `fillingDefectEnabled` | `boolean` | `true` | Active les constats de défaut d'obturation sur la carte Obturations. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | tous disponibles | Matériaux d'obturation disponibles sous forme de mappage booléen sur `amalgam`/`composite`/`gic`/`temporary` (les clés inconnues sont ignorées). |
+| `fissureSealingEnabled` | `boolean` | `true` | Active le scellement des sillons sur la carte Obturations. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Déclenché lorsque l'utilisateur modifie le paramètre correspondant depuis Paramètres → Obturations. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Déclenché lorsque l'utilisateur modifie le paramètre depuis l'interface. |
 
 Des props de niveau de détail plus fines (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) sont également acceptées — voir les types `.d.ts` fournis pour la liste complète et typée.
+
+Les quatre props d'obturation ci-dessus sont de type **« restauration uniquement »** : une prop omise n'écrit jamais dans le moteur (un appel impératif à `setFillingComplexity()` avant le montage est préservé et le mode autonome est inchangé), tandis qu'une prop fournie écrit le moteur et l'état du modal Paramètres ensemble, de sorte que le modal n'affiche jamais de valeur obsolète. `fillingMaterialAvailability` est appliquée par diff via une clé sérialisée canonique — un re-rendu avec un littéral inline de contenu identique ne réécrit jamais le moteur. Les callbacks `on*Change` se déclenchent depuis Paramètres → Obturations : le chemin d'écriture pour les hôtes qui persistent les préférences.
 
 #### API publique (exports nommés)
 
@@ -740,14 +747,14 @@ Au-delà de l'export propre à l'odontogramme (JSON d'état / FHIR / PNG / JPG /
 
 Si vous utilisez ce module dans votre travail, veuillez le citer.
 
-**Cette version (v2.4.0) :**
-> Dul, Z. (2026). *React Advanced Odontogram* (v2.4.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
+**Cette version (v2.5.0) :**
+> Dul, Z. (2026). *React Advanced Odontogram* (v2.5.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **Toutes les versions (DOI de concept) :** https://doi.org/10.5281/zenodo.21156787
 
 > Le DOI de concept toutes-versions ci-dessus résout toujours vers la version
 > archivée la plus récente ; un DOI spécifique à une version est émis à chaque
-> publication lorsqu'elle est archivée sur Zenodo. Jusqu'à ce que la v2.4.0 soit
+> publication lorsqu'elle est archivée sur Zenodo. Jusqu'à ce que la v2.5.0 soit
 > archivée, citez-la via le DOI de concept.
 
 Les métadonnées de citation lisibles par machine se trouvent dans [`CITATION.cff`](CITATION.cff).

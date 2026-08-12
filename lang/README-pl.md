@@ -1,7 +1,7 @@
 # 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.4.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.5.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -76,9 +76,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | Rejestruje niestandardowe wtyczki stanu / dodatkowe warstwy. |
 | `enableNotes` | `boolean` | `false` | Włącza notatki dla poszczególnych zębów. |
 | `enableIcdas` | `boolean` | `false` | Włącza ocenę próchnicy wg ICDAS II. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | Złożoność wypełnienia: `"simple"` (jeden materiał na ząb) lub `"complex"` (materiały na powierzchnię). |
+| `fillingDefectEnabled` | `boolean` | `true` | Włącza wykrywanie defektów wypełnienia na karcie Wypełnienia. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | wszystkie dostępne | Dostępne materiały wypełnień jako mapa wartości logicznych nad `amalgam`/`composite`/`gic`/`temporary` (nieznane klucze są ignorowane). |
+| `fissureSealingEnabled` | `boolean` | `true` | Włącza lakowanie bruzd na karcie Wypełnienia. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Wywoływane, gdy użytkownik zmienia odpowiednie ustawienie w Ustawienia → Wypełnienia. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Wywoływane, gdy użytkownik zmienia ustawienie z poziomu interfejsu. |
 
 Akceptowane są także bardziej szczegółowe propsy poziomu detali (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) — pełną, otypowaną listę znajdziesz w dołączonych typach `.d.ts`.
+
+Cztery propsy wypełnień powyżej służą **wyłącznie do przywracania**: pominięty prop nigdy nie zapisuje do silnika (imperatywne wywołanie `setFillingComplexity()` przed montażem jest zachowane, a tryb samodzielny pozostaje niezmieniony), natomiast dostarczony prop zapisuje silnik i stan modala Ustawienia razem, dzięki czemu modal nigdy nie pokazuje nieaktualnej wartości. `fillingMaterialAvailability` jest stosowana różnicowo za pomocą kanonicznego, serializowanego klucza — ponowne renderowanie z literałem inline o identycznej zawartości nigdy nie przepisuje silnika. Pasujące wywołania `on*Change` uruchamiają się z Ustawienia → Wypełnienia: to ścieżka zapisu zwrotnego dla hostów zapisujących preferencje.
 
 #### Publiczne API (eksporty nazwane)
 
@@ -738,14 +745,14 @@ Poza własnym eksportem Status JSON / FHIR / PNG / JPG / SVG odontogramu, **wykr
 
 Jeśli używasz tego modułu w swojej pracy, zacytuj go.
 
-**Ta wersja (v2.4.0):**
-> Dul, Z. (2026). *React Advanced Odontogram* (v2.4.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
+**Ta wersja (v2.5.0):**
+> Dul, Z. (2026). *React Advanced Odontogram* (v2.5.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **Wszystkie wersje (DOI koncepcyjny):** https://doi.org/10.5281/zenodo.21156787
 
 > Powyższy koncepcyjny DOI obejmujący wszystkie wersje zawsze prowadzi do najnowszego
 > zarchiwizowanego wydania; DOI dla konkretnej wersji jest nadawany przy każdym wydaniu
-> w momencie jego archiwizacji na Zenodo. Do czasu zarchiwizowania wersji v2.4.0 należy
+> w momencie jego archiwizacji na Zenodo. Do czasu zarchiwizowania wersji v2.5.0 należy
 > cytować ją za pomocą DOI koncepcyjnego.
 
 Metadane cytowania w formacie maszynowym znajdują się w [`CITATION.cff`](../CITATION.cff).

@@ -1,7 +1,7 @@
 # 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.4.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.5.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -76,9 +76,16 @@ Az `OdontogramShell` egy vezérelt (controlled) komponens. A leggyakoribb propok
 | `plugins` | `OdontogramPlugin[]` | — | Egyedi állapot pluginek / extra rétegek regisztrálása. |
 | `enableNotes` | `boolean` | `false` | Fogankénti megjegyzések engedélyezése. |
 | `enableIcdas` | `boolean` | `false` | ICDAS II caries pontozás engedélyezése. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | A tömés komplexitása: `"simple"` (egy anyag foganként) vagy `"complex"` (anyagok felületenként). |
+| `fillingDefectEnabled` | `boolean` | `true` | Bekapcsolja a tömési defektusok rögzítését a Tömések kártyán. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | mind elérhető | Elérhető tömőanyagok logikai leképezésként a `amalgam`/`composite`/`gic`/`temporary` kulcsokon (ismeretlen kulcsok figyelmen kívül hagyva). |
+| `fissureSealingEnabled` | `boolean` | `true` | Bekapcsolja a barázdazárást a Tömések kártyán. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Akkor aktiválódik, amikor a felhasználó módosítja az adott beállítást a Beállítások → Tömések menüben. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Akkor hívódik meg, amikor a felhasználó módosítja a beállítást a felületen. |
 
 Finomabb részletezettségi szintet meghatározó propok (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) is elfogadottak — a teljes, típusos listáért lásd a mellékelt `.d.ts` típusdefiníciókat.
+
+A fenti négy tömésekkel kapcsolatos prop **csak visszaállításra** szolgál: a kihagyott prop soha nem ír a motorba (a mount előtti imperatív `setFillingComplexity()` hívás megmarad, a standalone mód pedig változatlan), míg a megadott prop a motorba és a Beállítások modál állapotába egyszerre ír, így a modál soha nem mutat elavult értéket. A `fillingMaterialAvailability` diff-szerűen, kanonikus szerializált kulcson keresztül kerül alkalmazásra — az azonos tartalmú inline literállal történő újrarenderelés soha nem írja újra a motort. A hozzá tartozó `on*Change` visszahívások a Beállítások → Tömések menüből aktiválódnak: ez a visszaírási út a preferenciákat mentő hosztok számára.
 
 #### Nyilvános API (elnevezett exportok)
 
@@ -740,14 +747,14 @@ Az odontogram saját Státusz JSON / FHIR / PNG / JPG / SVG exportján túl a **
 
 Ha ezt a modult használod a munkádban, kérlek hivatkozz rá.
 
-**Ez a verzió (v2.4.0):**
-> Dul, Z. (2026). *React Advanced Odontogram* (v2.4.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
+**Ez a verzió (v2.5.0):**
+> Dul, Z. (2026). *React Advanced Odontogram* (v2.5.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **Összes verzió (koncepció DOI):** https://doi.org/10.5281/zenodo.21156787
 
 > A fenti, összes verzióra vonatkozó koncepció DOI mindig a legutóbb archivált
 > kiadásra mutat; egy verzió-specifikus DOI minden kiadáshoz akkor jön létre,
-> amikor azt archiválják a Zenodón. Amíg a v2.4.0 nincs archiválva, a koncepció
+> amikor azt archiválják a Zenodón. Amíg a v2.5.0 nincs archiválva, a koncepció
 > DOI-val hivatkozz rá.
 
 A géppel olvasható hivatkozási metaadatok a [`CITATION.cff`](../CITATION.cff) fájlban találhatók.

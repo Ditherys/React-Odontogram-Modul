@@ -1,7 +1,7 @@
 # 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.4.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.5.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -76,9 +76,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | Registra plugins de estado personalizados / camadas extras. |
 | `enableNotes` | `boolean` | `false` | Habilita anotações por dente. |
 | `enableIcdas` | `boolean` | `false` | Habilita a pontuação de cáries ICDAS II. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | Complexidade da restauração: `"simple"` (um material por dente) ou `"complex"` (materiais por superfície). |
+| `fillingDefectEnabled` | `boolean` | `true` | Habilita achados de defeito de restauração no cartão Restaurações. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | todos disponíveis | Materiais de restauração disponíveis como um mapa booleano sobre `amalgam`/`composite`/`gic`/`temporary` (chaves desconhecidas são ignoradas). |
+| `fissureSealingEnabled` | `boolean` | `true` | Habilita o selante de fissura no cartão Restaurações. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Disparam quando o usuário altera a configuração correspondente em Configurações → Restaurações. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Disparam quando o usuário altera a configuração pela interface. |
 
 Props de nível de detalhe mais granulares (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) também são aceitas — consulte os tipos `.d.ts` incluídos para a lista completa e tipada.
+
+As quatro props de restauração acima são **apenas de recuperação**: uma prop omitida nunca escreve no motor (uma chamada imperativa a `setFillingComplexity()` antes da montagem é preservada e o modo autônomo permanece inalterado), enquanto uma prop fornecida escreve no motor e no estado do modal Configurações juntos, de modo que o modal nunca mostra um valor obsoleto. `fillingMaterialAvailability` é aplicada por diff via uma chave serializada canônica — re-renders com um literal inline de conteúdo idêntico nunca reescrevem o motor. Os callbacks `on*Change` correspondentes disparam em Configurações → Restaurações: o caminho de escrita para hosts persistirem preferências.
 
 #### API pública (exports nomeados)
 
@@ -738,13 +745,13 @@ Além da própria exportação Status JSON / FHIR / PNG / JPG / SVG do odontogra
 
 Se você usar este módulo em seu trabalho, por favor cite-o.
 
-**Esta versão (v2.4.0):**
-> Dul, Z. (2026). *React Advanced Odontogram* (v2.4.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
+**Esta versão (v2.5.0):**
+> Dul, Z. (2026). *React Advanced Odontogram* (v2.5.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **Todas as versões (DOI conceitual):** https://doi.org/10.5281/zenodo.21156787
 
 > O DOI conceitual de todas as versões acima sempre resolve para o release arquivado
 > mais recente; um DOI específico de versão é gerado por release quando ele é
-> arquivado no Zenodo. Até que a v2.4.0 seja arquivada, cite-a via o DOI conceitual.
+> arquivado no Zenodo. Até que a v2.5.0 seja arquivada, cite-a via o DOI conceitual.
 
 Metadados de citação legíveis por máquina estão em [`CITATION.cff`](CITATION.cff).

@@ -1,7 +1,7 @@
 # 🦷 React Advanced Odontogram
 
 [![Download](https://img.shields.io/badge/Download-React--Odontogram--Modul-blue?style=for-the-badge&logo=github)](https://github.com/ZoliQua/React-Odontogram-Modul/releases)
-[![Version](https://img.shields.io/badge/version-2.4.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
+[![Version](https://img.shields.io/badge/version-2.5.0-green?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul)
 [![npm](https://img.shields.io/npm/v/react-advanced-odontogram?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/react-advanced-odontogram)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](https://github.com/ZoliQua/React-Odontogram-Modul/blob/main/LICENSE)
 [![DOI](../src/assets/zenodo.21156787.svg)](https://doi.org/10.5281/zenodo.21156787)
@@ -76,9 +76,16 @@ export function Chart() {
 | `plugins` | `OdontogramPlugin[]` | — | Registra plugins de estado / capas adicionales. |
 | `enableNotes` | `boolean` | `false` | Habilita las notas por diente. |
 | `enableIcdas` | `boolean` | `false` | Habilita la puntuación de caries ICDAS II. |
+| `fillingComplexity` | `"complex" \| "simple"` | `"complex"` | Complejidad de la obturación: `"simple"` (un material por diente) o `"complex"` (materiales por superficie). |
+| `fillingDefectEnabled` | `boolean` | `true` | Activa los hallazgos de defectos de obturación en la tarjeta Obturaciones. |
+| `fillingMaterialAvailability` | `Record<string, boolean>` | todos disponibles | Materiales de obturación disponibles como un mapa booleano sobre `amalgam`/`composite`/`gic`/`temporary` (se ignoran claves desconocidas). |
+| `fissureSealingEnabled` | `boolean` | `true` | Activa el sellado de fisuras en la tarjeta Obturaciones. |
+| `onFillingComplexityChange` / `onFillingDefectEnabledChange` / `onFillingMaterialAvailabilityChange` / `onFissureSealingEnabledChange` | `(...) => void` | — | Se disparan cuando el usuario cambia el ajuste correspondiente desde Ajustes → Obturaciones. |
 | `onLanguageChange` / `onNumberingChange` / `onDarkModeChange` | `(value) => void` | — | Se disparan cuando el usuario cambia el ajuste desde la interfaz. |
 
 También se aceptan props de nivel de detalle más finas (`pulpDetailLevel`, `secondaryCariesMode`, `rootCariesMode`, `radiographicDepthMode`, `wearDetailLevel`, `discolorationDetailLevel`, `surfaceNotation`, `showStatusCard`, `showOrthoCard`) — consulta los tipos `.d.ts` incluidos para la lista completa y tipada.
+
+Las cuatro props de obturación anteriores son **solo de restauración**: una prop omitida nunca escribe en el motor (se conserva una llamada imperativa a `setFillingComplexity()` antes del montaje y el modo independiente no cambia), mientras que una prop proporcionada escribe el motor y el estado del modal de Ajustes a la vez, de modo que el modal nunca muestra un valor obsoleto. `fillingMaterialAvailability` se aplica como diff mediante una clave serializada canónica, por lo que volver a renderizar con un literal inline de contenido idéntico nunca reescribe el motor. Las devoluciones `on*Change` se disparan desde Ajustes → Obturaciones: la vía de escritura para que los hosts persistan preferencias.
 
 #### API pública (exports con nombre)
 
@@ -738,14 +745,14 @@ Además de la propia exportación de Estado JSON / FHIR / PNG / JPG / SVG del od
 
 Si utilizas este módulo en tu trabajo, por favor cítalo.
 
-**Esta versión (v2.4.0):**
-> Dul, Z. (2026). *React Advanced Odontogram* (v2.4.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
+**Esta versión (v2.5.0):**
+> Dul, Z. (2026). *React Advanced Odontogram* (v2.5.0). Zenodo. https://doi.org/10.5281/zenodo.21156787
 
 **Todas las versiones (DOI de concepto):** https://doi.org/10.5281/zenodo.21156787
 
 > El DOI de concepto de todas las versiones anterior siempre resuelve a la versión
 > archivada más reciente; se emite un DOI específico de versión por cada lanzamiento
-> cuando se archiva en Zenodo. Hasta que la v2.4.0 sea archivada, cítala mediante
+> cuando se archiva en Zenodo. Hasta que la v2.5.0 sea archivada, cítala mediante
 > el DOI de concepto.
 
 Los metadatos de citación legibles por máquina están en [`CITATION.cff`](CITATION.cff).
