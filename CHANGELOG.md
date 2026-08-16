@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Composable UI surfaces (issue #20, Tier 1).** The shell's four UI regions are
+  now exported as standalone components — `OdontogramTopbar`,
+  `OdontogramChartSurface`, `ToothInfoSurface`, `ToothControlsSurface` — that a
+  host can place in its own layout regions, together with a new
+  `OdontogramProvider` and a `useOdontogramUi()` hook (plus the
+  `OdontogramUiContextValue` type) for building custom surfaces. All surfaces
+  share one package-owned session through the provider. `OdontogramShell` is
+  unchanged and remains the supported all-in-one component — it is now a thin
+  composition of these surfaces under the provider, and its rendered DOM is
+  byte-identical to before (frozen by a new shell DOM-parity test). Tier 1
+  keeps two documented constraints (one provider per document; surfaces mounted
+  before `initOdontogram()` and hidden with CSS rather than unmounted); later
+  tiers lift them. Session/composition only — no payload/FHIR/render change;
+  SVG-fingerprint, FHIR-golden, and roundtrip fixtures byte-identical; payload
+  version unchanged.
 - **Fillings settings as controlled props (issue #17).** `<OdontogramShell>`
   now accepts the four fillings-tab settings as optional props —
   `fillingComplexity?: "complex" | "simple"`,

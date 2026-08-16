@@ -114,6 +114,36 @@ import {
 
 Celý rozsah (≈ 44 funkcií + typy ako `OdontogramSummary`, `OdontogramThemeConfig`, `OdontogramPlugin`, `FhirExportOptions`, `PerioViewMode`, …) je plne typovaný v priložených deklaráciách.
 
+#### Skladateľné povrchy (pokročilé)
+
+`OdontogramShell` je podporovaný komponent všetko v jednom a nevyžaduje žiadne ďalšie nastavenie. Ak potrebujete umiestniť oblasti odontogramu do rôznych častí vlastného rozloženia, štyri používateľské povrchy shellu sú tiež exportované a možno ich poskladať pod jediným `OdontogramProvider`, pričom všetky zdieľajú jednu reláciu spravovanú balíkom:
+
+```tsx
+import {
+  OdontogramProvider,
+  OdontogramTopbar,
+  OdontogramChartSurface,
+  ToothInfoSurface,
+  ToothControlsSurface,
+} from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
+
+function Workspace() {
+  return (
+    <OdontogramProvider language="en" numberingSystem="FDI">
+      <MyHeaderArea><OdontogramTopbar /></MyHeaderArea>
+      <MyMainArea>
+        <OdontogramChartSurface />
+        <ToothInfoSurface />
+      </MyMainArea>
+      <MySidePanel><ToothControlsSurface /></MySidePanel>
+    </OdontogramProvider>
+  );
+}
+```
+
+`OdontogramProvider` prijíma rovnaké props ako `OdontogramShell`. Na tvorbu vlastných povrchov je k dispozícii hook `useOdontogramUi()` (a typ `OdontogramUiContextValue`). Aktuálne obmedzenia: použite jeden provider na stránku a pripojte každý povrch pred inicializáciou diagramu (skryte ich pomocou CSS namiesto odpojenia). Samotný `OdontogramShell` je nezmenený — je to presne táto kompozícia v predvolenom usporiadaní.
+
 #### Použitie s Next.js (App Router)
 
 Komponent funguje iba na strane klienta, preto ho vykresľujte z klientskeho komponentu:

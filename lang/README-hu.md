@@ -114,6 +114,36 @@ import {
 
 A teljes felület (≈ 44 függvény + olyan típusok, mint az `OdontogramSummary`, `OdontogramThemeConfig`, `OdontogramPlugin`, `FhirExportOptions`, `PerioViewMode`, …) teljesen típusosan szerepel a mellékelt deklarációkban.
 
+#### Összeállítható felületek (haladó)
+
+Az `OdontogramShell` a támogatott, mindent egyben komponens, és nem igényel további beállítást. Ha az odontogram régióit a saját elrendezésének különböző területein szeretné elhelyezni, a shell négy felhasználói felületi felülete is exportálva van, és egyetlen `OdontogramProvider` alatt állítható össze, mindegyik ugyanazon a csomag által kezelt munkameneten osztozva:
+
+```tsx
+import {
+  OdontogramProvider,
+  OdontogramTopbar,
+  OdontogramChartSurface,
+  ToothInfoSurface,
+  ToothControlsSurface,
+} from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
+
+function Workspace() {
+  return (
+    <OdontogramProvider language="en" numberingSystem="FDI">
+      <MyHeaderArea><OdontogramTopbar /></MyHeaderArea>
+      <MyMainArea>
+        <OdontogramChartSurface />
+        <ToothInfoSurface />
+      </MyMainArea>
+      <MySidePanel><ToothControlsSurface /></MySidePanel>
+    </OdontogramProvider>
+  );
+}
+```
+
+Az `OdontogramProvider` ugyanazokat a propokat fogadja, mint az `OdontogramShell`. Egy `useOdontogramUi()` hook (és az `OdontogramUiContextValue` típus) is elérhető saját felületek építéséhez. Jelenlegi korlátok: oldalanként egy providert használjon, és minden felületet a diagram inicializálása előtt csatoljon fel (CSS-sel rejtse el őket, ne pedig leválasztással). Maga az `OdontogramShell` változatlan — pontosan ez az összeállítás az alapértelmezett elrendezésben.
+
 #### Használat Next.js-szel (App Router)
 
 A komponens kizárólag kliensoldali, ezért egy Client Component-ből kell renderelni:

@@ -114,6 +114,36 @@ import {
 
 Полная поверхность API (≈ 44 функции + типы, такие как `OdontogramSummary`, `OdontogramThemeConfig`, `OdontogramPlugin`, `FhirExportOptions`, `PerioViewMode`, …) полностью типизирована во встроенных объявлениях.
 
+#### Компонуемые поверхности (продвинутый уровень)
+
+`OdontogramShell` — это поддерживаемый компонент «всё в одном», не требующий дополнительной настройки. Если вам нужно разместить области одонтограммы в разных частях собственной вёрстки, четыре поверхности интерфейса оболочки также экспортируются и могут быть скомпонованы под одним `OdontogramProvider`, при этом все они используют один сеанс, управляемый пакетом:
+
+```tsx
+import {
+  OdontogramProvider,
+  OdontogramTopbar,
+  OdontogramChartSurface,
+  ToothInfoSurface,
+  ToothControlsSurface,
+} from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
+
+function Workspace() {
+  return (
+    <OdontogramProvider language="en" numberingSystem="FDI">
+      <MyHeaderArea><OdontogramTopbar /></MyHeaderArea>
+      <MyMainArea>
+        <OdontogramChartSurface />
+        <ToothInfoSurface />
+      </MyMainArea>
+      <MySidePanel><ToothControlsSurface /></MySidePanel>
+    </OdontogramProvider>
+  );
+}
+```
+
+`OdontogramProvider` принимает те же пропсы, что и `OdontogramShell`. Для создания собственных поверхностей доступны хук `useOdontogramUi()` (и тип `OdontogramUiContextValue`). Текущие ограничения: используйте один провайдер на страницу и монтируйте каждую поверхность до инициализации диаграммы (скрывайте их с помощью CSS, а не размонтируйте). Сам `OdontogramShell` не изменился — это именно такая композиция в компоновке по умолчанию.
+
 #### Использование с Next.js (App Router)
 
 Компонент работает только на клиенте, поэтому отрисовывайте его из клиентского компонента:

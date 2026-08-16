@@ -116,6 +116,36 @@ import {
 
 كامل الواجهة (نحو 44 دالة + أنواع مثل `OdontogramSummary`، `OdontogramThemeConfig`، `OdontogramPlugin`، `FhirExportOptions`، `PerioViewMode`، …) مُنمَّطة بالكامل ضمن التصريحات المرفقة.
 
+#### أسطح قابلة للتركيب (متقدّم)
+
+`OdontogramShell` هو المكوّن المدعوم الشامل ولا يحتاج إلى أي إعداد إضافي. إذا كنت بحاجة إلى وضع مناطق مخطّط الأسنان في أماكن مختلفة من تخطيطك الخاص، فإن أسطح الواجهة الأربعة للـ shell مُصدَّرة أيضًا ويمكن تركيبها ضمن `OdontogramProvider` واحد، وكلها تشترك في جلسة واحدة يديرها الحزمة:
+
+```tsx
+import {
+  OdontogramProvider,
+  OdontogramTopbar,
+  OdontogramChartSurface,
+  ToothInfoSurface,
+  ToothControlsSurface,
+} from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
+
+function Workspace() {
+  return (
+    <OdontogramProvider language="en" numberingSystem="FDI">
+      <MyHeaderArea><OdontogramTopbar /></MyHeaderArea>
+      <MyMainArea>
+        <OdontogramChartSurface />
+        <ToothInfoSurface />
+      </MyMainArea>
+      <MySidePanel><ToothControlsSurface /></MySidePanel>
+    </OdontogramProvider>
+  );
+}
+```
+
+يأخذ `OdontogramProvider` نفس خصائص `OdontogramShell`. ويتوفّر خطّاف `useOdontogramUi()` (والنوع `OdontogramUiContextValue`) لبناء أسطحك الخاصة. القيود الحالية: استخدم موفّرًا واحدًا لكل صفحة، وركّب كل سطح قبل تهيئة المخطّط (أخفِها باستخدام CSS بدلًا من إزالتها). أما `OdontogramShell` نفسه فلم يتغيّر — فهو بالضبط هذا التركيب في الترتيب الافتراضي.
+
 #### الاستخدام مع Next.js (موجِّه التطبيق App Router)
 
 المكوّن يعمل من جهة العميل فقط، لذا اعرضه من مكوّن عميل (Client Component):

@@ -116,6 +116,36 @@ import {
 
 完整的 API 表面（约 44 个函数，以及 `OdontogramSummary`、`OdontogramThemeConfig`、`OdontogramPlugin`、`FhirExportOptions`、`PerioViewMode` 等类型）在随附的声明文件中均有完整的类型定义。
 
+#### 可组合的界面区域（高级）
+
+`OdontogramShell` 是受支持的一体化组件，无需额外设置。如果你需要将牙位图的各个区域放置在自己布局中的不同位置，该 shell 的四个 UI 界面区域也已导出，可以在单个 `OdontogramProvider` 下进行组合，它们共享同一个由本包管理的会话：
+
+```tsx
+import {
+  OdontogramProvider,
+  OdontogramTopbar,
+  OdontogramChartSurface,
+  ToothInfoSurface,
+  ToothControlsSurface,
+} from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
+
+function Workspace() {
+  return (
+    <OdontogramProvider language="en" numberingSystem="FDI">
+      <MyHeaderArea><OdontogramTopbar /></MyHeaderArea>
+      <MyMainArea>
+        <OdontogramChartSurface />
+        <ToothInfoSurface />
+      </MyMainArea>
+      <MySidePanel><ToothControlsSurface /></MySidePanel>
+    </OdontogramProvider>
+  );
+}
+```
+
+`OdontogramProvider` 接受与 `OdontogramShell` 相同的 props。还提供了 `useOdontogramUi()` hook（以及 `OdontogramUiContextValue` 类型），用于构建你自己的界面区域。当前限制：每个页面只使用一个 provider，并在图表初始化之前挂载所有界面区域（用 CSS 隐藏它们，而不是卸载）。`OdontogramShell` 本身没有变化——它正是这种组合在默认排布下的形态。
+
 #### 与 Next.js（App Router）搭配使用
 
 该组件仅支持客户端渲染，因此需要在 Client Component 中渲染它：

@@ -116,6 +116,36 @@ import {
 
 La surface complète (≈ 44 fonctions + des types tels que `OdontogramSummary`, `OdontogramThemeConfig`, `OdontogramPlugin`, `FhirExportOptions`, `PerioViewMode`, …) est entièrement typée dans les déclarations fournies.
 
+#### Surfaces composables (avancé)
+
+`OdontogramShell` est le composant tout-en-un pris en charge et ne nécessite aucune configuration supplémentaire. Si vous devez placer les régions de l'odontogramme à différents endroits de votre propre mise en page, les quatre surfaces d'interface de la shell sont également exportées et peuvent être composées sous un unique `OdontogramProvider`, partageant toutes une seule session gérée par le paquet :
+
+```tsx
+import {
+  OdontogramProvider,
+  OdontogramTopbar,
+  OdontogramChartSurface,
+  ToothInfoSurface,
+  ToothControlsSurface,
+} from "react-advanced-odontogram";
+import "react-advanced-odontogram/style.css";
+
+function Workspace() {
+  return (
+    <OdontogramProvider language="en" numberingSystem="FDI">
+      <MyHeaderArea><OdontogramTopbar /></MyHeaderArea>
+      <MyMainArea>
+        <OdontogramChartSurface />
+        <ToothInfoSurface />
+      </MyMainArea>
+      <MySidePanel><ToothControlsSurface /></MySidePanel>
+    </OdontogramProvider>
+  );
+}
+```
+
+`OdontogramProvider` accepte les mêmes props que `OdontogramShell`. Un hook `useOdontogramUi()` (et le type `OdontogramUiContextValue`) est disponible pour créer vos propres surfaces. Contraintes actuelles : utilisez un seul provider par page et montez chaque surface avant l'initialisation du diagramme (masquez-les avec du CSS plutôt que de les démonter). `OdontogramShell` lui-même est inchangé — il s'agit exactement de cette composition dans la disposition par défaut.
+
 #### Utilisation avec Next.js (App Router)
 
 Le composant fonctionne uniquement côté client ; affichez-le donc depuis un Client Component :
