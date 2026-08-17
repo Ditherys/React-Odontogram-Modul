@@ -26,8 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the **Root / periodontium** card body (`RootPeriodontiumCard`;
   `getActiveRootPerio()` + its setters — pulp/endo optgroups with the endo↔pulpDx
   exclusion, apical/resorption/mobility/peri-implant/calculus/mods; the 6-site
-  probing grid stays imperative for now). Behavior and rendered DOM are unchanged. No payload/FHIR/render change; all
-  goldens byte-identical; payload version unchanged.
+  probing grid stays imperative for now), and the **Tooth details** card body
+  (`ToothDetailsCard`; `getActiveToothDetails()` + its setters + `resetTooth()` —
+  base/substrate/restoration with per-tooth option lists and `${type}|${material}`
+  encode/decode, wear/discoloration, and the full row-visibility sweep incl. the
+  `#extractionPlanRow` reparenting). With this, **all six control cards are
+  declarative**: `wireControls()`/`syncControlsFromState()` no longer build or sync
+  any control card, and the imperative `buildSelect` machinery is removed (only the
+  carved-out 6-site perio probing grid remains imperative). Behavior and rendered
+  DOM are unchanged. No payload/FHIR/render change; all goldens byte-identical;
+  payload version unchanged.
 - **Composable UI: on-demand surfaces (issue #20, Tier 2).** Control wiring is now
   re-runnable / idempotent, so a surface can **unmount and remount** (e.g. mount on
   demand in a drawer or tab) — the Tier 1 "mount every surface before init / hide

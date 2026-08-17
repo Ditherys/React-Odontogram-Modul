@@ -825,8 +825,9 @@ export function setChartMode(mode: ChartMode): void {
     updateToothLabelNoteIcon(toothNo);
   }
   // The tooth-base picker's option set is mode-dependent (Plan omits
-  // milk/subgingival) — rebuild it whenever the mode changes.
-  refreshToothSelectOptions();
+  // milk/subgingival); the declarative `ToothDetailsCard` (composable-UI Tier 3,
+  // PR 3f) rebuilds it from `getActiveToothDetails()` on the notifyStateChange()
+  // re-render below.
   if(activeTooth) syncControlsFromState(toothState.get(activeTooth));
   notifyStateChange();
   syncChartModeUi();
@@ -1091,11 +1092,6 @@ function bindOnce(el: Any, type: string, handler: Any){
   set.add(type);
   el.addEventListener(type, handler);
 }
-/** True when {@link bindOnce} has already wired `type` on `el`. */
-function isBound(el: Any, type: string): boolean {
-  const set = wiredHandlers.get(el);
-  return !!set && set.has(type);
-}
 
 // ---- UI builders ----
 // (The former `buildChecks()` container builder was removed with PR 3e — the
@@ -1127,21 +1123,6 @@ export function buildSurfaceCross(container: Any, items: Any, onToggle: Any){
     cross.appendChild(label);
   }
   container.appendChild(cross);
-}
-
-function buildSelect(selectEl: Any, options: Any, onChange: Any){
-  if(!selectEl) return;
-  // A still-mounted select is already wired for "change"; its options are
-  // re-derived by the syncControlsFromState() that follows every (re)wire, so
-  // skip the whole rebuild+rebind here to avoid double-binding the handler.
-  if(isBound(selectEl, "change")) return;
-  selectEl.innerHTML = "";
-  for(const opt of options){
-    const o = el("option", { value: opt.value, text: opt.label });
-    if(opt.title) o.title = opt.title;
-    selectEl.appendChild(o);
-  }
-  bindOnce(selectEl, "change", (e: Any)=>onChange((e.target as HTMLSelectElement).value));
 }
 
 // `data-icon-src` carries inlined SVG markup (from a `?raw` import in App.tsx),
@@ -2883,6 +2864,418 @@ export function setPeriImplantForSelection(value: string): void {
   applyToSelected((s: Any)=>{ applyPeriImplantSelection(s, value); });
 }
 
+// ── Tooth-details card engine API (composable-UI Tier 3, PR 3f) ──────────────
+// The declarative `ToothDetailsCard` reads/writes the per-tooth base / substrate /
+// restoration / broken / contact / wear / discoloration / crown-action axes
+// through these functions instead of the former imperative `wireControls()`/
+// `syncControlsFromState()` Tooth-details block (the largest one).
+// `getActiveToothDetails()` returns the ACTIVE tooth's values + per-tooth option
+// lists (folding the write-back normalization the sync did), all checkbox states,
+// every row's visibility flag + the wear/discoloration detail-level select-vs-
+// toggle mode, and the resolved `#extractionPlanRow` parent (the imperative
+// DOM-reparenting quirk, resolved to a parent id). With NO active tooth it returns
+// the exact static-shell defaults (the imperative sync only ran on an active
+// tooth; with none, the rows kept their authored classes) so the shell-DOM golden
+// stays byte-identical. The setters wrap the exact `applyToSelected(...)` closures
+// `wireControls()` bound (incl. the base-picker `defaultState()` reset +
+// `setEdentulous(false)` side-effects and the restoration `${type}|${material}`
+// decode via `applyRestorationSelection`), so behavior is identical — only the
+// call site moves from a DOM listener to a React onChange.
+
+export type ToothDetailsOption = { value: string; label: string; disabled?: boolean };
+export type ExtractionPlanParent = "brokenCrownRow" | "bruxismRow" | "crownActionsRow";
+
+export type ActiveToothDetails = {
+  // Base tooth picker (#toothSelect); the milk option carries the MILKTOOTH_BLOCKED disable.
+  toothSelectValue: string;
+  toothSelectOptions: ToothDetailsOption[];
+  // Substrate (#substrateSelect / #substrateRow).
+  substrateValue: string;
+  substrateOptions: ToothDetailsOption[];
+  substrateRowVisible: boolean;
+  // Extraction wound (#extractionRow / #extractionWound).
+  extractionWoundChecked: boolean;
+  extractionRowVisible: boolean;
+  // Missing closed (#missingClosedRow / #missingClosed).
+  missingClosedChecked: boolean;
+  missingClosedRowVisible: boolean;
+  // Combined restoration dropdown (#restorationSelect / #restorationRow).
+  restorationValue: string;
+  restorationOptions: ToothDetailsOption[];
+  restorationRowVisible: boolean;
+  // Crown marginal leakage (#crownLeakageRow / #crownLeakage).
+  crownLeakageChecked: boolean;
+  crownLeakageRowVisible: boolean;
+  // Broken crown parts (#brokenCrownRow: #brokenMesial/#brokenIncisal/#brokenDistal).
+  brokenMesialChecked: boolean;
+  brokenIncisalChecked: boolean;
+  brokenDistalChecked: boolean;
+  brokenCrownRowVisible: boolean;
+  // Contact points (#contactPointRow: #contactMesial/#contactDistal).
+  contactMesialChecked: boolean;
+  contactDistalChecked: boolean;
+  contactPointRowVisible: boolean;
+  // Wear (#bruxismRow → #wearEdgeRow/#wearCervicalRow); detail-level select-vs-toggle.
+  bruxismRowVisible: boolean;
+  wearSimple: boolean;
+  wearEdgeValue: string;
+  wearEdgeOptions: ToothDetailsOption[];
+  wearEdgeToggleChecked: boolean;
+  wearCervicalValue: string;
+  wearCervicalOptions: ToothDetailsOption[];
+  wearCervicalToggleChecked: boolean;
+  // Discoloration (#discolorationRow); detail-level select-vs-toggle.
+  discolorationRowVisible: boolean;
+  discoSimple: boolean;
+  discolorationValue: string;
+  discolorationOptions: ToothDetailsOption[];
+  discolorationToggleChecked: boolean;
+  // Crown actions (#crownActionsRow: #bridgePillarRow + #extractionPlanRow).
+  crownActionsRowVisible: boolean;
+  bridgePillarChecked: boolean;
+  bridgePillarRowVisible: boolean;
+  extractionPlanChecked: boolean;
+  extractionPlanRowVisible: boolean;
+  // The resolved parent the #extractionPlanRow is imperatively reparented into.
+  extractionPlanParent: ExtractionPlanParent;
+  // Crown replace / needed (#crownReplaceRow / #crownNeededRow).
+  crownReplaceChecked: boolean;
+  crownReplaceRowVisible: boolean;
+  crownNeededChecked: boolean;
+  crownNeededRowVisible: boolean;
+};
+
+/** The #toothSelect option list with the milk option's MILKTOOTH_BLOCKED disable
+ *  folded in (mirrors the `milkOption.disabled = anyBlocked` sync). */
+function toothSelectOptionsForCard(): ToothDetailsOption[] {
+  const selectedArr = selectedTeeth.size > 0 ? Array.from(selectedTeeth) : [];
+  const anyBlocked = selectedArr.length > 0
+    ? selectedArr.some(tn => MILKTOOTH_BLOCKED.has(Number(tn)))
+    : (activeTooth ? MILKTOOTH_BLOCKED.has(activeTooth) : false);
+  return getToothSelectOptions().map(o => o.value === "milktooth" ? { ...o, disabled: anyBlocked } : o);
+}
+
+export function getActiveToothDetails(): ActiveToothDetails {
+  const isPlan = getChartMode() === "plan";
+  const toothSelectOptions = toothSelectOptionsForCard();
+  const substrateOptions = getSubstrateOptions();
+  const wearEdgeOptions = getWearEdgeOptions();
+  const wearCervicalOptions = getWearCervicalOptions();
+  const discolorationOptions = getDiscolorationOptions();
+  const restoView = restorationViewFor(activeTooth);
+
+  const hasActive = activeTooth != null && toothState.get(activeTooth) != null;
+
+  if(!hasActive){
+    // No active tooth → reproduce the static shell verbatim. The imperative
+    // syncControlsFromState only touched these rows when a tooth was active; with
+    // none selected the rows kept their authored classes (all visible except the
+    // crown-leakage row, wear/discoloration in select mode, extractionPlanRow in
+    // #crownActionsRow). Keeps the shell-DOM golden byte-identical.
+    const d = defaultState();
+    const restorationOptions = getRestorationOptions(restoView, { isImplant: false, toothSelection: d.toothSelection });
+    return {
+      toothSelectValue: d.toothSelection,
+      toothSelectOptions,
+      substrateValue: d.toothSubstrate,
+      substrateOptions,
+      substrateRowVisible: true,
+      extractionWoundChecked: false,
+      extractionRowVisible: true,
+      missingClosedChecked: false,
+      missingClosedRowVisible: true,
+      restorationValue: `${d.restorationType}|${d.restorationMaterial}`,
+      restorationOptions,
+      restorationRowVisible: true,
+      crownLeakageChecked: false,
+      crownLeakageRowVisible: false,
+      brokenMesialChecked: false,
+      brokenIncisalChecked: false,
+      brokenDistalChecked: false,
+      brokenCrownRowVisible: true,
+      contactMesialChecked: false,
+      contactDistalChecked: false,
+      contactPointRowVisible: true,
+      bruxismRowVisible: true,
+      wearSimple: false,
+      wearEdgeValue: d.wearEdge,
+      wearEdgeOptions,
+      wearEdgeToggleChecked: false,
+      wearCervicalValue: d.wearCervical,
+      wearCervicalOptions,
+      wearCervicalToggleChecked: false,
+      discolorationRowVisible: true,
+      discoSimple: false,
+      discolorationValue: d.discoloration,
+      discolorationOptions,
+      discolorationToggleChecked: false,
+      crownActionsRowVisible: true,
+      bridgePillarChecked: false,
+      bridgePillarRowVisible: true,
+      extractionPlanChecked: false,
+      extractionPlanRowVisible: true,
+      extractionPlanParent: "crownActionsRow",
+      crownReplaceChecked: false,
+      crownReplaceRowVisible: true,
+      crownNeededChecked: false,
+      crownNeededRowVisible: true,
+    };
+  }
+
+  const state = toothState.get(activeTooth) as Any; // hasActive guarantees non-null
+  const isMilktooth = state.toothSelection === "milktooth";
+  const isImplant = state.toothSelection === "implant";
+  const underGum = isUnderGum(state.toothSelection);
+  const extraction = isExtraction(state.toothSelection) || (state.toothSelection === "none" && state.extractionWound);
+
+  // ── write-back-if-out-of-set normalization (folded verbatim from the sync) ──
+  if(!wearEdgeOptions.some(o => o.value === state.wearEdge)) state.wearEdge = wearEdgeOptions[0]?.value ?? "none";
+  if(!wearCervicalOptions.some(o => o.value === state.wearCervical)) state.wearCervical = wearCervicalOptions[0]?.value ?? "none";
+  if(!discolorationOptions.some(o => o.value === state.discoloration)) state.discoloration = discolorationOptions[0]?.value ?? "none";
+  if(!substrateOptions.some(o => o.value === state.toothSubstrate)) state.toothSubstrate = substrateOptions[0]?.value ?? "natural";
+
+  // Combined restoration dropdown — one value encodes `${type}|${material}` OR a
+  // `prosthesis|<value>`; clamp to the available option set, then write BOTH axes
+  // back (mirrors setSelectOptions' clamp + the sync's write-back block).
+  const restorationOptions = getRestorationOptions(restoView, { isImplant, toothSelection: state.toothSelection });
+  const restoSelected = state.prosthesis && state.prosthesis !== "none"
+    ? `prosthesis|${state.prosthesis}`
+    : `${state.restorationType}|${state.restorationMaterial}`;
+  let restorationValue = restorationOptions.some(o => o.value === restoSelected)
+    ? restoSelected
+    : (restorationOptions[0]?.value ?? "");
+  if(restorationValue.startsWith("prosthesis|")){
+    const p = restorationValue.slice("prosthesis|".length);
+    if(state.prosthesis !== p){ state.prosthesis = p; }
+    state.restorationType = "none";
+    state.restorationMaterial = "none";
+  }else{
+    const [selType, selMat] = restorationValue.split("|");
+    if(selType !== state.restorationType || selMat !== state.restorationMaterial){
+      state.restorationType = selType || "none";
+      state.restorationMaterial = selMat || "none";
+    }
+    if(state.prosthesis !== "none"){ state.prosthesis = "none"; }
+  }
+  // milk / under-gum / extraction / radix carry no fixed restoration (clear a
+  // stored crown that no longer has a control to remove it).
+  if(isMilktooth || underGum || extraction || state.toothSubstrate === "radix"){
+    state.restorationType = "none";
+    state.restorationMaterial = "none";
+    restorationValue = "none|none";
+  }
+  // Substrate applies only to a present permanent tooth.
+  if(state.toothSelection !== "tooth-base"){
+    state.toothSubstrate = "natural";
+  }
+
+  // ── row-visibility sweep (folded verbatim from the sync) ──
+  const selectedArr = selectedTeeth.size > 0 ? Array.from(selectedTeeth) : [];
+  const selectedList = selectedArr.length > 0 ? selectedArr : (activeTooth ? [activeTooth] : []);
+  const hideRestorationRow = restorationRowHidden(state);
+  const hideSubstrateRow = state.toothSelection !== "tooth-base";
+  const contactAllowed = selectedList.length > 0 && selectedList.every(tn => {
+    const s = toothState.get(tn);
+    const allowedBase = s && (s.toothSelection === "tooth-base" || s.toothSelection === "milktooth" || BROKEN_VARIANTS.has(s.toothSelection));
+    if(!allowedBase) return false;
+    if(s.toothSelection === "tooth-base" && s.restorationType !== "none") return false;
+    return true;
+  });
+  const bruxismAllowed = !isPlan && selectedList.length > 0 && selectedList.every(tn => {
+    const s = toothState.get(tn);
+    return s && wearRowAllowed(s);
+  });
+  const discolorationRowAllowed = !isPlan && selectedList.length > 0 && selectedList.every(tn => {
+    const s = toothState.get(tn);
+    return s && discolorationAllowed(s);
+  });
+  const extractionPlanAllowed = selectedList.length > 0 && selectedList.every(tn => {
+    const s = toothState.get(tn);
+    return s && ["tooth-base","milktooth","implant","tooth-under-gum"].includes(s.toothSelection);
+  });
+  const crownReplaceAllowed = selectedList.length > 0 && selectedList.every(tn => {
+    const s = toothState.get(tn);
+    return s && s.toothSelection === "tooth-base" && s.restorationType !== "none";
+  });
+  const crownNeededAllowed = selectedList.length > 0 && selectedList.every(tn => {
+    const s = toothState.get(tn);
+    return s && s.toothSelection === "tooth-base" && s.restorationType === "none" && ["natural","broken","crownprep"].includes(s.toothSubstrate);
+  });
+  const missingClosedAllowed = selectedList.length > 0 && selectedList.every(tn => {
+    const s = toothState.get(tn);
+    return s && s.toothSelection === "none";
+  });
+  const restorationRowCurrentlyHidden = hideRestorationRow;
+  const bridgePillarAllowed = !restorationRowCurrentlyHidden && state.restorationType !== "none";
+  const crownLeakageAllowed = !restorationRowCurrentlyHidden && (state.restorationType === "crown" || state.restorationType === "bridge");
+
+  // #extractionPlanRow DOM-reparent, resolved to a parent id (mirrors the
+  // brokenMode → #brokenCrownRow / bruxism-visible → #bruxismRow / else
+  // #crownActionsRow imperative appendChild dance + the crownActionsRow hide).
+  const brokenMode = state.toothSubstrate === "broken" && state.toothSelection === "tooth-base";
+  let extractionPlanParent: ExtractionPlanParent;
+  let crownActionsRowVisible: boolean;
+  if(brokenMode){
+    extractionPlanParent = "brokenCrownRow";
+    crownActionsRowVisible = false;
+  }else if(bruxismAllowed){
+    extractionPlanParent = "bruxismRow";
+    crownActionsRowVisible = false;
+  }else{
+    extractionPlanParent = "crownActionsRow";
+    crownActionsRowVisible = extractionPlanAllowed;
+  }
+
+  return {
+    toothSelectValue: state.toothSelection,
+    toothSelectOptions,
+    substrateValue: state.toothSubstrate,
+    substrateOptions,
+    substrateRowVisible: !hideSubstrateRow,
+    extractionWoundChecked: !!state.extractionWound,
+    extractionRowVisible: state.toothSelection === "none",
+    missingClosedChecked: !!state.missingClosed,
+    missingClosedRowVisible: missingClosedAllowed,
+    restorationValue,
+    restorationOptions,
+    restorationRowVisible: !hideRestorationRow,
+    crownLeakageChecked: !!state.crownLeakage,
+    crownLeakageRowVisible: crownLeakageAllowed,
+    brokenMesialChecked: !!state.brokenMesial,
+    brokenIncisalChecked: !!state.brokenIncisal,
+    brokenDistalChecked: !!state.brokenDistal,
+    brokenCrownRowVisible: !(state.toothSubstrate !== "broken" || hideSubstrateRow),
+    contactMesialChecked: !!state.contactMesial,
+    contactDistalChecked: !!state.contactDistal,
+    contactPointRowVisible: contactAllowed,
+    bruxismRowVisible: bruxismAllowed,
+    wearSimple: getWearDetailLevel() === "simple",
+    wearEdgeValue: state.wearEdge,
+    wearEdgeOptions,
+    wearEdgeToggleChecked: state.wearEdge !== "none",
+    wearCervicalValue: state.wearCervical,
+    wearCervicalOptions,
+    wearCervicalToggleChecked: state.wearCervical !== "none",
+    discolorationRowVisible: discolorationRowAllowed,
+    discoSimple: getDiscolorationDetailLevel() === "simple",
+    discolorationValue: state.discoloration,
+    discolorationOptions,
+    discolorationToggleChecked: state.discoloration !== "none",
+    crownActionsRowVisible,
+    bridgePillarChecked: !!state.bridgePillar,
+    bridgePillarRowVisible: bridgePillarAllowed,
+    extractionPlanChecked: !!state.extractionPlan,
+    extractionPlanRowVisible: extractionPlanAllowed,
+    extractionPlanParent,
+    crownReplaceChecked: !!state.crownReplace,
+    crownReplaceRowVisible: crownReplaceAllowed,
+    crownNeededChecked: !!state.crownNeeded,
+    crownNeededRowVisible: crownNeededAllowed,
+  };
+}
+
+/** Base tooth picker on the current selection — wraps the exact `#toothSelect`
+ *  closure `wireControls()` bound (the `defaultState()` reset with the milk-block
+ *  guard + the extraction/caries/endo/filling clears, and the trailing
+ *  `setEdentulous(false)` when the base is not "none"). */
+export function setToothSelectionForSelection(value: string): void {
+  applyToSelected((s: Any, toothNo: number)=>{
+    if(value === "milktooth" && MILKTOOTH_BLOCKED.has(toothNo)){
+      return;
+    }
+    const next = defaultState();
+    next.toothSelection = value;
+    if(!["tooth-base","milktooth","implant","tooth-under-gum"].includes(value)){
+      next.extractionPlan = false;
+    }
+    if(value !== "none"){
+      next.extractionWound = false;
+    }
+    if(value === "implant" || value === "none"){
+      next.caries.clear();
+      next.endo = "none";
+      next.pulpDx = "normal";
+      next.fillingMaterial = "none";
+      next.fillingSurfaces.clear();
+    }
+    toothState.set(toothNo, next);
+  });
+  if(value !== "none") setEdentulous(false);
+}
+
+/** Substrate (natural / radix / broken / crown-prep) on the current selection —
+ *  wraps the exact `#substrateSelect` closure (broken-part + crown-needed clears
+ *  and the trailing `setEdentulous(false)`). */
+export function setSubstrateForSelection(value: string): void {
+  applyToSelected((s: Any)=>{
+    s.toothSubstrate = value;
+    if(value !== "broken"){
+      s.brokenMesial = false;
+      s.brokenIncisal = false;
+      s.brokenDistal = false;
+    }
+    if(!["natural","broken","crownprep"].includes(value) || s.restorationType !== "none"){
+      s.crownNeeded = false;
+    }
+  });
+  setEdentulous(false);
+}
+
+/** Combined restoration dropdown on the current selection — wraps the exact
+ *  `#restorationSelect` closure (`applyRestorationSelection` decode of
+ *  `${type}|${material}` / `prosthesis|<value>` + the trailing
+ *  `setEdentulous(false)`). */
+export function setRestorationForSelection(value: string): void {
+  const v = String(value);
+  applyToSelected((s: Any)=>{ applyRestorationSelection(s, v); });
+  setEdentulous(false);
+}
+
+/** Extraction-wound toggle on the current selection. */
+export function setExtractionWoundForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.extractionWound = on; }); }
+/** Planned-extraction toggle on the current selection. */
+export function setExtractionPlanForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.extractionPlan = on; }); }
+/** Crown-replacement toggle on the current selection. */
+export function setCrownReplaceForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.crownReplace = on; }); }
+/** Crown-needed toggle on the current selection. */
+export function setCrownNeededForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.crownNeeded = on; }); }
+/** Crown marginal-leakage toggle on the current selection. */
+export function setCrownLeakageForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.crownLeakage = on; }); }
+/** Closed-gap toggle on the current selection. */
+export function setMissingClosedForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.missingClosed = on; }); }
+/** Mesial contact-loss toggle on the current selection. */
+export function setContactMesialForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.contactMesial = on; }); }
+/** Distal contact-loss toggle on the current selection. */
+export function setContactDistalForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.contactDistal = on; }); }
+/** Bridge-abutment toggle on the current selection. */
+export function setBridgePillarForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.bridgePillar = on; }); }
+/** Broken mesial corner toggle on the current selection. */
+export function setBrokenMesialForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.brokenMesial = on; }); }
+/** Broken incisal corner toggle on the current selection. */
+export function setBrokenIncisalForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.brokenIncisal = on; }); }
+/** Broken distal corner toggle on the current selection. */
+export function setBrokenDistalForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.brokenDistal = on; }); }
+/** Incisal/occlusal wear type on the current selection (complex-mode select). */
+export function setWearEdgeForSelection(value: string): void { applyToSelected((s: Any)=>{ s.wearEdge = value; }); }
+/** Cervical wear type on the current selection (complex-mode select). */
+export function setWearCervicalForSelection(value: string): void { applyToSelected((s: Any)=>{ s.wearCervical = value; }); }
+/** Discoloration cause on the current selection (complex-mode select). */
+export function setDiscolorationForSelection(value: string): void { applyToSelected((s: Any)=>{ s.discoloration = value; }); }
+/** Incisal/occlusal wear simple-mode toggle (attrition / none) on the selection. */
+export function setWearEdgeToggleForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.wearEdge = on ? "attrition" : "none"; }); }
+/** Cervical wear simple-mode toggle (abrasion / none) on the selection. */
+export function setWearCervicalToggleForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.wearCervical = on ? "abrasion" : "none"; }); }
+/** Discoloration simple-mode toggle (other / none) on the selection. */
+export function setDiscolorationToggleForSelection(on: boolean): void { applyToSelected((s: Any)=>{ s.discoloration = on ? "other" : "none"; }); }
+
+/** Reset the whole current selection to `defaultState()` — the exact closure the
+ *  imperative `#btnResetTooth` handler used, now called from the declarative card
+ *  title button's onClick. */
+export function resetTooth(): void {
+  if(selectedTeeth.size === 0) return;
+  resetTeethGated(Array.from(selectedTeeth) as number[]);
+}
+
 // Symmetrically set the 8 flame sublayers (and their "-N1" variants) of the
 // tooth-inflam-pulp / milktooth-inflam-pulp group to
 // `active`. The mild (reversible) tier turns them OFF, every other diseased
@@ -4399,228 +4792,18 @@ export function __buildPerioGridForTest(container: Element): void {
 }
 
 function syncControlsFromState(state: Any){
-  // Plan-mode gating: the Plan chart records TREATMENT ("what a dentist will
-  // DO"), so diagnosis-only / status-only controls are hidden while in Plan.
-  // Woven into the individual show/hide predicates below (Base picker, caries,
-  // wear, discoloration, pulp/apical/resorption diagnosis, and the whole perio
-  // block) rather than a single post-hoc sweep, so each control's Status behavior
-  // is untouched.
-  const isPlan = getChartMode() === "plan";
-  // The Root/perio card body (#rpRootBlock + #rpPerioBlock: pulp/endo, apical
-  // diagnosis, periapical lesion, resorption, resection, parapulpal pin,
-  // mobility, the inflammation/parodontal mods, calculus, peri-implant status)
-  // is now the declarative `RootPeriodontiumCard` (composable-UI Tier 3, PR 3e)
-  // via `getActiveRootPerio()`; no imperative sync here except the imperative
-  // `#perioGrid` probing carve-out (`syncPerioRow(state)`, below).
-  // #fissureSealing checkbox is now owned by the declarative `FillingsCard`
-  // (composable-UI Tier 3, PR 3d) via `getActiveFillings().fissureSealing`.
-  $("#contactMesial").checked = !!state.contactMesial;
-  $("#contactDistal").checked = !!state.contactDistal;
-  setSelectOptions($("#wearEdgeSelect"), getWearEdgeOptions(), state.wearEdge);
-  if($("#wearEdgeSelect").value !== state.wearEdge) state.wearEdge = $("#wearEdgeSelect").value;
-  setSelectOptions($("#wearCervicalSelect"), getWearCervicalOptions(), state.wearCervical);
-  if($("#wearCervicalSelect").value !== state.wearCervical) state.wearCervical = $("#wearCervicalSelect").value;
-  setSelectOptions($("#discolorationSelect"), getDiscolorationOptions(), state.discoloration);
-  if($("#discolorationSelect").value !== state.discoloration) state.discoloration = $("#discolorationSelect").value;
-  // Ortho selects/toggle are now owned by the declarative `OrthodonticsCard`
-  // (composable-UI Tier 3) via `getActiveOrtho()`; no imperative sync here.
-  syncToothDetailControls(state);
-  $("#brokenMesial").checked = !!state.brokenMesial;
-  $("#brokenIncisal").checked = !!state.brokenIncisal;
-  $("#brokenDistal").checked = !!state.brokenDistal;
-  $("#extractionWound").checked = !!state.extractionWound;
-  $("#extractionPlan").checked = !!state.extractionPlan;
-  $("#crownReplace").checked = !!state.crownReplace;
-  $("#crownNeeded").checked = !!state.crownNeeded;
-  $("#missingClosed").checked = !!state.missingClosed;
-  $("#bridgePillar").checked = !!state.bridgePillar;
-  $("#crownLeakage").checked = !!state.crownLeakage;
-  const isMilktooth = state.toothSelection === "milktooth";
-  const isImplant = state.toothSelection === "implant";
-  const underGum = isUnderGum(state.toothSelection);
-  const extraction = isExtraction(state.toothSelection) || (state.toothSelection === "none" && state.extractionWound);
-
-  // tooth selection
-  $("#toothSelect").value = state.toothSelection;
-
-  // Substrate control (natural / radix / broken / crown-prep).
-  setSelectOptions($("#substrateSelect"), getSubstrateOptions(), state.toothSubstrate);
-  if($("#substrateSelect").value !== state.toothSubstrate){
-    state.toothSubstrate = $("#substrateSelect").value;
-  }
-
-  // Combined restoration dropdown — one <select> encodes `${type}|${material}`
-  // and writes BOTH fields. Options are filtered by the active tooth's view.
-  const restoView = restorationViewFor(activeTooth);
-  // The ONE dropdown reflects EITHER a fixed restoration OR a "Kivehető:"
-  // prosthesis (never both). Prefer the prosthesis encoding when one is set.
-  const restoSelected = state.prosthesis && state.prosthesis !== "none"
-    ? `prosthesis|${state.prosthesis}`
-    : `${state.restorationType}|${state.restorationMaterial}`;
-  setSelectOptions($("#restorationSelect"), getRestorationOptions(restoView, { isImplant, toothSelection: state.toothSelection }), restoSelected);
-  {
-    const val = String($("#restorationSelect").value);
-    if(val.startsWith("prosthesis|")){
-      const p = val.slice("prosthesis|".length);
-      if(state.prosthesis !== p){ state.prosthesis = p; }
-      state.restorationType = "none";
-      state.restorationMaterial = "none";
-    }else{
-      const [selType, selMat] = val.split("|");
-      if(selType !== state.restorationType || selMat !== state.restorationMaterial){
-        state.restorationType = selType || "none";
-        state.restorationMaterial = selMat || "none";
-      }
-      if(state.prosthesis !== "none"){ state.prosthesis = "none"; }
-    }
-  }
-
-  // Gating: milktooth / under-gum / extraction / radix substrate carry no
-  // fixed restoration. Implants are exempt — a fixed crown/bridge on an abutment
-  // is first-class: the restorationOptions(ctx) call above already restricts an
-  // implant's dropdown to crown/bridge × material. A radix substrate (root
-  // remnant) is included here: the restoration row is hidden for it
-  // (restorationRowHidden above), so a
-  // stored crown must be cleared too — otherwise it keeps rendering
-  // (emax-crown over tooth-radix) with no control left to clear it.
-  if(isMilktooth || underGum || extraction || state.toothSubstrate === "radix"){
-    state.restorationType = "none";
-    state.restorationMaterial = "none";
-    $("#restorationSelect").value = "none|none";
-  }
-  // Substrate applies only to a present permanent tooth.
-  if(state.toothSelection !== "tooth-base"){
-    state.toothSubstrate = "natural";
-    $("#substrateSelect").value = "natural";
-  }
-  // #fillingSelect options + write-back are now owned by the declarative
-  // `FillingsCard` (composable-UI Tier 3, PR 3d) via `getActiveFillings()`.
-
-  // caries card (surface cross + subcrown row + depth/root-caries selects + the
-  // `.surf-depth` severity indicators) is now the declarative `CariesCard`
-  // (composable-UI Tier 3, PR 3c) via `getActiveCaries()`; no imperative sync here.
-
-  // fillings card (#fillingSection body: material select, surface cross with the
-  // recurrent-caries + defect indicators, the simple/complex swap, and the
-  // filling-defect gate) is now the declarative `FillingsCard` (composable-UI
-  // Tier 3, PR 3d) via `getActiveFillings()`; no imperative sync here.
-
-  // The Root/perio per-control `disabled` flags (pulp/endo, apical, resorption,
-  // resection, parapulpal pin, mobility) are now the declarative
-  // `RootPeriodontiumCard`'s job via `getActiveRootPerio()`.
-
-  const selectedArr = selectedTeeth.size > 0 ? Array.from(selectedTeeth) : [];
-  // The #cariesSection visibility gate (hideByBase || hideByRadix || isPlan) now
-  // lives in `getActiveCaries().cariesSectionVisible` and is applied by the
-  // declarative `CariesCard` (composable-UI Tier 3, PR 3c). The #fillingSection
-  // gate (hideByBase || (tooth-base && crown)) likewise lives in
-  // `getActiveFillings().fillingSectionVisible`, applied by `FillingsCard`
-  // (composable-UI Tier 3, PR 3d).
-  // Combined restoration dropdown: available on a present permanent tooth and on
-  // a gap (bridge pontic); hidden for milk/implant/under-gum/extraction.
-  const hideRestorationRow = restorationRowHidden(state);
-  $("#restorationRow").classList.toggle("hidden", hideRestorationRow);
-  // Substrate control: only for a present permanent tooth.
-  const hideSubstrateRow = state.toothSelection !== "tooth-base";
-  $("#substrateRow").classList.toggle("hidden", hideSubstrateRow);
-  $("#brokenCrownRow").classList.toggle("hidden", state.toothSubstrate !== "broken" || hideSubstrateRow);
-  $("#extractionRow").classList.toggle("hidden", state.toothSelection !== "none");
-  // The Root+Periodontium card's sub-block/section visibility (#rpRootBlock,
-  // #rpPerioBlock, #rootPeriodontiumSection) and its Plan-mode diagnosis-row
-  // gating (#apicalDxRow, #resorptionRow) are now the declarative
-  // `RootPeriodontiumCard`'s job via `getActiveRootPerio()`.
-  const selectedList = selectedArr.length > 0 ? selectedArr : (activeTooth ? [activeTooth] : []);
-  const contactAllowed = selectedList.length > 0 && selectedList.every(tn => {
-    const s = toothState.get(tn);
-    const allowedBase = s && (s.toothSelection === "tooth-base" || s.toothSelection === "milktooth" || BROKEN_VARIANTS.has(s.toothSelection));
-    if(!allowedBase) return false;
-    if(s.toothSelection === "tooth-base" && s.restorationType !== "none") return false;
-    return true;
-  });
-  // Plan-mode: tooth wear is a status finding — not plannable treatment.
-  const bruxismAllowed = !isPlan && selectedList.length > 0 && selectedList.every(tn => {
-    const s = toothState.get(tn);
-    return s && wearRowAllowed(s);
-  });
-  // #discolorationRow visibility gate — reuses the same discolorationAllowed
-  // predicate the render tint and tooltip use, so the dropdown's visibility never
-  // contradicts the chart. Plan-mode: discoloration is a status finding — hidden
-  // in Plan.
-  const discolorationRowAllowed = !isPlan && selectedList.length > 0 && selectedList.every(tn => {
-    const s = toothState.get(tn);
-    return s && discolorationAllowed(s);
-  });
-  // #orthoCard visibility is now owned by the declarative `OrthodonticsCard`
-  // (composable-UI Tier 3) via `getActiveOrtho().visible`, which reuses the same
-  // whole-selection `orthoAllowed` predicate this block used.
-  $("#contactPointRow").classList.toggle("hidden", !contactAllowed);
-  $("#bruxismRow").classList.toggle("hidden", !bruxismAllowed);
-  $("#discolorationRow").classList.toggle("hidden", !discolorationRowAllowed);
-  // #fissureSealingRow visibility is now owned by the declarative `FillingsCard`
-  // (composable-UI Tier 3, PR 3d) via `getActiveFillings().fissureRowVisible`,
-  // which reuses the same whole-selection fissure predicate this block used.
-  const extractionPlanAllowed = selectedList.length > 0 && selectedList.every(tn => {
-    const s = toothState.get(tn);
-    return s && ["tooth-base","milktooth","implant","tooth-under-gum"].includes(s.toothSelection);
-  });
-  $("#extractionPlanRow").classList.toggle("hidden", !extractionPlanAllowed);
-  // crown-replace: visible when permanent tooth carries a fixed restoration
-  const crownReplaceAllowed = selectedList.length > 0 && selectedList.every(tn => {
-    const s = toothState.get(tn);
-    return s && s.toothSelection === "tooth-base" && s.restorationType !== "none";
-  });
-  $("#crownReplaceRow").classList.toggle("hidden", !crownReplaceAllowed);
-  // crown-needed: visible when permanent tooth has no restoration yet (natural/broken/crown-prep substrate)
-  const crownNeededAllowed = selectedList.length > 0 && selectedList.every(tn => {
-    const s = toothState.get(tn);
-    return s && s.toothSelection === "tooth-base" && s.restorationType === "none" && ["natural","broken","crownprep"].includes(s.toothSubstrate);
-  });
-  $("#crownNeededRow").classList.toggle("hidden", !crownNeededAllowed);
-  // missing-closed: visible when foghiány
-  const missingClosedAllowed = selectedList.length > 0 && selectedList.every(tn => {
-    const s = toothState.get(tn);
-    return s && s.toothSelection === "none";
-  });
-  $("#missingClosedRow").classList.toggle("hidden", !missingClosedAllowed);
-  const restorationRowCurrentlyHidden = $("#restorationRow").classList.contains("hidden");
-  const bridgePillarAllowed = !restorationRowCurrentlyHidden && state.restorationType !== "none";
-  $("#bridgePillarRow").classList.toggle("hidden", !bridgePillarAllowed);
-  // Crown-leakage toggle: only meaningful on a fixed crown/bridge restoration
-  // (mirrors the crownLeakage axis's appliesWhen in src/registry/axes.ts).
-  const crownLeakageAllowed = !restorationRowCurrentlyHidden && (state.restorationType === "crown" || state.restorationType === "bridge");
-  $("#crownLeakageRow").classList.toggle("hidden", !crownLeakageAllowed);
-
-  const extractionPlanRow = $("#extractionPlanRow");
-  const brokenCrownRow = $("#brokenCrownRow");
-  const bruxismRow = $("#bruxismRow");
-  const crownActionsRow = $("#crownActionsRow");
-  if(extractionPlanRow && brokenCrownRow && bruxismRow && crownActionsRow){
-    const brokenMode = state.toothSubstrate === "broken" && state.toothSelection === "tooth-base";
-    if(brokenMode){
-      if(extractionPlanRow.parentElement !== brokenCrownRow){
-        brokenCrownRow.appendChild(extractionPlanRow);
-      }
-      crownActionsRow.classList.add("hidden");
-    }else if(!bruxismRow.classList.contains("hidden")){
-      if(extractionPlanRow.parentElement !== bruxismRow){
-        bruxismRow.appendChild(extractionPlanRow);
-      }
-      crownActionsRow.classList.add("hidden");
-    }else{
-      if(extractionPlanRow.parentElement !== crownActionsRow){
-        crownActionsRow.appendChild(extractionPlanRow);
-      }
-      crownActionsRow.classList.toggle("hidden", !extractionPlanAllowed);
-    }
-    extractionPlanRow.classList.toggle("hidden", !extractionPlanAllowed);
-  }
-  const milkOption = $("#toothSelect").querySelector('option[value="milktooth"]');
-  if(milkOption){
-    const anyBlocked = selectedArr.length > 0
-      ? selectedArr.some(tn => MILKTOOTH_BLOCKED.has(Number(tn)))
-      : (activeTooth ? MILKTOOTH_BLOCKED.has(activeTooth) : false);
-    milkOption.disabled = anyBlocked;
-  }
+  // Every control card body is now declarative (composable-UI Tier 3); this
+  // function only drives the imperative `#perioGrid` probing carve-out (PR 3e)
+  // and re-resolves the mod/surface labels. Plan-mode gating lives inside each
+  // card's getter now.
+  // The Tooth-details card body (base picker, substrate, combined restoration
+  // dropdown, all the extraction/broken/contact/crown checkboxes, the
+  // wear/discoloration select-vs-toggle rows, and the #crownActionsRow with its
+  // reparented #extractionPlanRow) is now the declarative `ToothDetailsCard`
+  // (composable-UI Tier 3, PR 3f) via `getActiveToothDetails()`; no imperative
+  // sync here. The Root/perio card body (#rpRootBlock + #rpPerioBlock) is the
+  // declarative `RootPeriodontiumCard` (PR 3e) via `getActiveRootPerio()`; the
+  // fissure/caries/fillings/ortho controls are their own declarative cards too.
 
   // The #modsChecks label relabel (#lbl-inflammation/#lbl-parodontal), the
   // #mobilityRow visibility, and the mod-checkbox disabled logic are now the
@@ -4854,13 +5037,6 @@ function refreshCheckLabels(){
   // arch/notation-aware from their getters, so no imperative relabel here.
 }
 
-function refreshToothSelectOptions(){
-  const toothSelect = $("#toothSelect");
-  if(!toothSelect) return;
-  const value = toothSelect.value;
-  setSelectOptions(toothSelect, getToothSelectOptions(), value);
-}
-
 function refreshStatusExtraOptions(){
   const selectEl = $("#statusExtraSelect");
   if(!selectEl) return;
@@ -4896,13 +5072,11 @@ function refreshToggleLabels(){
 }
 
 function refreshAllSelectOptions(){
-  refreshToothSelectOptions();
   refreshStatusExtraOptions();
-  const state = activeTooth ? toothState.get(activeTooth) : null;
-  const substrateEl = $("#substrateSelect");
-  if(substrateEl) setSelectOptions(substrateEl, getSubstrateOptions(), substrateEl.value);
-  const restorationEl = $("#restorationSelect");
-  if(restorationEl) setSelectOptions(restorationEl, getRestorationOptions(restorationViewFor(activeTooth), { isImplant: state?.toothSelection === "implant", toothSelection: state?.toothSelection }), restorationEl.value);
+  // The #toothSelect base picker, #substrateSelect, and combined #restorationSelect
+  // dropdown are re-localized (and their mode-dependent option sets rebuilt) by the
+  // declarative `ToothDetailsCard` (composable-UI Tier 3, PR 3f) on its React
+  // re-render via `getActiveToothDetails()` — no imperative re-localize here.
   // #fillingSelect (+ #fillingSimpleDefectSelect) are re-localized by the
   // declarative `FillingsCard` (composable-UI Tier 3, PR 3d) on its React
   // re-render, like the caries/ortho selects — no imperative re-localize here.
@@ -9341,60 +9515,15 @@ function wireControls(){
     if(btn) loadInlineIcon(btn).then(()=>syncIconXLine(btn));
   });
 
-  // Tooth base dropdown
-  buildSelect($("#toothSelect"), getToothSelectOptions(), (value)=>{
-    applyToSelected((s, toothNo)=>{
-      if(value === "milktooth" && MILKTOOTH_BLOCKED.has(toothNo)){
-        return;
-      }
-      const next = defaultState();
-      next.toothSelection = value;
-      if(!["tooth-base","milktooth","implant","tooth-under-gum"].includes(value)){
-        next.extractionPlan = false;
-      }
-      if(value !== "none"){
-        next.extractionWound = false;
-      }
-      if(value === "implant" || value === "none"){
-        next.caries.clear();
-        next.endo = "none";
-        next.pulpDx = "normal";
-        next.fillingMaterial = "none";
-        next.fillingSurfaces.clear();
-      }
-      toothState.set(toothNo, next);
-    });
-    if(value !== "none") setEdentulous(false);
-  });
-
-  // Substrate dropdown (tooth condition: natural / radix / broken / crown-prep)
-  buildSelect($("#substrateSelect"), getSubstrateOptions(), (value)=>{
-    applyToSelected((s)=>{
-      s.toothSubstrate = value;
-      if(value !== "broken"){
-        s.brokenMesial = false;
-        s.brokenIncisal = false;
-        s.brokenDistal = false;
-      }
-      // crown-needed only applies while a natural/broken/prepared tooth is unrestored
-      if(!["natural","broken","crownprep"].includes(value) || s.restorationType !== "none"){
-        s.crownNeeded = false;
-      }
-    });
-    setEdentulous(false);
-  });
-
-  // Combined restoration dropdown (crown / inlay / onlay / veneer / bridge ×
-  // material). Value encodes `${type}|${material}` and writes BOTH fields.
-  // At initial wiring there is no active tooth yet (options get narrowed by
-  // syncControlsFromState/refreshAllSelectOptions once one is selected), but
-  // thread ctx consistently in case activeTooth is already set (e.g. re-wire).
-  const initialToothState = activeTooth ? toothState.get(activeTooth) : null;
-  buildSelect($("#restorationSelect"), getRestorationOptions("occlusal", { isImplant: initialToothState?.toothSelection === "implant", toothSelection: initialToothState?.toothSelection }), (value)=>{
-    const v = String(value);
-    applyToSelected((s)=>{ applyRestorationSelection(s, v); });
-    setEdentulous(false);
-  });
+  // The Tooth-details card body (#toothSelect base picker, #substrateSelect,
+  // the combined #restorationSelect dropdown, the extraction/missing/broken/
+  // contact/crown-leakage/bridge/crown-replace/crown-needed checkboxes, the
+  // wear/discoloration select-vs-toggle rows, and the #crownActionsRow with its
+  // reparented #extractionPlanRow) is now the declarative `ToothDetailsCard`
+  // (composable-UI Tier 3, PR 3f): rendered from `getActiveToothDetails()` and
+  // written through `setToothSelectionForSelection`/`setSubstrateForSelection`/
+  // `setRestorationForSelection` + the per-axis toggle setters; the title
+  // `#btnResetTooth` button calls `resetTooth()` — no imperative wiring here.
 
   // Root card (#rpRootBlock body: the merged pulp/endo optgroup select, the
   // apical diagnosis / periapical lesion / root-resorption selects, and the
@@ -9404,48 +9533,6 @@ function wireControls(){
   // `setApicalDxForSelection`/`setPeriapicalTypeForSelection`/
   // `setResorptionForSelection`/`setEndoResectionForSelection`/
   // `setParapulpalPinForSelection` — no imperative wiring here.
-
-  // Extraction wound
-  bindOnce($("#extractionWound"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.extractionWound = (e.target as HTMLInputElement).checked;
-    });
-  });
-
-  // Extraction plan
-  bindOnce($("#extractionPlan"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.extractionPlan = (e.target as HTMLInputElement).checked;
-    });
-  });
-
-  // Crown replace
-  bindOnce($("#crownReplace"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.crownReplace = (e.target as HTMLInputElement).checked;
-    });
-  });
-
-  // Crown needed
-  bindOnce($("#crownNeeded"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.crownNeeded = (e.target as HTMLInputElement).checked;
-    });
-  });
-
-  // Crown leakage (marginal leakage on a crown/bridge restoration)
-  bindOnce($("#crownLeakage"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.crownLeakage = (e.target as HTMLInputElement).checked;
-    });
-  });
-
-  // Missing closed
-  bindOnce($("#missingClosed"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.missingClosed = (e.target as HTMLInputElement).checked;
-    });
-  });
 
   // Mobility, the inflammation/parodontal mod checkboxes (#modsChecks), the
   // periapical lesion-subtype select, the calculus toggle, and the peri-implant
@@ -9477,85 +9564,9 @@ function wireControls(){
   // `setFissureSealingForSelection` + `openCariesDepthPopup`/`openFillingDefectPopup`
   // — no imperative wiring here.
 
-  // Contact point missing
-  bindOnce($("#contactMesial"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.contactMesial = (e.target as HTMLInputElement).checked;
-    });
-  });
-  bindOnce($("#contactDistal"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.contactDistal = (e.target as HTMLInputElement).checked;
-    });
-  });
-
-  // Wear (wearEdge/wearCervical enum pickers; mirrors the #resorptionSelect
-  // buildSelect wiring).
-  buildSelect($("#wearEdgeSelect"), getWearEdgeOptions(), (value)=>{
-    applyToSelected((s)=>{ s.wearEdge = value; });
-  });
-  buildSelect($("#wearCervicalSelect"), getWearCervicalOptions(), (value)=>{
-    applyToSelected((s)=>{ s.wearCervical = value; });
-  });
-
-  // Wear simple-mode toggles (yes/no checkboxes shown instead of the selects
-  // above when wearDetailLevel === "simple"; write the canonical simple value on
-  // check, "none" on uncheck).
-  bindOnce($("#wearEdgeToggle"), "change", (e)=>{
-    const on = (e.target as HTMLInputElement).checked;
-    applyToSelected((s)=>{ s.wearEdge = on ? "attrition" : "none"; });
-  });
-  bindOnce($("#wearCervicalToggle"), "change", (e)=>{
-    const on = (e.target as HTMLInputElement).checked;
-    applyToSelected((s)=>{ s.wearCervical = on ? "abrasion" : "none"; });
-  });
-
-  // Discoloration (enum picker — mirrors the wearEdge/wearCervical buildSelect
-  // wiring above).
-  buildSelect($("#discolorationSelect"), getDiscolorationOptions(), (value)=>{
-    applyToSelected((s)=>{ s.discoloration = value; });
-  });
-
-  // Discoloration simple-mode toggle (mirrors the wear toggles above;
-  // independent discolorationDetailLevel setting).
-  bindOnce($("#discolorationToggle"), "change", (e)=>{
-    const on = (e.target as HTMLInputElement).checked;
-    applyToSelected((s)=>{ s.discoloration = on ? "other" : "none"; });
-  });
-
   // Ortho appliance/drift/vertical pickers + rotation toggle are now wired
   // declaratively by `OrthodonticsCard` (composable-UI Tier 3) through
   // `setOrtho*ForSelection`; no imperative `#orthoCard` binding here.
-
-  // Bridge pillar
-  bindOnce($("#bridgePillar"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.bridgePillar = (e.target as HTMLInputElement).checked;
-    });
-  });
-
-  // Broken crown parts
-  bindOnce($("#brokenMesial"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.brokenMesial = (e.target as HTMLInputElement).checked;
-    });
-  });
-  bindOnce($("#brokenIncisal"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.brokenIncisal = (e.target as HTMLInputElement).checked;
-    });
-  });
-  bindOnce($("#brokenDistal"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.brokenDistal = (e.target as HTMLInputElement).checked;
-    });
-  });
-
-  // Reset buttons
-  bindOnce($("#btnResetTooth"), "click", ()=>{
-    if(selectedTeeth.size === 0) return;
-    resetTeethGated(Array.from(selectedTeeth) as number[]);
-  });
 
   // The Statuses card body (#btnResetAll / #btnPrimaryDentition /
   // #btnMixedDentition / #btnEdentulous + the #statusExtraSelect/#statusExtraApply

@@ -11,9 +11,10 @@
 
 import { useEffect } from "react";
 import { useOdontogramUi } from "../OdontogramContext";
-import { rewireControls } from "../odontogram";
+import { rewireControls, resetTooth } from "../odontogram";
 import OrthodonticsCard from "./cards/OrthodonticsCard";
 import StatusesCard from "./cards/StatusesCard";
+import ToothDetailsCard from "./cards/ToothDetailsCard";
 import CariesCard from "./cards/CariesCard";
 import FillingsCard from "./cards/FillingsCard";
 import RootPeriodontiumCard from "./cards/RootPeriodontiumCard";
@@ -78,88 +79,9 @@ export default function ToothControlsSurface() {
             <section className="card">
               <div className="card-title card-title-row">
                 <span>{t("tooth.title")}</span>
-                <button id="btnResetTooth" className="btn btn-ghost btn-sm" title={t("tooth.resetTitle")} aria-label={t("tooth.resetTitle")}>{t("tooth.reset")}</button>
+                <button id="btnResetTooth" className="btn btn-ghost btn-sm" title={t("tooth.resetTitle")} aria-label={t("tooth.resetTitle")} onClick={() => resetTooth()}>{t("tooth.reset")}</button>
               </div>
-              <div className="row">
-                <span>{t("tooth.baseLabel")}</span>
-                <select id="toothSelect"></select>
-              </div>
-              <div id="substrateRow" className="row">
-                <span>{t("substrate.label")}</span>
-                <select id="substrateSelect"></select>
-              </div>
-              <label id="extractionRow" className="row">
-                <input type="checkbox" id="extractionWound" />
-                <span>{t("tooth.extractionWound")}</span>
-              </label>
-              <label id="missingClosedRow" className="row">
-                <input type="checkbox" id="missingClosed" />
-                <span>{t("tooth.missingClosed")}</span>
-              </label>
-              <div id="restorationRow" className="row">
-                <span>{t("restoration.label")}</span>
-                <select id="restorationSelect"></select>
-              </div>
-              <label id="crownLeakageRow" className="row hidden">
-                <input type="checkbox" id="crownLeakage" />
-                <span>{t("crownLeakage.label")}</span>
-              </label>
-              <div id="brokenCrownRow" className="row inline-checks contact-row">
-                <label>
-                  <input type="checkbox" id="brokenMesial" />
-                  <span>{t("tooth.broken.mesial")}</span>
-                </label>
-                <label>
-                  <input type="checkbox" id="brokenIncisal" />
-                  <span>{t("tooth.broken.incisal")}</span>
-                </label>
-                <label>
-                  <input type="checkbox" id="brokenDistal" />
-                  <span>{t("tooth.broken.distal")}</span>
-                </label>
-              </div>
-              <div id="contactPointRow" className="row inline-checks contact-row">
-                <label>
-                  <input type="checkbox" id="contactMesial" />
-                  <span>{t("tooth.contact.mesialMissing")}</span>
-                </label>
-                <label>
-                  <input type="checkbox" id="contactDistal" />
-                  <span>{t("tooth.contact.distalMissing")}</span>
-                </label>
-              </div>
-              <div id="bruxismRow" className="inline-checks bruxism-row wear-stack">
-                <div id="wearEdgeRow" className="row">
-                  <label id="wearEdgeSelectLabel"><span>{t("tooth.bruxism.edgeWear")}</span><select id="wearEdgeSelect"></select></label>
-                  <label id="wearEdgeToggleLabel" className="inline-check hidden"><input type="checkbox" id="wearEdgeToggle" /><span>{t("tooth.bruxism.edgeWear")}</span></label>
-                </div>
-                <div id="wearCervicalRow" className="row">
-                  <label id="wearCervicalSelectLabel"><span>{t("tooth.bruxism.neckWear")}</span><select id="wearCervicalSelect"></select></label>
-                  <label id="wearCervicalToggleLabel" className="inline-check hidden"><input type="checkbox" id="wearCervicalToggle" /><span>{t("tooth.bruxism.neckWear")}</span></label>
-                </div>
-              </div>
-              <div id="discolorationRow" className="row inline-checks">
-                <label id="discolorationSelectLabel"><span>{t("discoloration.label")}</span><select id="discolorationSelect"></select></label>
-                <label id="discolorationToggleLabel" className="inline-check hidden"><input type="checkbox" id="discolorationToggle" /><span>{t("discoloration.label")}</span></label>
-              </div>
-              <div id="crownActionsRow" className="row inline-checks bridge-actions-row">
-                <label id="bridgePillarRow" className="inline-check">
-                  <input type="checkbox" id="bridgePillar" />
-                  <span>{t("tooth.bridgePillar")}</span>
-                </label>
-                <label id="extractionPlanRow" className="inline-check">
-                  <input type="checkbox" id="extractionPlan" />
-                  <span>{t("tooth.extractionPlan")}</span>
-                </label>
-              </div>
-              <label id="crownReplaceRow" className="row">
-                <input type="checkbox" id="crownReplace" />
-                <span>{t("tooth.crownReplace")}</span>
-              </label>
-              <label id="crownNeededRow" className="row">
-                <input type="checkbox" id="crownNeeded" />
-                <span>{t("tooth.crownNeeded")}</span>
-              </label>
+              <ToothDetailsCard />
             </section>
 
             <div className={showOrthoCard ? "" : "hidden"}>

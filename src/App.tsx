@@ -42,6 +42,7 @@ export { default as ToothControlsSurface } from "./surfaces/ToothControlsSurface
 // and the per-card engine API they use (additive public surface).
 export { default as OrthodonticsCard } from "./surfaces/cards/OrthodonticsCard";
 export { default as StatusesCard } from "./surfaces/cards/StatusesCard";
+export { default as ToothDetailsCard } from "./surfaces/cards/ToothDetailsCard";
 export { default as CariesCard } from "./surfaces/cards/CariesCard";
 export { default as FillingsCard } from "./surfaces/cards/FillingsCard";
 export { default as RootPeriodontiumCard } from "./surfaces/cards/RootPeriodontiumCard";
@@ -85,8 +86,31 @@ export {
   setModForSelection,
   setCalculusForSelection,
   setPeriImplantForSelection,
+  getActiveToothDetails,
+  setToothSelectionForSelection,
+  setSubstrateForSelection,
+  setRestorationForSelection,
+  setExtractionWoundForSelection,
+  setExtractionPlanForSelection,
+  setMissingClosedForSelection,
+  setCrownLeakageForSelection,
+  setBrokenMesialForSelection,
+  setBrokenIncisalForSelection,
+  setBrokenDistalForSelection,
+  setContactMesialForSelection,
+  setContactDistalForSelection,
+  setWearEdgeForSelection,
+  setWearCervicalForSelection,
+  setWearEdgeToggleForSelection,
+  setWearCervicalToggleForSelection,
+  setDiscolorationForSelection,
+  setDiscolorationToggleForSelection,
+  setBridgePillarForSelection,
+  setCrownReplaceForSelection,
+  setCrownNeededForSelection,
+  resetTooth,
 } from "./odontogram";
-export type { ActiveOrtho, ActiveCaries, ActiveCariesSurface, ActiveFillings, ActiveFillingSurface, ActiveRootPerio, ActiveRootPerioMod, RootPerioOption, RootPerioOptGroup } from "./odontogram";
+export type { ActiveOrtho, ActiveCaries, ActiveCariesSurface, ActiveFillings, ActiveFillingSurface, ActiveRootPerio, ActiveRootPerioMod, RootPerioOption, RootPerioOptGroup, ActiveToothDetails, ToothDetailsOption, ExtractionPlanParent } from "./odontogram";
 export type { SurfaceCell, SurfaceIndicator } from "./surfaces/cards/SurfaceCross";
 
 /**
