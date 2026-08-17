@@ -146,6 +146,8 @@ function Workspace() {
 
 يأخذ `OdontogramProvider` نفس خصائص `OdontogramShell`. ويتوفّر خطّاف `useOdontogramUi()` (والنوع `OdontogramUiContextValue`) لبناء أسطحك الخاصة. القيد الحالي: استخدم موفّرًا واحدًا لكل صفحة. يمكن تركيب الأسطح وإزالتها عند الحاجة — فهي تُعيد الارتباط تلقائيًا عند إعادة التركيب. أما `OdontogramShell` نفسه فلم يتغيّر — فهو بالضبط هذا التركيب في الترتيب الافتراضي.
 
+ولمزيد من دقّة التركيب، تُصدَّر أيضًا بطاقات التحكّم الفردية — `OrthodonticsCard` و`StatusesCard` و`CariesCard` و`FillingsCard` و`RootPeriodontiumCard` و`ToothDetailsCard` — وكلٌّ منها مكوّن تصريحي مستقل يقرأ ويكتب الجلسة المشتركة عبر واجهة برمجة المحرّك (ويُصدَّر خطّاف `useEngineState()` لبناء بطاقاتك الخاصة). ركّب فقط البطاقات التي يحتاجها تخطيط معيّن، بأي ترتيب، ضمن `OdontogramProvider` واحد.
+
 #### الاستخدام مع Next.js (موجِّه التطبيق App Router)
 
 المكوّن يعمل من جهة العميل فقط، لذا اعرضه من مكوّن عميل (Client Component):

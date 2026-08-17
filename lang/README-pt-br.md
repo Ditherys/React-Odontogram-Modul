@@ -144,6 +144,8 @@ function Workspace() {
 
 `OdontogramProvider` recebe as mesmas props que `OdontogramShell`. Um hook `useOdontogramUi()` (e o tipo `OdontogramUiContextValue`) está disponível para construir suas próprias superfícies. Restrição atual: use um provider por página. As superfícies podem ser montadas e desmontadas sob demanda — elas se revinculam automaticamente ao remontar. O próprio `OdontogramShell` permanece inalterado — é exatamente essa composição no arranjo padrão.
 
+Para uma composição ainda mais fina, os cartões de controle individuais também são exportados — `OrthodonticsCard`, `StatusesCard`, `CariesCard`, `FillingsCard`, `RootPeriodontiumCard` e `ToothDetailsCard` —, cada um um componente declarativo autônomo que lê e grava a sessão compartilhada por meio da API do motor (um hook `useEngineState()` é exportado para construir as suas próprias). Monte apenas os cartões de que um determinado layout precisa, em qualquer arranjo, sob um único `OdontogramProvider`.
+
 #### Usando com Next.js (App Router)
 
 O componente é somente cliente, então renderize-o a partir de um Client Component:

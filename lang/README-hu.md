@@ -144,6 +144,8 @@ function Workspace() {
 
 Az `OdontogramProvider` ugyanazokat a propokat fogadja, mint az `OdontogramShell`. Egy `useOdontogramUi()` hook (és az `OdontogramUiContextValue` típus) is elérhető saját felületek építéséhez. Jelenlegi korlát: oldalanként egy providert használjon. A felületek igény szerint fel- és leválaszthatók — újracsatoláskor automatikusan visszakapcsolódnak. Maga az `OdontogramShell` változatlan — pontosan ez az összeállítás az alapértelmezett elrendezésben.
 
+A még finomabb összeállításhoz az egyes vezérlőkártyák is exportálva vannak — `OrthodonticsCard`, `StatusesCard`, `CariesCard`, `FillingsCard`, `RootPeriodontiumCard` és `ToothDetailsCard` —, mindegyik önálló, deklaratív komponens, amely a motor API-ján keresztül olvassa és írja a megosztott munkamenetet (a saját felületek építéséhez egy `useEngineState()` hook is exportálva van). Csak azokat a kártyákat csatolja, amelyekre az adott elrendezésnek szüksége van, tetszőleges elrendezésben, egyetlen `OdontogramProvider` alatt.
+
 #### Használat Next.js-szel (App Router)
 
 A komponens kizárólag kliensoldali, ezért egy Client Component-ből kell renderelni:

@@ -146,6 +146,8 @@ function Workspace() {
 
 `OdontogramProvider` 接受与 `OdontogramShell` 相同的 props。还提供了 `useOdontogramUi()` hook（以及 `OdontogramUiContextValue` 类型），用于构建你自己的界面区域。当前限制：每个页面只使用一个 provider。界面区域可以按需挂载和卸载——重新挂载时会自动重新绑定。`OdontogramShell` 本身没有变化——它正是这种组合在默认排布下的形态。
 
+为了实现更精细的组合，各个控制卡片也已导出——`OrthodonticsCard`、`StatusesCard`、`CariesCard`、`FillingsCard`、`RootPeriodontiumCard` 和 `ToothDetailsCard`——每一个都是自包含的声明式组件，通过引擎 API 读取和写入共享会话（还导出了 `useEngineState()` hook 供你构建自己的卡片）。只需在单个 `OdontogramProvider` 下按任意排布挂载某个布局所需的卡片即可。
+
 #### 与 Next.js（App Router）搭配使用
 
 该组件仅支持客户端渲染，因此需要在 Client Component 中渲染它：
