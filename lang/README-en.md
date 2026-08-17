@@ -142,7 +142,7 @@ function Workspace() {
 }
 ```
 
-`OdontogramProvider` takes the same props as `OdontogramShell`. A `useOdontogramUi()` hook (and the `OdontogramUiContextValue` type) is available for building your own surfaces. Current constraints: use one provider per page, and mount every surface before the chart initializes (hide with CSS rather than unmounting). `OdontogramShell` itself is unchanged — it is exactly this composition in the default arrangement.
+`OdontogramProvider` takes the same props as `OdontogramShell`. A `useOdontogramUi()` hook (and the `OdontogramUiContextValue` type) is available for building your own surfaces. Current constraint: use one provider per page. Surfaces can be mounted and unmounted on demand — they rebind automatically on remount. `OdontogramShell` itself is unchanged — it is exactly this composition in the default arrangement.
 
 #### Using it with Next.js (App Router)
 

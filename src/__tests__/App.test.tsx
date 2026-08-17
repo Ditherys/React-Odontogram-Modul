@@ -15,6 +15,8 @@ import {
 vi.mock('../odontogram', () => ({
   initOdontogram: vi.fn().mockResolvedValue(undefined),
   destroyOdontogram: vi.fn(),
+  rewireControls: vi.fn(),
+  rebuildGrid: vi.fn().mockResolvedValue(undefined),
   setNumberingSystem: vi.fn(),
   clearSelection: vi.fn(),
   setOcclusalVisible: vi.fn(),

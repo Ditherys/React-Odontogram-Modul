@@ -36,6 +36,8 @@ vi.mock("../odontogram", async () => {
       return Promise.resolve(undefined);
     }),
     destroyOdontogram: vi.fn(),
+    rewireControls: vi.fn(),
+    rebuildGrid: vi.fn().mockResolvedValue(undefined),
     setNumberingSystem: vi.fn(),
     clearSelection: vi.fn(),
     setOcclusalVisible: vi.fn(),

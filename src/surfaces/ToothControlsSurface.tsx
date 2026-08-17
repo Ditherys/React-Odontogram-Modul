@@ -4,18 +4,25 @@
 // Composable surface — the `<div className="panel-odontogram-controls">` region:
 // the odontogram control panel (selection actions, Statuses/Tooth/Ortho/Caries/
 // Fillings/Root-periodontium cards). Every input node here is a mount point the
-// engine wires imperatively via `wireControls()`, so it is kept ALWAYS mounted
-// and only hidden with CSS while the perio view is active — unmounting it would
-// produce fresh DOM whose one-time listeners are never re-attached. Presentational:
-// reads its gates from `useOdontogramUi()` and holds no state of its own.
+// engine wires imperatively via `wireControls()`. Composable-UI Tier 2 made that
+// wiring re-runnable (idempotent per-element), so this surface may unmount and
+// remount: on each mount it calls `rewireControls()` to wire its fresh nodes.
+// Presentational: reads its gates from `useOdontogramUi()`, holds no state.
 
+import { useEffect } from "react";
 import { useOdontogramUi } from "../OdontogramContext";
+import { rewireControls } from "../odontogram";
 
 export default function ToothControlsSurface() {
-  const { t, isPerioView, showStatusCard, showOrthoCard } = useOdontogramUi();
+  const { t, showStatusCard, showOrthoCard } = useOdontogramUi();
+
+  // Re-wire the imperative controls whenever this surface (re)mounts. No-op on
+  // first mount (the provider's init effect runs afterwards and does the first
+  // wiring); acts only on later remounts, e.g. returning from the perio view.
+  useEffect(() => { rewireControls(); }, []);
 
   return (
-          <div className="panel-odontogram-controls" style={isPerioView ? { display: "none" } : undefined}>
+          <div className="panel-odontogram-controls">
           <div className="panel-header">
             <div>
               <div className="panel-title-row">

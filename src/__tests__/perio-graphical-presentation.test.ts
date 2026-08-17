@@ -46,6 +46,8 @@ vi.mock("../odontogram", async () => {
       return Promise.resolve(undefined);
     }),
     destroyOdontogram: vi.fn(),
+    rewireControls: vi.fn(),
+    rebuildGrid: vi.fn().mockResolvedValue(undefined),
     setNumberingSystem: vi.fn(),
     clearSelection: vi.fn(),
     setOcclusalVisible: vi.fn(),
@@ -237,20 +239,17 @@ describe("Task 1: toggle mode housing (default)", () => {
     expect(document.getElementById("openPerioOverlayBtn")).toBeNull();
   });
 
-  it("selecting \"Dental Chart\" hides .chart-column via CSS (display:none) but keeps the odontogram SVG mounted, and shows the perio content inline", async () => {
+  it("selecting \"Dental Chart\" unmounts .chart-column and shows the perio content inline", async () => {
     render(createElement(App));
     await Promise.resolve();
-    const toothSvgBefore = document.querySelector("#toothGrid [data-fake-tooth-svg]");
-    expect(toothSvgBefore).toBeTruthy();
+    expect(document.querySelector("#toothGrid [data-fake-tooth-svg]")).toBeTruthy();
 
     fireEvent.click(document.getElementById("appViewDentalChart")!);
 
-    const chartColumn = document.querySelector(".chart-column") as HTMLElement;
-    expect(chartColumn).toBeTruthy();
-    expect(chartColumn.style.display).toBe("none");
-
-    // The odontogram SVG root must still be in the DOM — never unmounted.
-    expect(document.querySelector("#toothGrid [data-fake-tooth-svg]")).toBe(toothSvgBefore);
+    // Composable-UI Tier 2: the odontogram column is now UNMOUNTED in the perio
+    // view (control wiring is re-runnable, so a remount re-wires cleanly via
+    // rewireControls()/rebuildGrid()) rather than hidden with display:none.
+    expect(document.querySelector(".chart-column")).toBeNull();
 
     // Perio content shown inline (no modal dialog chrome).
     expect(document.getElementById("perioOverlay")).toBeNull();
@@ -262,17 +261,17 @@ describe("Task 1: toggle mode housing (default)", () => {
     expect(odontogramBtn.classList.contains("is-active")).toBe(false);
   });
 
-  it("selecting \"Odontogram\" again reverses it: .chart-column visible, inline perio content gone", async () => {
+  it("selecting \"Odontogram\" again reverses it: .chart-column remounts, inline perio content gone", async () => {
     render(createElement(App));
     await Promise.resolve();
 
     fireEvent.click(document.getElementById("appViewDentalChart")!);
-    expect((document.querySelector(".chart-column") as HTMLElement).style.display).toBe("none");
+    expect(document.querySelector(".chart-column")).toBeNull();
     expect(document.getElementById("perioInlineGrid")).toBeTruthy();
 
     fireEvent.click(document.getElementById("appViewOdontogram")!);
 
-    expect((document.querySelector(".chart-column") as HTMLElement).style.display).not.toBe("none");
+    expect(document.querySelector(".chart-column")).toBeTruthy();
     expect(document.getElementById("perioInlineGrid")).toBeNull();
   });
 });

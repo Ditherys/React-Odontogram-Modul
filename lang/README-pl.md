@@ -142,7 +142,7 @@ function Workspace() {
 }
 ```
 
-`OdontogramProvider` przyjmuje te same propsy co `OdontogramShell`. Dostępny jest hook `useOdontogramUi()` (oraz typ `OdontogramUiContextValue`) do budowania własnych powierzchni. Aktualne ograniczenia: używaj jednego dostawcy na stronę i zamontuj każdą powierzchnię przed inicjalizacją diagramu (ukrywaj je za pomocą CSS zamiast odmontowywać). Sam `OdontogramShell` jest niezmieniony — to dokładnie ta kompozycja w domyślnym układzie.
+`OdontogramProvider` przyjmuje te same propsy co `OdontogramShell`. Dostępny jest hook `useOdontogramUi()` (oraz typ `OdontogramUiContextValue`) do budowania własnych powierzchni. Aktualne ograniczenie: używaj jednego dostawcy na stronę. Powierzchnie można montować i odmontowywać na żądanie — po ponownym zamontowaniu automatycznie się ponownie wiążą. Sam `OdontogramShell` jest niezmieniony — to dokładnie ta kompozycja w domyślnym układzie.
 
 #### Użycie z Next.js (App Router)
 

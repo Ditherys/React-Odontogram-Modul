@@ -142,7 +142,7 @@ function Workspace() {
 }
 ```
 
-`OdontogramProvider` prijíma rovnaké props ako `OdontogramShell`. Na tvorbu vlastných povrchov je k dispozícii hook `useOdontogramUi()` (a typ `OdontogramUiContextValue`). Aktuálne obmedzenia: použite jeden provider na stránku a pripojte každý povrch pred inicializáciou diagramu (skryte ich pomocou CSS namiesto odpojenia). Samotný `OdontogramShell` je nezmenený — je to presne táto kompozícia v predvolenom usporiadaní.
+`OdontogramProvider` prijíma rovnaké props ako `OdontogramShell`. Na tvorbu vlastných povrchov je k dispozícii hook `useOdontogramUi()` (a typ `OdontogramUiContextValue`). Aktuálne obmedzenie: použite jeden provider na stránku. Povrchy možno pripájať a odpájať podľa potreby — pri opätovnom pripojení sa automaticky znova naviažu. Samotný `OdontogramShell` je nezmenený — je to presne táto kompozícia v predvolenom usporiadaní.
 
 #### Použitie s Next.js (App Router)
 

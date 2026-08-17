@@ -31,6 +31,8 @@ vi.mock("../odontogram", async () => {
     // Heavy imperative DOM/SVG lifecycle — stubbed (no real SVG assets in jsdom).
     initOdontogram: vi.fn().mockResolvedValue(undefined),
     destroyOdontogram: vi.fn(),
+    rewireControls: vi.fn(),
+    rebuildGrid: vi.fn().mockResolvedValue(undefined),
     setNumberingSystem: vi.fn(),
     clearSelection: vi.fn(),
     setOcclusalVisible: vi.fn(),

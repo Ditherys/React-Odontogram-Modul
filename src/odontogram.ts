@@ -1093,8 +1093,31 @@ let isPinching = false;
 let archMode: "both" | "upper" | "lower" = "both";
 let archToggleBar: HTMLElement | null = null;
 
+// ---- Idempotent event binding (composable-UI Tier 2) ----
+// Persistent JSX control nodes are wired imperatively by wireControls(). Since a
+// surface can now unmount and remount, wireControls() may run more than once over
+// a session. `bindOnce` records each (element, event-type) it has already wired in
+// a WeakMap, so a still-mounted node is never double-bound; a fresh remounted node
+// (absent from the map) does get wired; a destroyed node GCs out of the map on its
+// own. Idempotency is thus per-element — no module-level "wired once" flag.
+const wiredHandlers = new WeakMap<Element, Set<string>>();
+function bindOnce(el: Any, type: string, handler: Any){
+  if(!el) return;
+  let set = wiredHandlers.get(el);
+  if(!set){ set = new Set<string>(); wiredHandlers.set(el, set); }
+  if(set.has(type)) return;
+  set.add(type);
+  el.addEventListener(type, handler);
+}
+/** True when {@link bindOnce} has already wired `type` on `el`. */
+function isBound(el: Any, type: string): boolean {
+  const set = wiredHandlers.get(el);
+  return !!set && set.has(type);
+}
+
 // ---- UI builders ----
 function buildChecks(container: Any, items: Any, onToggle: Any){
+  if(!container || container.childElementCount > 0) return;
   container.innerHTML = "";
   for(const it of items){
     const id = `chk-${it.value}`;
@@ -1121,6 +1144,7 @@ function buildChecks(container: Any, items: Any, onToggle: Any){
  * Keeps a hidden checkbox input (value=item.value) so existing state-sync works.
  */
 export function buildSurfaceCross(container: Any, items: Any, onToggle: Any){
+  if(!container || container.childElementCount > 0) return;
   container.innerHTML = "";
   const cross = el("div", { class: "surface-cross" });
   for(const it of items){
@@ -1140,13 +1164,18 @@ export function buildSurfaceCross(container: Any, items: Any, onToggle: Any){
 }
 
 function buildSelect(selectEl: Any, options: Any, onChange: Any){
+  if(!selectEl) return;
+  // A still-mounted select is already wired for "change"; its options are
+  // re-derived by the syncControlsFromState() that follows every (re)wire, so
+  // skip the whole rebuild+rebind here to avoid double-binding the handler.
+  if(isBound(selectEl, "change")) return;
   selectEl.innerHTML = "";
   for(const opt of options){
     const o = el("option", { value: opt.value, text: opt.label });
     if(opt.title) o.title = opt.title;
     selectEl.appendChild(o);
   }
-  selectEl.addEventListener("change", (e)=>onChange((e.target as HTMLSelectElement).value));
+  bindOnce(selectEl, "change", (e: Any)=>onChange((e.target as HTMLSelectElement).value));
 }
 
 // `data-icon-src` carries inlined SVG markup (from a `?raw` import in App.tsx),
@@ -3647,7 +3676,7 @@ export function __syncPerioRowForTest(state: Record<string, unknown>, toothNo: n
  * doc comment).
  */
 function buildPerioGrid(container: Any): void {
-  if(!container) return;
+  if(!container || container.childElementCount > 0) return;
   container.innerHTML = "";
   const buildSiteRow = (sites: readonly string[], rowClass: string) => {
     const rowEl = el("div", { class: `perio-site-row ${rowClass}` });
@@ -8623,7 +8652,6 @@ export function __applyStatusExtraForTest(option: Any): void {
 
 // ---- Load and build grid ----
 let initialized = false;
-let controlsWired = false;
 let initToken = 0;
 
 // `svgText` is the inlined SVG markup from a `?raw` import (see TEMPLATES) —
@@ -8804,11 +8832,12 @@ function wireControls(){
   // double mount-effect (which re-wires anonymous listeners onto the same nodes).
   document.addEventListener("click", onCardToggleClick);
   document.addEventListener("click", onGlobalToggleClick);
-  // Note: buildChecks/buildSurfaceCross/buildSelect below self-clear and create
-  // fresh nodes, so re-running wireControls per init is safe; destroyOdontogram
-  // empties those containers and they are rebuilt here.
-  if(controlsWired) return;
-  controlsWired = true;
+  // wireControls() is fully re-entrant: the buildSelect/buildChecks/
+  // buildSurfaceCross/buildPerioGrid builders skip already-populated containers,
+  // every persistent-node listener goes through bindOnce (per-element idempotent),
+  // and loadInlineIcon/export-import `.onclick=` assignments are self-idempotent.
+  // So a remounted surface re-runs this to wire only its fresh nodes, while
+  // still-mounted nodes are left untouched — no module-level "wired once" flag.
   const iconButtons = ["btnOcclView","btnWisdomVisible","btnBoneVisible","btnPulpVisible"];
   iconButtons.forEach((id)=>{
     const btn = $(`#${id}`);
@@ -8875,7 +8904,7 @@ function wireControls(){
   // the mutual-exclusion invariant (endo <-> vital pulpDx).
   {
     const sel = $("#pulpEndoSelect");
-    sel.addEventListener("change", () => {
+    bindOnce(sel, "change", () => {
       const value = sel.value;
       applyToSelected((s)=>{ pulpEndoOnSelect(s, value); });
     });
@@ -8893,14 +8922,14 @@ function wireControls(){
   });
 
   // Resection
-  $("#endoResection").addEventListener("change", (e)=>{
+  bindOnce($("#endoResection"), "change", (e)=>{
     applyToSelected((s)=>{
       s.endoResection = (e.target as HTMLInputElement).checked;
     });
   });
 
   // Parapulpal pin
-  $("#parapulpalPin").addEventListener("change", (e)=>{
+  bindOnce($("#parapulpalPin"), "change", (e)=>{
     applyToSelected((s)=>{
       s.parapulpalPin = (e.target as HTMLInputElement).checked;
     });
@@ -8919,42 +8948,42 @@ function wireControls(){
   });
 
   // Extraction wound
-  $("#extractionWound").addEventListener("change", (e)=>{
+  bindOnce($("#extractionWound"), "change", (e)=>{
     applyToSelected((s)=>{
       s.extractionWound = (e.target as HTMLInputElement).checked;
     });
   });
 
   // Extraction plan
-  $("#extractionPlan").addEventListener("change", (e)=>{
+  bindOnce($("#extractionPlan"), "change", (e)=>{
     applyToSelected((s)=>{
       s.extractionPlan = (e.target as HTMLInputElement).checked;
     });
   });
 
   // Crown replace
-  $("#crownReplace").addEventListener("change", (e)=>{
+  bindOnce($("#crownReplace"), "change", (e)=>{
     applyToSelected((s)=>{
       s.crownReplace = (e.target as HTMLInputElement).checked;
     });
   });
 
   // Crown needed
-  $("#crownNeeded").addEventListener("change", (e)=>{
+  bindOnce($("#crownNeeded"), "change", (e)=>{
     applyToSelected((s)=>{
       s.crownNeeded = (e.target as HTMLInputElement).checked;
     });
   });
 
   // Crown leakage (marginal leakage on a crown/bridge restoration)
-  $("#crownLeakage").addEventListener("change", (e)=>{
+  bindOnce($("#crownLeakage"), "change", (e)=>{
     applyToSelected((s)=>{
       s.crownLeakage = (e.target as HTMLInputElement).checked;
     });
   });
 
   // Missing closed
-  $("#missingClosed").addEventListener("change", (e)=>{
+  bindOnce($("#missingClosed"), "change", (e)=>{
     applyToSelected((s)=>{
       s.missingClosed = (e.target as HTMLInputElement).checked;
     });
@@ -9009,6 +9038,7 @@ function wireControls(){
   $$("#cariesChecks .surface-cell").forEach((cell) => {
     const input = cell.querySelector("input") as HTMLInputElement | null;
     if(!input) return;
+    if(cell.querySelector(".surf-depth")) return; // still-mounted cell already has its indicator
     const surface = String(input.value).replace("caries-", "");
     const ind = el("span", { class: "surf-depth", title: t("caries.detailsHint") }, [ el("i"), el("i"), el("i") ]);
     ind.addEventListener("click", (e: Any)=>{
@@ -9072,6 +9102,7 @@ function wireControls(){
   $$("#fillingSurfaceChecks .surface-cell").forEach((cell) => {
     const input = cell.querySelector("input") as HTMLInputElement | null;
     if(!input) return;
+    if(cell.querySelector(".surf-depth")) return; // still-mounted cell already has its indicator
     const surface = String(input.value);
     const ind = el("span", { class: "surf-depth", title: t("caries.recurrentHint") }, [ el("i"), el("i"), el("i") ]);
     ind.addEventListener("click", (e: Any)=>{
@@ -9089,6 +9120,7 @@ function wireControls(){
   $$("#fillingSurfaceChecks .surface-cell").forEach((cell) => {
     const input = cell.querySelector("input") as HTMLInputElement | null;
     if(!input) return;
+    if(cell.querySelector(".surf-defect")) return; // still-mounted cell already has its indicator
     const surface = String(input.value);
     const ind = el("span", { class: "surf-defect", title: t("fillingDefect.label") }, [ el("i") ]);
     ind.addEventListener("click", (e: Any)=>{
@@ -9102,7 +9134,7 @@ function wireControls(){
 
   // "simple" filling complexity — one filled/not-filled toggle applying the
   // current material to ALL surfaces (or clearing them).
-  $("#fillingSimpleToggle")?.addEventListener("change", (e)=>{
+  bindOnce($("#fillingSimpleToggle"), "change", (e)=>{
     const on = (e.target as HTMLInputElement).checked;
     applyToSelected((s)=>{
       if(on){
@@ -9116,7 +9148,7 @@ function wireControls(){
     });
   });
   // simple-mode filling-defect button — applies a defect to ALL filled surfaces.
-  $("#fillingSimpleDefectSelect")?.addEventListener("change", (e: Any)=>{
+  bindOnce($("#fillingSimpleDefectSelect"), "change", (e: Any)=>{
     const value = String((e.target as HTMLSelectElement).value);
     applyToSelected((s)=>{
       for(const surf of (s.fillingSurfaceMaterials as Map<string, string>).keys()){
@@ -9126,24 +9158,24 @@ function wireControls(){
   });
 
   // Fissure sealing
-  $("#fissureSealing").addEventListener("change", (e)=>{
+  bindOnce($("#fissureSealing"), "change", (e)=>{
     applyToSelected((s)=>{
       s.fissureSealing = (e.target as HTMLInputElement).checked;
     });
   });
 
   // Calculus
-  $("#calculusToggle").addEventListener("change", (e)=>{
+  bindOnce($("#calculusToggle"), "change", (e)=>{
     applyToSelected((s)=>{ s.calculus = (e.target as HTMLInputElement).checked; });
   });
 
   // Contact point missing
-  $("#contactMesial").addEventListener("change", (e)=>{
+  bindOnce($("#contactMesial"), "change", (e)=>{
     applyToSelected((s)=>{
       s.contactMesial = (e.target as HTMLInputElement).checked;
     });
   });
-  $("#contactDistal").addEventListener("change", (e)=>{
+  bindOnce($("#contactDistal"), "change", (e)=>{
     applyToSelected((s)=>{
       s.contactDistal = (e.target as HTMLInputElement).checked;
     });
@@ -9161,11 +9193,11 @@ function wireControls(){
   // Wear simple-mode toggles (yes/no checkboxes shown instead of the selects
   // above when wearDetailLevel === "simple"; write the canonical simple value on
   // check, "none" on uncheck).
-  $("#wearEdgeToggle").addEventListener("change", (e)=>{
+  bindOnce($("#wearEdgeToggle"), "change", (e)=>{
     const on = (e.target as HTMLInputElement).checked;
     applyToSelected((s)=>{ s.wearEdge = on ? "attrition" : "none"; });
   });
-  $("#wearCervicalToggle").addEventListener("change", (e)=>{
+  bindOnce($("#wearCervicalToggle"), "change", (e)=>{
     const on = (e.target as HTMLInputElement).checked;
     applyToSelected((s)=>{ s.wearCervical = on ? "abrasion" : "none"; });
   });
@@ -9178,7 +9210,7 @@ function wireControls(){
 
   // Discoloration simple-mode toggle (mirrors the wear toggles above;
   // independent discolorationDetailLevel setting).
-  $("#discolorationToggle").addEventListener("change", (e)=>{
+  bindOnce($("#discolorationToggle"), "change", (e)=>{
     const on = (e.target as HTMLInputElement).checked;
     applyToSelected((s)=>{ s.discoloration = on ? "other" : "none"; });
   });
@@ -9194,42 +9226,42 @@ function wireControls(){
   buildSelect($("#orthoVerticalSelect"), getOrthoVerticalOptions(), (value)=>{
     applyToSelected((s)=>{ s.orthoVertical = value; });
   });
-  $("#orthoRotationToggle").addEventListener("change", (e)=>{
+  bindOnce($("#orthoRotationToggle"), "change", (e)=>{
     const on = (e.target as HTMLInputElement).checked;
     applyToSelected((s)=>{ s.orthoRotation = on; });
   });
 
   // Bridge pillar
-  $("#bridgePillar").addEventListener("change", (e)=>{
+  bindOnce($("#bridgePillar"), "change", (e)=>{
     applyToSelected((s)=>{
       s.bridgePillar = (e.target as HTMLInputElement).checked;
     });
   });
 
   // Broken crown parts
-  $("#brokenMesial").addEventListener("change", (e)=>{
+  bindOnce($("#brokenMesial"), "change", (e)=>{
     applyToSelected((s)=>{
       s.brokenMesial = (e.target as HTMLInputElement).checked;
     });
   });
-  $("#brokenIncisal").addEventListener("change", (e)=>{
+  bindOnce($("#brokenIncisal"), "change", (e)=>{
     applyToSelected((s)=>{
       s.brokenIncisal = (e.target as HTMLInputElement).checked;
     });
   });
-  $("#brokenDistal").addEventListener("change", (e)=>{
+  bindOnce($("#brokenDistal"), "change", (e)=>{
     applyToSelected((s)=>{
       s.brokenDistal = (e.target as HTMLInputElement).checked;
     });
   });
 
   // Reset buttons
-  $("#btnResetTooth").addEventListener("click", ()=>{
+  bindOnce($("#btnResetTooth"), "click", ()=>{
     if(selectedTeeth.size === 0) return;
     resetTeethGated(Array.from(selectedTeeth) as number[]);
   });
 
-  $("#btnResetAll").addEventListener("click", ()=>{
+  bindOnce($("#btnResetAll"), "click", ()=>{
     setEdentulous(false);
     resetCaseMeta(); // case-level patient metadata is part of the blank-slate reset (like edentulous)
     for(const toothNo of ALL_TEETH){
@@ -9248,9 +9280,9 @@ function wireControls(){
     notifyStateChange();
   });
 
-  $("#btnPrimaryDentition").addEventListener("click", applyPrimaryDentition);
+  bindOnce($("#btnPrimaryDentition"), "click", applyPrimaryDentition);
 
-  $("#btnMixedDentition").addEventListener("click", applyMixedDentition);
+  bindOnce($("#btnMixedDentition"), "click", applyMixedDentition);
 
   // Status extras
   const statusExtras = getStatusExtras();
@@ -9258,88 +9290,88 @@ function wireControls(){
     const statusOptions = statusExtras.map((opt)=>({ value: opt.id, label: opt.label }));
     buildSelect($("#statusExtraSelect"), statusOptions, ()=>{});
     setSelectOptions($("#statusExtraSelect"), statusOptions, statusOptions[0]?.value);
-    $("#statusExtraApply").addEventListener("click", ()=>{
+    bindOnce($("#statusExtraApply"), "click", ()=>{
       const id = $("#statusExtraSelect").value;
       const option = statusExtras.find(o => o.id === id);
       applyStatusExtra(option);
     });
   }
 
-  $("#btnSelectAll").addEventListener("click", ()=>{
+  bindOnce($("#btnSelectAll"), "click", ()=>{
     selectedTeeth = new Set(ALL_TEETH);
     activeTooth = ALL_TEETH[0];
     updateToothTileVisibility();
   });
-  $("#btnSelectAllPresent").addEventListener("click", ()=>{
+  bindOnce($("#btnSelectAllPresent"), "click", ()=>{
     const present = ALL_TEETH.filter(tn => toothState.get(tn)?.toothSelection !== "none");
     selectedTeeth = new Set(present);
     activeTooth = present[0] ?? null;
     updateToothTileVisibility();
   });
-  $("#btnSelectPermanent").addEventListener("click", ()=>{
+  bindOnce($("#btnSelectPermanent"), "click", ()=>{
     const permanent = ALL_TEETH.filter(tn => toothState.get(tn)?.toothSelection === "tooth-base");
     selectedTeeth = new Set(permanent);
     activeTooth = permanent[0] ?? null;
     updateToothTileVisibility();
   });
-  $("#btnSelectMilk").addEventListener("click", ()=>{
+  bindOnce($("#btnSelectMilk"), "click", ()=>{
     const milk = ALL_TEETH.filter(tn => toothState.get(tn)?.toothSelection === "milktooth");
     selectedTeeth = new Set(milk);
     activeTooth = milk[0] ?? null;
     updateToothTileVisibility();
   });
-  $("#btnSelectImplants").addEventListener("click", ()=>{
+  bindOnce($("#btnSelectImplants"), "click", ()=>{
     const implants = ALL_TEETH.filter(tn => toothState.get(tn)?.toothSelection === "implant");
     selectedTeeth = new Set(implants);
     activeTooth = implants[0] ?? null;
     updateToothTileVisibility();
   });
-  $("#btnSelectAllMissing").addEventListener("click", ()=>{
+  bindOnce($("#btnSelectAllMissing"), "click", ()=>{
     const missing = ALL_TEETH.filter(tn => toothState.get(tn)?.toothSelection === "none");
     selectedTeeth = new Set(missing);
     activeTooth = missing[0] ?? null;
     updateToothTileVisibility();
   });
-  $("#btnSelectUpper").addEventListener("click", ()=>{
+  bindOnce($("#btnSelectUpper"), "click", ()=>{
     selectedTeeth = new Set(ALL_TEETH.filter(tn => tn >= 11 && tn <= 28));
     activeTooth = 11;
     updateToothTileVisibility();
   });
-  $("#btnSelectUpperFront").addEventListener("click", ()=>{
+  bindOnce($("#btnSelectUpperFront"), "click", ()=>{
     const front = [13,12,11,21,22,23];
     selectedTeeth = new Set(front);
     activeTooth = front[0];
     updateToothTileVisibility();
   });
-  $("#btnSelectUpperMolar").addEventListener("click", ()=>{
+  bindOnce($("#btnSelectUpperMolar"), "click", ()=>{
     const molars = [18,17,16,26,27,28];
     selectedTeeth = new Set(molars);
     activeTooth = molars[0];
     updateToothTileVisibility();
   });
-  $("#btnSelectLower").addEventListener("click", ()=>{
+  bindOnce($("#btnSelectLower"), "click", ()=>{
     selectedTeeth = new Set(ALL_TEETH.filter(tn => tn >= 31 && tn <= 48));
     activeTooth = 31;
     updateToothTileVisibility();
   });
-  $("#btnSelectLowerFront").addEventListener("click", ()=>{
+  bindOnce($("#btnSelectLowerFront"), "click", ()=>{
     const front = [43,42,41,31,32,33];
     selectedTeeth = new Set(front);
     activeTooth = front[0];
     updateToothTileVisibility();
   });
-  $("#btnSelectLowerMolar").addEventListener("click", ()=>{
+  bindOnce($("#btnSelectLowerMolar"), "click", ()=>{
     const molars = [38,37,36,46,47,48];
     selectedTeeth = new Set(molars);
     activeTooth = molars[0];
     updateToothTileVisibility();
   });
-  $("#btnSelectNone").addEventListener("click", ()=>{
+  bindOnce($("#btnSelectNone"), "click", ()=>{
     selectedTeeth = new Set();
     activeTooth = null;
     updateSelectionUI();
   });
-  $("#btnSelectNoneChart").addEventListener("click", ()=>{
+  bindOnce($("#btnSelectNoneChart"), "click", ()=>{
     selectedTeeth = new Set();
     activeTooth = null;
     updateSelectionUI();
@@ -9347,8 +9379,8 @@ function wireControls(){
 
   // Status | Plan chart-mode toggle (chart-header, separate from both the topbar
   // and the right Controls panel).
-  $("#chartModeStatus").addEventListener("click", ()=>setChartMode("status"));
-  $("#chartModePlan").addEventListener("click", ()=>setChartMode("plan"));
+  bindOnce($("#chartModeStatus"), "click", ()=>setChartMode("status"));
+  bindOnce($("#chartModePlan"), "click", ()=>setChartMode("plan"));
 
   // The global visibility toggles (edentulous / wisdom / occlusal / bone / pulp)
   // are handled by the delegated onGlobalToggleClick listener registered above.
@@ -9482,7 +9514,6 @@ export function destroyOdontogram(){
   if(!initialized) return;
   initialized = false;
   initToken++;
-  controlsWired = false;
   teardownBridgeOverlayResize();
   document.removeEventListener("click", onCardToggleClick);
   document.removeEventListener("click", onGlobalToggleClick);
@@ -9511,16 +9542,12 @@ export function destroyOdontogram(){
   readOnly = false;
   notesEnabled = false;
   pluginOverlays.clear();
-  const mods = $("#modsChecks") as HTMLElement | null;
-  if(mods) mods.innerHTML = "";
-  const caries = $("#cariesChecks") as HTMLElement | null;
-  if(caries) caries.innerHTML = "";
-  const cariesSub = $("#cariesSubcrownRow") as HTMLElement | null;
-  if(cariesSub) cariesSub.innerHTML = "";
-  const fillings = $("#fillingSurfaceChecks") as HTMLElement | null;
-  if(fillings) fillings.innerHTML = "";
-  const statusExtra = $("#statusExtraSelect") as HTMLSelectElement | null;
-  if(statusExtra) statusExtra.innerHTML = "";
+  // The imperatively-built control containers (#modsChecks / #cariesChecks /
+  // #cariesSubcrownRow / #fillingSurfaceChecks / #statusExtraSelect) are NOT
+  // emptied here: with the "skip if populated" builder guards, emptying them then
+  // skipping-rebuild on a DOM-persisting re-init would leave them permanently
+  // empty. Leaving them populated is correct — re-init skips the rebuild and
+  // syncControlsFromState() refreshes their values.
   // A full teardown resets the whole case — BOTH charts, not just the active one
   // — and drops back to "status" mode so a subsequent initOdontogram() starts
   // clean.
@@ -9538,6 +9565,55 @@ export function destroyOdontogram(){
   toothLabelLower.clear();
   selectedTeeth = new Set();
   activeTooth = null;
+}
+
+/**
+ * Re-run control wiring after a controls surface remounts (composable-UI Tier 2).
+ * `wireControls()` is idempotent per-element (bindOnce + populated-container
+ * guards), so this wires ONLY the freshly-mounted nodes and leaves still-mounted
+ * ones untouched; the trailing syncControlsFromState() re-derives the active
+ * tooth's per-tooth option lists/values on the (possibly new) select nodes.
+ * No-op before init (the provider's own init effect does the first wiring).
+ */
+export function rewireControls(){
+  if(!initialized) return;
+  wireControls();
+  if(activeTooth != null){
+    const s = toothState.get(activeTooth);
+    if(s) syncControlsFromState(s);
+  }
+}
+
+/**
+ * Rebuild the SVG tooth grid after the chart column remounts (composable-UI
+ * Tier 2). Preserves the current selection/active tooth across buildGrid()'s
+ * internal reset, clears+rebuilds the four grid element maps, and bumps
+ * `initToken` so any in-flight/toggle-spam build supersedes cleanly. No-op
+ * before init or if a newer build/teardown supersedes this one mid-await.
+ */
+export async function rebuildGrid(){
+  if(!initialized) return;
+  const savedSelected = new Set(selectedTeeth);
+  const savedActive = activeTooth;
+  // A remounted #toothGrid has fresh DOM; drop the stale element references so
+  // buildGrid() repopulates them (the clear precedes the await, so a superseded
+  // build never restores stale maps).
+  toothSvgRoot.clear();
+  toothTile.clear();
+  toothLabelUpper.clear();
+  toothLabelLower.clear();
+  const token = ++initToken;
+  await buildGrid(token);
+  if(!initialized || token !== initToken) return;
+  // buildGrid()'s tail resets selection/active to empty — restore what the user had.
+  selectedTeeth = savedSelected;
+  activeTooth = savedActive;
+  updateSelectionUI();
+  setupBridgeOverlayResize(); // re-observe the new grid node
+  if(activeTooth != null){
+    const s = toothState.get(activeTooth);
+    if(s) syncControlsFromState(s);
+  }
 }
 
 /**

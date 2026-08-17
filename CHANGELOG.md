@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Composable UI: on-demand surfaces (issue #20, Tier 2).** Control wiring is now
+  re-runnable / idempotent, so a surface can **unmount and remount** (e.g. mount on
+  demand in a drawer or tab) — the Tier 1 "mount every surface before init / hide
+  with CSS rather than unmount" constraint is lifted. New exported `rewireControls()`
+  and `rebuildGrid()` let a remounting surface rebind its fresh DOM (surfaces do this
+  automatically on mount). Internally, per-element binding is deduplicated via a
+  `WeakMap` marker (replacing the one-shot `controlsWired` guard), and the three
+  former hide-instead-of-unmount workarounds (the control panel across the perio
+  view, the chart column in the Dental Chart segment, and the Status|Plan toggle) are
+  now real conditional mounts. `OdontogramShell`'s default composition is unchanged
+  and still renders byte-identical DOM. No payload/FHIR/render change; all goldens
+  byte-identical; payload version unchanged.
 - **Composable UI surfaces (issue #20, Tier 1).** The shell's four UI regions are
   now exported as standalone components — `OdontogramTopbar`,
   `OdontogramChartSurface`, `ToothInfoSurface`, `ToothControlsSurface` — that a

@@ -142,7 +142,7 @@ function Workspace() {
 }
 ```
 
-Az `OdontogramProvider` ugyanazokat a propokat fogadja, mint az `OdontogramShell`. Egy `useOdontogramUi()` hook (és az `OdontogramUiContextValue` típus) is elérhető saját felületek építéséhez. Jelenlegi korlátok: oldalanként egy providert használjon, és minden felületet a diagram inicializálása előtt csatoljon fel (CSS-sel rejtse el őket, ne pedig leválasztással). Maga az `OdontogramShell` változatlan — pontosan ez az összeállítás az alapértelmezett elrendezésben.
+Az `OdontogramProvider` ugyanazokat a propokat fogadja, mint az `OdontogramShell`. Egy `useOdontogramUi()` hook (és az `OdontogramUiContextValue` típus) is elérhető saját felületek építéséhez. Jelenlegi korlát: oldalanként egy providert használjon. A felületek igény szerint fel- és leválaszthatók — újracsatoláskor automatikusan visszakapcsolódnak. Maga az `OdontogramShell` változatlan — pontosan ez az összeállítás az alapértelmezett elrendezésben.
 
 #### Használat Next.js-szel (App Router)
 

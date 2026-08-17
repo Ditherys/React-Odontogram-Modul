@@ -6,8 +6,9 @@
 // wires imperatively). Presentational: it reads everything from
 // `useOdontogramUi()` and holds no state of its own.
 
-import { type CSSProperties } from "react";
+import { type CSSProperties, useEffect } from "react";
 import { useOdontogramUi } from "../OdontogramContext";
+import { rewireControls, rebuildGrid } from "../odontogram";
 // Toolbar icons rendered as inline SVG (via `loadInlineIcon`, which parses the
 // `data-icon-src` markup) are imported `?raw` so they inline into the JS bundle
 // as strings — no runtime fetch. `iconNoSelectionUrl` is rendered as an
@@ -39,6 +40,15 @@ export default function OdontogramChartSurface() {
     selectionBorderStyle,
   } = useOdontogramUi();
 
+  // Re-wire the chart-header controls whenever this surface (re)mounts, and also
+  // when `planModeAvailable` flips (the #chartModeToggle is conditionally mounted
+  // on it, so its buttons are fresh nodes each time it reappears). No-op before
+  // init; acts only on later remounts / toggles.
+  useEffect(() => { rewireControls(); }, [planModeAvailable]);
+  // Rebuild the SVG grid whenever the chart column (re)mounts — e.g. returning
+  // from the perio view, where the column is unmounted. No-op before init.
+  useEffect(() => { void rebuildGrid(); }, []);
+
   return (
         <section className="chart">
           <div className="chart-header">
@@ -46,15 +56,18 @@ export default function OdontogramChartSurface() {
               <div className="chart-title">{t("chart.title")}</div>
               <div className="chart-hint">{t("chart.hint")}</div>
             </div>
-            {/* The Status|Plan toggle is hidden when plan mode is turned off in
-                Settings → Odontogram. Hidden via CSS (not unmounted) so
-                odontogram.ts's one-time click wiring on these buttons survives
-                being toggled off and back on. */}
-            <div id="chartModeToggle" className={"chart-mode-toggle" + (planModeAvailable ? "" : " hidden")} role="tablist">
-              <button id="chartModeStatus" type="button" className="chart-mode-btn is-active" role="tab" aria-selected="true">{t("chartMode.status")}</button>
-              <button id="chartModePlan" type="button" className="chart-mode-btn" role="tab" aria-selected="false">{t("chartMode.plan")}</button>
-              <span id="chartModePlanBadge" className="plan-badge hidden">{t("chartMode.planBadge")}</span>
-            </div>
+            {/* The Status|Plan toggle is unmounted when plan mode is turned off
+                in Settings → Odontogram. Composable-UI Tier 2 made the click
+                wiring re-runnable, so the toggle can remount cleanly (this
+                surface re-runs rewireControls() on the planModeAvailable flip)
+                instead of being hidden with a CSS class. */}
+            {planModeAvailable && (
+              <div id="chartModeToggle" className="chart-mode-toggle" role="tablist">
+                <button id="chartModeStatus" type="button" className="chart-mode-btn is-active" role="tab" aria-selected="true">{t("chartMode.status")}</button>
+                <button id="chartModePlan" type="button" className="chart-mode-btn" role="tab" aria-selected="false">{t("chartMode.plan")}</button>
+                <span id="chartModePlanBadge" className="plan-badge hidden">{t("chartMode.planBadge")}</span>
+              </div>
+            )}
             {/* "dashed = proposed" legend. Always rendered — its visibility is
                 pure CSS, scoped by the `.chart.plan-mode #proposedLegend`
                 selector (src/index.css), which reuses the same `.plan-mode` cue

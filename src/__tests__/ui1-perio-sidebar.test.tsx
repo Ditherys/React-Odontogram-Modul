@@ -127,6 +127,8 @@ vi.mock("../odontogram", async () => {
       return Promise.resolve(undefined);
     }),
     destroyOdontogram: vi.fn(),
+    rewireControls: vi.fn(),
+    rebuildGrid: vi.fn().mockResolvedValue(undefined),
     // Real (not a bare vi.fn()) — this single file's hoisted vi.mock applies
     // to BOTH the direct <PerioSidebar/> renders (part a, which need real
     // numbering/reset behavior) and the <App/> mount (part b, which doesn't
@@ -280,19 +282,17 @@ describe("UI-1 Task 1: <App/> right panel view-gate", () => {
     expect(document.getElementById("caseMetaPanel")).toBeNull();
   });
 
-  it("perio (Dental Chart) view: shows the perio sidebar; odontogram controls stay mounted but hidden", async () => {
+  it("perio (Dental Chart) view: shows the perio sidebar; odontogram controls are unmounted", async () => {
     await mountApp();
     fireEvent.click(document.getElementById("appViewDentalChart")!);
     expect(document.getElementById("caseMetaPanel")).toBeTruthy();
     expect(document.getElementById("perio-fg-summary-avgpd")).toBeTruthy();
-    // The odontogram control panel is NOT unmounted (that would drop its
-    // one-time wireControls() listeners and break editing after toggling back —
-    // see App.tsx). It stays in the DOM, hidden via CSS.
-    const controls = document.querySelector(".panel-odontogram-controls") as HTMLElement | null;
-    expect(controls).toBeTruthy();
-    expect(controls!.style.display).toBe("none");
-    expect(document.getElementById("statusCard")).toBeTruthy();
-    expect(document.getElementById("toothSelect")).toBeTruthy();
+    // Composable-UI Tier 2: control wiring is now re-runnable, so the odontogram
+    // control panel is UNMOUNTED in the perio view (a remount re-runs
+    // rewireControls()) rather than hidden with CSS. It is absent from the DOM.
+    expect(document.querySelector(".panel-odontogram-controls")).toBeNull();
+    expect(document.getElementById("statusCard")).toBeNull();
+    expect(document.getElementById("toothSelect")).toBeNull();
   });
 
   it("switching back to the odontogram view restores the odontogram controls", async () => {

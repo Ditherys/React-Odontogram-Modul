@@ -144,7 +144,7 @@ function Workspace() {
 }
 ```
 
-`OdontogramProvider` nimmt dieselben Props wie `OdontogramShell` entgegen. Ein `useOdontogramUi()`-Hook (und der Typ `OdontogramUiContextValue`) steht zum Erstellen eigener Oberflächen zur Verfügung. Aktuelle Einschränkungen: Verwenden Sie einen Provider pro Seite und binden Sie jede Oberfläche ein, bevor das Diagramm initialisiert wird (blenden Sie sie per CSS aus, statt sie auszuhängen). `OdontogramShell` selbst ist unverändert — es ist genau diese Zusammensetzung in der Standardanordnung.
+`OdontogramProvider` nimmt dieselben Props wie `OdontogramShell` entgegen. Ein `useOdontogramUi()`-Hook (und der Typ `OdontogramUiContextValue`) steht zum Erstellen eigener Oberflächen zur Verfügung. Aktuelle Einschränkung: Verwenden Sie einen Provider pro Seite. Oberflächen können bei Bedarf ein- und ausgehängt werden — sie binden sich beim erneuten Einhängen automatisch wieder an. `OdontogramShell` selbst ist unverändert — es ist genau diese Zusammensetzung in der Standardanordnung.
 
 #### Verwendung mit Next.js (App Router)
 

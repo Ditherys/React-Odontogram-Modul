@@ -144,7 +144,7 @@ function Workspace() {
 }
 ```
 
-`OdontogramProvider` 接受与 `OdontogramShell` 相同的 props。还提供了 `useOdontogramUi()` hook（以及 `OdontogramUiContextValue` 类型），用于构建你自己的界面区域。当前限制：每个页面只使用一个 provider，并在图表初始化之前挂载所有界面区域（用 CSS 隐藏它们，而不是卸载）。`OdontogramShell` 本身没有变化——它正是这种组合在默认排布下的形态。
+`OdontogramProvider` 接受与 `OdontogramShell` 相同的 props。还提供了 `useOdontogramUi()` hook（以及 `OdontogramUiContextValue` 类型），用于构建你自己的界面区域。当前限制：每个页面只使用一个 provider。界面区域可以按需挂载和卸载——重新挂载时会自动重新绑定。`OdontogramShell` 本身没有变化——它正是这种组合在默认排布下的形态。
 
 #### 与 Next.js（App Router）搭配使用
 

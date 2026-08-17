@@ -142,7 +142,7 @@ function Workspace() {
 }
 ```
 
-`OdontogramProvider` accetta le stesse props di `OdontogramShell`. È disponibile un hook `useOdontogramUi()` (e il tipo `OdontogramUiContextValue`) per costruire le tue superfici. Vincoli attuali: usa un solo provider per pagina e monta ogni superficie prima che il diagramma venga inizializzato (nascondile con i CSS anziché smontarle). `OdontogramShell` stesso è invariato — è esattamente questa composizione nella disposizione predefinita.
+`OdontogramProvider` accetta le stesse props di `OdontogramShell`. È disponibile un hook `useOdontogramUi()` (e il tipo `OdontogramUiContextValue`) per costruire le tue superfici. Vincolo attuale: usa un solo provider per pagina. Le superfici possono essere montate e smontate su richiesta — si ricollegano automaticamente al rimontaggio. `OdontogramShell` stesso è invariato — è esattamente questa composizione nella disposizione predefinita.
 
 #### Utilizzo con Next.js (App Router)
 
