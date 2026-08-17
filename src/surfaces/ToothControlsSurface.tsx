@@ -12,6 +12,7 @@
 import { useEffect } from "react";
 import { useOdontogramUi } from "../OdontogramContext";
 import { rewireControls } from "../odontogram";
+import OrthodonticsCard from "./cards/OrthodonticsCard";
 
 export default function ToothControlsSurface() {
   const { t, showStatusCard, showOrthoCard } = useOdontogramUi();
@@ -168,27 +169,7 @@ export default function ToothControlsSurface() {
             </section>
 
             <div className={showOrthoCard ? "" : "hidden"}>
-              <section id="orthoCard" className="card">
-                <div className="card-title card-title-row">
-                  <span>{t("toothInfo.orthodontics")}</span>
-                </div>
-                <div id="orthoApplianceRow" className="row">
-                  <span>{t("ortho.appliance.label")}</span>
-                  <select id="orthoApplianceSelect"></select>
-                </div>
-                <div id="orthoDriftRow" className="row">
-                  <span>{t("ortho.drift.label")}</span>
-                  <select id="orthoDriftSelect"></select>
-                </div>
-                <div id="orthoVerticalRow" className="row">
-                  <span>{t("ortho.vertical.label")}</span>
-                  <select id="orthoVerticalSelect"></select>
-                </div>
-                <label id="orthoRotationRow" className="row inline-check">
-                  <input type="checkbox" id="orthoRotationToggle" />
-                  <span>{t("ortho.rotation.label")}</span>
-                </label>
-              </section>
+              <OrthodonticsCard />
             </div>
 
             <section id="cariesSection" className="card">

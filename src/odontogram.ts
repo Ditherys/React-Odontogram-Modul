@@ -2159,14 +2159,16 @@ function getDiscolorationOptions(): { value: string; label: string }[]{
   return Array.from(VALID_DISCOLORATION).map(v => ({ value: v, label: t("discoloration." + v) }));
 }
 
-// Orthodontic axis option builders.
-function getOrthoApplianceOptions(): { value: string; label: string }[]{
+// Orthodontic axis option builders. Exported so the declarative
+// `OrthodonticsCard` (composable-UI Tier 3) renders the same `<option>` sets the
+// imperative `buildSelect(...)` wiring produced.
+export function getOrthoApplianceOptions(): { value: string; label: string }[]{
   return Array.from(VALID_ORTHO_APPLIANCE).map(v => ({ value: v, label: t("ortho.appliance." + v) }));
 }
-function getOrthoDriftOptions(): { value: string; label: string }[]{
+export function getOrthoDriftOptions(): { value: string; label: string }[]{
   return Array.from(VALID_ORTHO_DRIFT).map(v => ({ value: v, label: t("ortho.drift." + v) }));
 }
-function getOrthoVerticalOptions(): { value: string; label: string }[]{
+export function getOrthoVerticalOptions(): { value: string; label: string }[]{
   return Array.from(VALID_ORTHO_VERTICAL).map(v => ({ value: v, label: t("ortho.vertical." + v) }));
 }
 
@@ -2208,6 +2210,65 @@ export function __orthoAllowedForTest(s: Record<string, unknown>): boolean { ret
 // __discolorationRowAllowedForTest); same underlying predicate as the render
 // gate above — the card's visibility must never contradict the chart.
 export function __orthoCardAllowedForTest(s: Record<string, unknown>): boolean { return orthoAllowed(s); }
+
+// ── Orthodontics card engine API (composable-UI Tier 3) ─────────────────────
+// The declarative `OrthodonticsCard` reads/writes the ortho axes through these
+// functions instead of the former imperative `wireControls()`/
+// `syncControlsFromState()` `#orthoCard` block. `getActiveOrtho()` returns the
+// ACTIVE tooth's ortho values plus the whole-selection `orthoCardAllowed`
+// visibility predicate the sync used; the setters wrap the exact
+// `applyToSelected(...)` closures `wireControls()` bound, so behavior is
+// identical — only the call site moves from a DOM listener to a React onChange.
+export type ActiveOrtho = {
+  appliance: string;
+  drift: string;
+  vertical: string;
+  rotation: boolean;
+  visible: boolean;
+};
+
+export function getActiveOrtho(): ActiveOrtho | null {
+  if(activeTooth == null) return null;
+  const state = toothState.get(activeTooth);
+  if(!state) return null;
+  // Fold in the write-back-if-out-of-set normalization the old sync block did:
+  // if a stored value isn't in its current option set, snap it to the first
+  // option and write it back to state (a no-op for ortho's static enums, kept
+  // for behavior parity with every other synced select).
+  const applianceOpts = getOrthoApplianceOptions();
+  if(!applianceOpts.some(o => o.value === state.orthoAppliance)) state.orthoAppliance = applianceOpts[0]?.value ?? "none";
+  const driftOpts = getOrthoDriftOptions();
+  if(!driftOpts.some(o => o.value === state.orthoDrift)) state.orthoDrift = driftOpts[0]?.value ?? "none";
+  const verticalOpts = getOrthoVerticalOptions();
+  if(!verticalOpts.some(o => o.value === state.orthoVertical)) state.orthoVertical = verticalOpts[0]?.value ?? "none";
+  // Same whole-selection gate the sync block used: visible only when every
+  // selected tooth (or the lone active tooth) passes `orthoAllowed`.
+  const selectedList = selectedTeeth.size > 0 ? Array.from(selectedTeeth) : [activeTooth];
+  const visible = selectedList.length > 0 && selectedList.every(tn => {
+    const s = toothState.get(tn);
+    return s && orthoAllowed(s);
+  });
+  return {
+    appliance: state.orthoAppliance,
+    drift: state.orthoDrift,
+    vertical: state.orthoVertical,
+    rotation: state.orthoRotation === true,
+    visible,
+  };
+}
+
+export function setOrthoApplianceForSelection(value: string): void {
+  applyToSelected((s: Any)=>{ s.orthoAppliance = value; });
+}
+export function setOrthoDriftForSelection(value: string): void {
+  applyToSelected((s: Any)=>{ s.orthoDrift = value; });
+}
+export function setOrthoVerticalForSelection(value: string): void {
+  applyToSelected((s: Any)=>{ s.orthoVertical = value; });
+}
+export function setOrthoRotationForSelection(on: boolean): void {
+  applyToSelected((s: Any)=>{ s.orthoRotation = on; });
+}
 
 function getPeriImplantOptions(): { value: string; label: string }[]{
   return Array.from(VALID_PERI_IMPLANT).map(v => ({ value: v, label: t("periImplant." + kebabToCamel(v)) }));
@@ -2942,6 +3003,16 @@ export function __resetChartStateForTest(): void {
 export function __setActiveToothForTest(toothNo: number | null): void {
   activeTooth = toothNo;
   if(toothNo != null && !toothState.get(toothNo)) toothState.set(toothNo, defaultState());
+}
+
+/** TEST-ONLY: seed the current selection (and active tooth) so selection-scoped
+ *  setters (`applyToSelected`, e.g. `setOrtho*ForSelection`) act on a known set
+ *  without a live grid. Vivifies a `defaultState()` for any unseen tooth, like
+ *  the real selection path. Not part of the public API. */
+export function __setSelectionForTest(toothNos: number[]): void {
+  selectedTeeth = new Set(toothNos);
+  activeTooth = toothNos.length > 0 ? toothNos[0] : null;
+  for(const tn of toothNos){ if(!toothState.get(tn)) toothState.set(tn, defaultState()); }
 }
 
 /** TEST-ONLY: snapshot of the teeth currently flagged as plan-edited (a COPY —
@@ -3765,13 +3836,8 @@ function syncControlsFromState(state: Any){
   if($("#wearCervicalSelect").value !== state.wearCervical) state.wearCervical = $("#wearCervicalSelect").value;
   setSelectOptions($("#discolorationSelect"), getDiscolorationOptions(), state.discoloration);
   if($("#discolorationSelect").value !== state.discoloration) state.discoloration = $("#discolorationSelect").value;
-  setSelectOptions($("#orthoApplianceSelect"), getOrthoApplianceOptions(), state.orthoAppliance);
-  if($("#orthoApplianceSelect").value !== state.orthoAppliance) state.orthoAppliance = $("#orthoApplianceSelect").value;
-  setSelectOptions($("#orthoDriftSelect"), getOrthoDriftOptions(), state.orthoDrift);
-  if($("#orthoDriftSelect").value !== state.orthoDrift) state.orthoDrift = $("#orthoDriftSelect").value;
-  setSelectOptions($("#orthoVerticalSelect"), getOrthoVerticalOptions(), state.orthoVertical);
-  if($("#orthoVerticalSelect").value !== state.orthoVertical) state.orthoVertical = $("#orthoVerticalSelect").value;
-  ($("#orthoRotationToggle") as HTMLInputElement).checked = state.orthoRotation === true;
+  // Ortho selects/toggle are now owned by the declarative `OrthodonticsCard`
+  // (composable-UI Tier 3) via `getActiveOrtho()`; no imperative sync here.
   syncToothDetailControls(state);
   $("#brokenMesial").checked = !!state.brokenMesial;
   $("#brokenIncisal").checked = !!state.brokenIncisal;
@@ -4041,13 +4107,9 @@ function syncControlsFromState(state: Any){
     const s = toothState.get(tn);
     return s && discolorationAllowed(s);
   });
-  // #orthoCard visibility gate — reuses the same orthoAllowed predicate the
-  // render glyphs and tooltip use, so the card's visibility never contradicts the
-  // chart.
-  const orthoCardAllowed = selectedList.length > 0 && selectedList.every(tn => {
-    const s = toothState.get(tn);
-    return s && orthoAllowed(s);
-  });
+  // #orthoCard visibility is now owned by the declarative `OrthodonticsCard`
+  // (composable-UI Tier 3) via `getActiveOrtho().visible`, which reuses the same
+  // whole-selection `orthoAllowed` predicate this block used.
   const fissureAllowed = selectedList.length > 0 && selectedList.every(tn => {
     const s = toothState.get(tn);
     return s && s.toothSelection === "tooth-base" && FISSURE_ALLOWED.has(tn);
@@ -4055,7 +4117,6 @@ function syncControlsFromState(state: Any){
   $("#contactPointRow").classList.toggle("hidden", !contactAllowed);
   $("#bruxismRow").classList.toggle("hidden", !bruxismAllowed);
   $("#discolorationRow").classList.toggle("hidden", !discolorationRowAllowed);
-  $("#orthoCard").classList.toggle("hidden", !orthoCardAllowed);
   // Also hidden when fissure sealing is turned off in Settings.
   $("#fissureSealingRow").classList.toggle("hidden", !fissureAllowed || !fissureSealingEnabled);
   const extractionPlanAllowed = selectedList.length > 0 && selectedList.every(tn => {
@@ -9215,21 +9276,9 @@ function wireControls(){
     applyToSelected((s)=>{ s.discoloration = on ? "other" : "none"; });
   });
 
-  // Ortho (appliance/drift/vertical enum pickers + rotation boolean toggle —
-  // mirrors the discoloration buildSelect/toggle wiring above).
-  buildSelect($("#orthoApplianceSelect"), getOrthoApplianceOptions(), (value)=>{
-    applyToSelected((s)=>{ s.orthoAppliance = value; });
-  });
-  buildSelect($("#orthoDriftSelect"), getOrthoDriftOptions(), (value)=>{
-    applyToSelected((s)=>{ s.orthoDrift = value; });
-  });
-  buildSelect($("#orthoVerticalSelect"), getOrthoVerticalOptions(), (value)=>{
-    applyToSelected((s)=>{ s.orthoVertical = value; });
-  });
-  bindOnce($("#orthoRotationToggle"), "change", (e)=>{
-    const on = (e.target as HTMLInputElement).checked;
-    applyToSelected((s)=>{ s.orthoRotation = on; });
-  });
+  // Ortho appliance/drift/vertical pickers + rotation toggle are now wired
+  // declaratively by `OrthodonticsCard` (composable-UI Tier 3) through
+  // `setOrtho*ForSelection`; no imperative `#orthoCard` binding here.
 
   // Bridge pillar
   bindOnce($("#bridgePillar"), "change", (e)=>{

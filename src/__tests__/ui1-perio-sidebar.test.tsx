@@ -128,6 +128,15 @@ vi.mock("../odontogram", async () => {
     }),
     destroyOdontogram: vi.fn(),
     rewireControls: vi.fn(),
+    // Composable-UI Tier 3: OrthodonticsCard reads these engine exports.
+    getActiveOrtho: actual.getActiveOrtho,
+    getOrthoApplianceOptions: actual.getOrthoApplianceOptions,
+    getOrthoDriftOptions: actual.getOrthoDriftOptions,
+    getOrthoVerticalOptions: actual.getOrthoVerticalOptions,
+    setOrthoApplianceForSelection: actual.setOrthoApplianceForSelection,
+    setOrthoDriftForSelection: actual.setOrthoDriftForSelection,
+    setOrthoVerticalForSelection: actual.setOrthoVerticalForSelection,
+    setOrthoRotationForSelection: actual.setOrthoRotationForSelection,
     rebuildGrid: vi.fn().mockResolvedValue(undefined),
     // Real (not a bare vi.fn()) — this single file's hoisted vi.mock applies
     // to BOTH the direct <PerioSidebar/> renders (part a, which need real

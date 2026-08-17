@@ -47,9 +47,32 @@ const GOLDEN_PATH = path.resolve(__dirname, "shell-dom-golden.html");
  * refactor could plausibly disturb — are preserved verbatim.
  */
 function normalizeInlinedAssets(html: string): string {
-  return html
-    .replace(/data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+/g, "data:<inlined-image>")
-    .replace(/data-icon-src="[^"]{200,}"/g, 'data-icon-src="<inlined-svg>"');
+  return stripDynamicContents(
+    html
+      .replace(/data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+/g, "data:<inlined-image>")
+      .replace(/data-icon-src="[^"]{200,}"/g, 'data-icon-src="<inlined-svg>"'),
+  );
+}
+
+/**
+ * Strip the CONTENTS of controls whose children are runtime-populated, leaving
+ * the shell structure (ids, classes, attribute order) intact for comparison.
+ *
+ * Tier 3 converts the control cards from imperatively-populated static shells
+ * into declarative React that renders its `<option>`s / dynamic rows at mount.
+ * In the mocked-init golden those children used to be empty (init is stubbed);
+ * a declarative card renders them immediately. Normalizing the contents out
+ * makes the golden verify the shell STRUCTURE regardless of whether children
+ * come from imperative init or declarative JSX — so it stays byte-stable across
+ * all six card conversions. The children themselves (option lists, checkbox
+ * grids) are verified by the real-init behavior tests instead.
+ */
+function stripDynamicContents(html: string): string {
+  let out = html.replace(/(<select\b[^>]*>).*?(<\/select>)/g, "$1$2");
+  for (const id of ["cariesChecks", "fillingSurfaceChecks", "modsChecks", "cariesSubcrownRow", "perioGrid", "statusExtraSelect"]) {
+    out = out.replace(new RegExp(`(<div id="${id}"[^>]*>).*?(</div>)`, "g"), "$1$2");
+  }
+  return out;
 }
 
 /** Render the default shell composition and return its normalized markup. */

@@ -38,6 +38,18 @@ export { default as OdontogramTopbar } from "./surfaces/OdontogramTopbar";
 export { default as OdontogramChartSurface } from "./surfaces/OdontogramChartSurface";
 export { default as ToothInfoSurface } from "./surfaces/ToothInfoSurface";
 export { default as ToothControlsSurface } from "./surfaces/ToothControlsSurface";
+// Composable-UI Tier 3: declarative control cards + the shared subscription hook
+// and the per-card engine API they use (additive public surface).
+export { default as OrthodonticsCard } from "./surfaces/cards/OrthodonticsCard";
+export { useEngineState } from "./surfaces/useEngineState";
+export {
+  getActiveOrtho,
+  setOrthoApplianceForSelection,
+  setOrthoDriftForSelection,
+  setOrthoVerticalForSelection,
+  setOrthoRotationForSelection,
+} from "./odontogram";
+export type { ActiveOrtho } from "./odontogram";
 
 /**
  * Root React component for the Odontogram Editor (aka `OdontogramShell`).
