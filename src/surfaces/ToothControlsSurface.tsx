@@ -14,6 +14,7 @@ import { useOdontogramUi } from "../OdontogramContext";
 import { rewireControls } from "../odontogram";
 import OrthodonticsCard from "./cards/OrthodonticsCard";
 import StatusesCard from "./cards/StatusesCard";
+import CariesCard from "./cards/CariesCard";
 
 export default function ToothControlsSurface() {
   const { t, showStatusCard, showOrthoCard } = useOdontogramUi();
@@ -170,17 +171,7 @@ export default function ToothControlsSurface() {
                   <span className="toggle-icon" aria-hidden="true">−</span>
                 </button>
               </div>
-              <div className="hint">{t("caries.hint")}</div>
-              <div id="cariesDepthRow" className="row">
-                <span>{t("caries.depthLabel")}</span>
-                <select id="cariesDepthSelect"></select>
-              </div>
-              <div id="cariesChecks"></div>
-              <div id="cariesSubcrownRow" className="check-grid subcrown-row"></div>
-              <div id="rootCariesRow" className="row">
-                <span>{t("caries.rootLabel")}</span>
-                <select id="rootCariesSelect"></select>
-              </div>
+              <CariesCard />
             </section>
 
             <section id="fillingSection" className="card">

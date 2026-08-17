@@ -36,6 +36,13 @@ vi.mock("../odontogram", () => ({
   rewireControls: vi.fn(),
   // Composable-UI Tier 3: OrthodonticsCard reads these engine exports.
   getActiveOrtho: vi.fn().mockReturnValue(null),
+  getActiveCaries: vi.fn().mockReturnValue({ surfaces: [], subcrownChecked: false, subcrownDisabled: true, subcrownLabel: "", cariesActiveDepth: 2, rootCariesDisplay: "none", cariesDepthVisible: true, rootCariesVisible: true, cariesSectionVisible: true }),
+  getCariesDepthOptions: vi.fn().mockReturnValue([]),
+  rootCariesOptions: vi.fn().mockReturnValue([]),
+  setCariesSurfaceForSelection: vi.fn(),
+  setCariesActiveDepthForSelection: vi.fn(),
+  setRootCariesForSelection: vi.fn(),
+  openCariesDepthPopup: vi.fn(),
   getEdentulous: vi.fn().mockReturnValue(false),
   setEdentulous: vi.fn(),
   resetMouth: vi.fn(),

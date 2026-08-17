@@ -157,14 +157,8 @@ function getPeriapicalTypeOptions(){
   return optionsFor("periapicalType").map(o => ({ value: o.value, label: t(o.labelKey) }));
 }
 
-const CARIES_OPTIONS = [
-  { value: "caries-mesial", labelKey: "surface.mesial" },
-  { value: "caries-distal", labelKey: "surface.distal" },
-  { value: "caries-buccal", labelKey: "surface.buccal" },
-  { value: "caries-lingual", labelKey: "surface.lingualPalatal" },
-  { value: "caries-occlusal", labelKey: "surface.occlusal" },
-  { value: "caries-subcrown", labelKey: "surface.subcrown" },
-];
+// (The former `CARIES_OPTIONS` relabel table was removed with PR 3c — the
+// declarative `CariesCard` owns the caries surface-cross labels/letters now.)
 
 const FILLING_SURFACE_LABELS: Record<string, string> = {
   buccal: "surface.buccal",
@@ -1846,7 +1840,7 @@ export function icdasTier(code: number): 1|2|3 { return code <= 2 ? 1 : code <= 
 export function threeLevelToIcdas(level: string): number { return level === "deep" ? 6 : level === "dentin" ? 4 : 2; }
 export function icdasToThreeLevel(code: number): string { const t = icdasTier(code); return t === 3 ? "deep" : t === 2 ? "dentin" : "surface"; }
 
-function getCariesDepthOptions(): Array<{ value: number; label: string; title?: string }>{
+export function getCariesDepthOptions(): Array<{ value: number; label: string; title?: string }>{
   if(icdasEnabled){
     return [1,2,3,4,5,6].map((n)=>({ value:n, label:`${n} — ${t(`icdas.code.${n}`)}`, title:t(`icdas.desc.${n}`) }));
   }
@@ -2267,6 +2261,145 @@ export function setOrthoVerticalForSelection(value: string): void {
 }
 export function setOrthoRotationForSelection(on: boolean): void {
   applyToSelected((s: Any)=>{ s.orthoRotation = on; });
+}
+
+// ── Caries card engine API (composable-UI Tier 3, PR 3c) ────────────────────
+// The declarative `CariesCard` reads/writes the caries axes through these
+// functions instead of the former imperative `wireControls()`/
+// `syncControlsFromState()` `#cariesSection` block. `getActiveCaries()` returns
+// the ACTIVE tooth's per-surface caries/severity/disabled state, the subcrown
+// row state, the depth/root-caries values, and the row/card visibility flags the
+// sync used; the setters wrap the exact `applyToSelected(...)` closures
+// `wireControls()` bound (the `cariesOnToggle`, depth, and root-caries handlers),
+// so behavior is identical — only the call site moves from a DOM listener to a
+// React onChange. Reuses the same helpers the imperative sync used
+// (`syncSurfaceDepthIndicator`'s badge math, `surfaceLetter`/`surfaceLabelKey`,
+// `rootCariesDisplayValue`) so the rendered cell/indicator DOM is byte-identical.
+
+/** One caries surface-cross cell's fully-resolved render state. */
+export type ActiveCariesSurface = {
+  value: string;       // checkbox value + id source, e.g. "caries-buccal"
+  surface: string;     // stored surface key, e.g. "buccal"
+  pos: string;         // grid position class suffix (pos-{pos})
+  letter: string;      // arch/notation-aware boxed letter (surfaceLetter)
+  label: string;       // arch/notation-aware caption (surfaceLabelKey → t)
+  checked: boolean;
+  disabled: boolean;   // when true the whole cell is display:none (parity)
+  depth: string;       // .surf-depth data-depth (icdasToThreeLevel)
+  icdas: number;       // .surf-depth data-icdas
+  isIcdas: boolean;    // badge (true) vs 3-bar (false) rendering
+  radio: string | null;// .surf-depth data-radio (or null → attr omitted)
+};
+
+export type ActiveCaries = {
+  surfaces: ActiveCariesSurface[];   // 5 cells, in buildSurfaceCross order
+  subcrownChecked: boolean;
+  subcrownDisabled: boolean;         // display:none on the subcrown label
+  subcrownLabel: string;
+  cariesActiveDepth: number;         // #cariesDepthSelect value
+  rootCariesDisplay: string;         // #rootCariesSelect value (NON-collapsing)
+  cariesDepthVisible: boolean;       // #cariesDepthRow
+  rootCariesVisible: boolean;        // #rootCariesRow
+  cariesSectionVisible: boolean;     // #cariesSection
+};
+
+// The 5 caries surface cells, in the exact order + labelling
+// `buildSurfaceCross($("#cariesChecks"), …)` emitted.
+const CARIES_SURFACE_CELLS: Array<{ value: string; surface: string; pos: string }> = [
+  { value: "caries-buccal", surface: "buccal", pos: "buccal" },
+  { value: "caries-mesial", surface: "mesial", pos: "mesial" },
+  { value: "caries-occlusal", surface: "occlusal", pos: "occlusal" },
+  { value: "caries-distal", surface: "distal", pos: "distal" },
+  { value: "caries-lingual", surface: "lingual", pos: "lingual" },
+];
+
+export function getActiveCaries(): ActiveCaries {
+  // No active tooth → derive from a default state so the cross always renders
+  // (buildSurfaceCross built it once at init regardless of selection) and the
+  // visibility flags default to "shown" (matching the pre-sync static shell).
+  const state = (activeTooth != null ? toothState.get(activeTooth) : null) ?? defaultState();
+  const isPlan = getChartMode() === "plan";
+  const toothNo = activeTooth ?? null;
+
+  const hasCrown = state.restorationType !== "none";
+  const hasRemovable = state.toothSelection === "none"
+    && (state.prosthesis === "removable-partial" || state.prosthesis === "removable-full");
+  const hasRestoration = hasCrown || hasRemovable;
+
+  const surfaces: ActiveCariesSurface[] = CARIES_SURFACE_CELLS.map((cell) => {
+    // Mirrors syncSurfaceDepthIndicator's per-cell badge math.
+    const code = state.cariesSeverity.get(cell.surface) || 2;
+    const radioVal = state.radiographicDepth?.get(cell.surface);
+    const radio = (radiographicDepthMode !== "off" && radioVal && radioVal !== "none")
+      ? radioVal : null;
+    return {
+      value: cell.value,
+      surface: cell.surface,
+      pos: cell.pos,
+      letter: surfaceLetter(cell.surface, toothNo),
+      label: t(surfaceLabelKey(cell.surface, toothNo)),
+      checked: state.caries.has(cell.value),
+      // Same disable predicate the sync used for the 5 surface checkboxes.
+      disabled: hasRestoration || hasCrown,
+      depth: icdasToThreeLevel(code),
+      icdas: code,
+      isIcdas: icdasEnabled,
+      radio,
+    };
+  });
+
+  return {
+    surfaces,
+    subcrownChecked: state.caries.has("caries-subcrown"),
+    subcrownDisabled: !hasCrown,
+    subcrownLabel: t("surface.subcrown"),
+    cariesActiveDepth: state.cariesActiveDepth,
+    rootCariesDisplay: rootCariesDisplayValue(rootCariesMode, state.rootCaries),
+    cariesDepthVisible: cariesDepthEnabled && !isPlan,
+    rootCariesVisible: isToothPresent(state.toothSelection) && !isPlan,
+    cariesSectionVisible: cariesSectionVisible(state, isPlan),
+  };
+}
+
+// The `#cariesSection` hide predicate, folded out of `syncControlsFromState`
+// verbatim (hideByBase || hideByRadix || isPlan), including the whole-selection
+// `hiddenSelected` term.
+function cariesSectionVisible(state: Any, isPlan: boolean): boolean {
+  const underGum = isUnderGum(state.toothSelection);
+  const extraction = isExtraction(state.toothSelection) || (state.toothSelection === "none" && state.extractionWound);
+  const selectedArr = selectedTeeth.size > 0 ? Array.from(selectedTeeth) : [];
+  const hiddenSelected = selectedArr.length > 0 && selectedArr.some((tn) => {
+    const sel = toothState.get(tn)?.toothSelection;
+    return sel === "implant" || sel === "none" || sel === "tooth-under-gum" || sel === "no-tooth-after-extraction";
+  });
+  const hideByBase = state.toothSelection === "implant" || state.toothSelection === "none" || underGum || extraction || hiddenSelected;
+  const hideByRadix = state.toothSubstrate === "radix";
+  return !(hideByBase || hideByRadix || isPlan);
+}
+
+/** Toggle one caries surface (or the subcrown) on the current selection —
+ *  wraps the exact `cariesOnToggle` closure `wireControls()` bound. */
+export function setCariesSurfaceForSelection(id: string, on: boolean): void {
+  applyToSelected((s: Any)=>{
+    if(on){
+      s.caries.add(id);
+      if(id !== "caries-subcrown") s.cariesSeverity.set(id.replace("caries-", ""), s.cariesActiveDepth);
+    }else{
+      s.caries.delete(id);
+      s.cariesSeverity.delete(id.replace("caries-", ""));
+    }
+  });
+}
+
+/** Set the default (active) caries depth for newly-tapped surfaces. */
+export function setCariesActiveDepthForSelection(value: number): void {
+  applyToSelected((s: Any)=>{ s.cariesActiveDepth = Number(value); });
+}
+
+/** Set the per-tooth root-caries value (the picker already emits the canonical
+ *  enum value; simple-mode "present" maps to "active-cavitated"). */
+export function setRootCariesForSelection(value: string): void {
+  applyToSelected((s: Any)=>{ s.rootCaries = value; });
 }
 
 function getPeriImplantOptions(): { value: string; label: string }[]{
@@ -3957,26 +4090,9 @@ function syncControlsFromState(state: Any){
     state.resorptionType = $("#resorptionSelect").value;
   }
 
-  // caries (cross surfaces + the separate subcrown row) + per-surface depth indicator
-  // (ICDAS `data-depth`/`data-icdas` badge + `data-radio` — see
-  // syncSurfaceDepthIndicator())
-  $$("#cariesChecks input[type=checkbox], #cariesSubcrownRow input[type=checkbox]").forEach(c => c.checked = state.caries.has(c.value));
-  $$("#cariesChecks .surface-cell").forEach(cell => syncSurfaceDepthIndicator(cell, state));
-
-  // Depth selector at the top sets the DEFAULT depth for newly tapped surfaces.
-  // The whole visual caries-depth UI is gated by `cariesDepthEnabled`.
-  $("#cariesDepthRow").classList.toggle("hidden", !cariesDepthEnabled || isPlan);
-  setSelectOptions($("#cariesDepthSelect"), getCariesDepthOptions(), state.cariesActiveDepth);
-  if($("#cariesDepthSelect").value !== String(state.cariesActiveDepth)){
-    state.cariesActiveDepth = Number($("#cariesDepthSelect").value);
-  }
-
-  // Per-tooth root-caries picker. Options come from the current
-  // `rootCariesMode`; the stored value is displayed collapsed to that list but
-  // NEVER written back (non-collapsing — widening the mode reveals it again).
-  // Shown only on a present tooth (mirrors the endo/pulp per-tooth controls).
-  setSelectOptions($("#rootCariesSelect"), rootCariesOptions(), rootCariesDisplayValue(rootCariesMode, state.rootCaries));
-  $("#rootCariesRow").classList.toggle("hidden", !isToothPresent(state.toothSelection) || isPlan);
+  // caries card (surface cross + subcrown row + depth/root-caries selects + the
+  // `.surf-depth` severity indicators) is now the declarative `CariesCard`
+  // (composable-UI Tier 3, PR 3c) via `getActiveCaries()`; no imperative sync here.
 
   // filling surfaces
   $$("#fillingSurfaceChecks input[type=checkbox]").forEach(c => {
@@ -3994,13 +4110,6 @@ function syncControlsFromState(state: Any){
 
   // disable logic in UI
   const hasCrown = state.restorationType !== "none";
-  const hasRemovable = state.toothSelection === "none"
-    && (state.prosthesis === "removable-partial" || state.prosthesis === "removable-full");
-  const hasRestoration = hasCrown || hasRemovable;
-  $$("#cariesChecks input[type=checkbox], #cariesSubcrownRow input[type=checkbox]").forEach(c => {
-    if(c.value === "caries-subcrown") setDisabled(c, !hasCrown);
-    else setDisabled(c, hasRestoration || hasCrown);
-  });
   const showFillingSurfaces = state.fillingMaterial !== "none" && !hasCrown;
   // In "simple" complexity, the per-surface grid is replaced by a single
   // filled/not-filled toggle (both gated on showFillingSurfaces).
@@ -4048,11 +4157,9 @@ function syncControlsFromState(state: Any){
   const hideByBase = state.toothSelection === "implant" || state.toothSelection === "none" || underGum || extraction || hiddenSelected;
   const noneSelected = selectedArr.length > 0 && selectedArr.some(tn => toothState.get(tn)?.toothSelection === "none");
   const hideByNone = state.toothSelection === "none" || noneSelected;
-  const hideByRadix = state.toothSubstrate === "radix";
-  // Plan-mode: caries is a status finding (a diagnosis), so the whole caries
-  // section is hidden in Plan — a filling/restoration is still plannable via the
-  // Fillings + Restoration controls, which stay visible.
-  $("#cariesSection").classList.toggle("hidden", hideByBase || hideByRadix || isPlan);
+  // The #cariesSection visibility gate (hideByBase || hideByRadix || isPlan) now
+  // lives in `getActiveCaries().cariesSectionVisible` and is applied by the
+  // declarative `CariesCard` (composable-UI Tier 3, PR 3c).
   const hideFillingsByCrown = state.toothSelection === "tooth-base" && hasCrown;
   $("#fillingSection").classList.toggle("hidden", hideByBase || hideFillingsByCrown);
   // Combined restoration dropdown: available on a present permanent tooth and on
@@ -4423,25 +4530,9 @@ function refreshCheckLabels(){
     const label = $(`#lbl-${opt.value}`);
     if(label) label.textContent = t(opt.labelKey);
   }
-  for(const opt of CARIES_OPTIONS){
-    const label = $(`#lbl-${opt.value}`);
-    if(!label) continue;
-    const surface = opt.value.replace("caries-", "");
-    // occlusal, buccal, and lingual all resolve through surfaceLabelKey —
-    // arch/anterior-aware in "full" notation mode
-    // ("incisal"/"labial"/"palatal"); mesial/distal/subcrown are
-    // position-independent and keep their own generic labelKey.
-    const key = (surface === "occlusal" || surface === "buccal" || surface === "lingual")
-      ? surfaceLabelKey(surface, activeTooth)
-      : opt.labelKey;
-    label.textContent = t(key);
-    // The boxed `.surf-letter` span is set once at build time (buildSurfaceCross);
-    // rewrite it here per-tooth so it tracks the active tooth's position + the
-    // surfaceNotation setting (subcrown has no `.surf-letter` sibling, so this is
-    // a no-op there).
-    const letterEl = label.parentElement?.querySelector(".surf-letter");
-    if(letterEl) letterEl.textContent = surfaceLetter(surface, activeTooth);
-  }
+  // The caries surface-cross labels/letters (#lbl-caries-*) are now owned by the
+  // declarative `CariesCard` (composable-UI Tier 3, PR 3c), which computes them
+  // arch/notation-aware from `getActiveCaries()` — no imperative relabel here.
   for(const surface of GROUPS.fillingSurfaces){
     const label = $(`#lbl-${surface}`);
     if(!label) continue;
@@ -4520,8 +4611,9 @@ function refreshAllSelectOptions(){
   if(apicalEl) setSelectOptions(apicalEl, getApicalDxOptions(), apicalEl.value);
   const resorptionEl = $("#resorptionSelect");
   if(resorptionEl) setSelectOptions(resorptionEl, getResorptionOptions(), resorptionEl.value);
-  const cariesDepthEl = $("#cariesDepthSelect");
-  if(cariesDepthEl) setSelectOptions(cariesDepthEl, getCariesDepthOptions(), Number(cariesDepthEl.value));
+  // #cariesDepthSelect / #rootCariesSelect are re-localized by the declarative
+  // `CariesCard` (composable-UI Tier 3, PR 3c) on its React re-render, like the
+  // ortho/status-extra selects — no imperative re-localize here.
 }
 
 function refreshLocalizedContent(){
@@ -4962,6 +5054,16 @@ function showCariesDepthPopup(surface: string, anchor: HTMLElement, toothNo?: nu
     document.addEventListener("mousedown", onDoc, true);
     document.addEventListener("keydown", onKey, true);
   }, 0);
+}
+
+/** Public entry point for the declarative `CariesCard`'s per-surface `.surf-depth`
+ *  indicator click: opens the contextual severity popup for `surface`, anchored
+ *  to `anchor`, on the currently-active tooth — the exact call `wireControls()`
+ *  made (`showCariesDepthPopup(surface, ind, activeTooth)`). Kept as a thin
+ *  wrapper so the popup overlay itself stays imperative (module-private state:
+ *  `activeTooth` / `applyToSelected`). */
+export function openCariesDepthPopup(surface: string, anchor: HTMLElement): void {
+  showCariesDepthPopup(surface, anchor, activeTooth);
 }
 
 /** Small dedicated anchored popup to author the structural
@@ -9097,56 +9199,12 @@ function wireControls(){
     applyToSelected((s)=>{ s.periapicalType = val; });
   });
 
-  // Caries surfaces in a cross layout; subcrown stays as a separate row.
-  // Toggling a surface on records its severity (from the active-depth dropdown);
-  // toggling off clears it. Subcrown carries no per-surface severity. Records
-  // into the single unified `cariesSeverity` map.
-  const cariesOnToggle = (id: Any, on: Any)=>{
-    applyToSelected((s)=>{
-      if(on){
-        s.caries.add(id);
-        if(id !== "caries-subcrown") s.cariesSeverity.set(id.replace("caries-",""), s.cariesActiveDepth);
-      }else{
-        s.caries.delete(id);
-        s.cariesSeverity.delete(id.replace("caries-",""));
-      }
-    });
-  };
-  buildSurfaceCross($("#cariesChecks"), [
-    { value: "caries-buccal", labelKey: "surface.buccal", letter: "B", pos: "buccal" },
-    { value: "caries-mesial", labelKey: "surface.mesial", letter: "M", pos: "mesial" },
-    { value: "caries-occlusal", labelKey: "surface.occlusal", letter: "O", pos: "occlusal" },
-    { value: "caries-distal", labelKey: "surface.distal", letter: "D", pos: "distal" },
-    { value: "caries-lingual", labelKey: "surface.lingualPalatal", letter: "L", pos: "lingual" },
-  ], cariesOnToggle);
-  // Add a per-surface depth indicator (3 stacked bars) inside each caries cell.
-  // Clicking it opens a popup to change that surface's depth (only when caried).
-  $$("#cariesChecks .surface-cell").forEach((cell) => {
-    const input = cell.querySelector("input") as HTMLInputElement | null;
-    if(!input) return;
-    if(cell.querySelector(".surf-depth")) return; // still-mounted cell already has its indicator
-    const surface = String(input.value).replace("caries-", "");
-    const ind = el("span", { class: "surf-depth", title: t("caries.detailsHint") }, [ el("i"), el("i"), el("i") ]);
-    ind.addEventListener("click", (e: Any)=>{
-      e.preventDefault();
-      e.stopPropagation();
-      if(!input.checked || readOnly) return;
-      showCariesDepthPopup(surface, ind, activeTooth);
-    });
-    cell.appendChild(ind);
-  });
-  buildChecks($("#cariesSubcrownRow"), [
-    { value: "caries-subcrown", labelKey: "surface.subcrown" },
-  ], cariesOnToggle);
-  buildSelect($("#cariesDepthSelect"), getCariesDepthOptions(), (val)=>{
-    applyToSelected((s)=>{ s.cariesActiveDepth = Number(val); });
-  });
-  // Per-tooth root-caries picker. On change the selected value is the canonical
-  // rootCaries enum (simple mode's "present" already maps to "active-cavitated"),
-  // so it writes straight to state.
-  buildSelect($("#rootCariesSelect"), rootCariesOptions(), (value)=>{
-    applyToSelected((s)=>{ s.rootCaries = value; });
-  });
+  // Caries card (#cariesSection body) is now the declarative `CariesCard`
+  // (composable-UI Tier 3, PR 3c): its surface-cross, subcrown row, depth select,
+  // root-caries select, and `.surf-depth` severity-popup indicators are rendered
+  // from `getActiveCaries()` and written through `setCariesSurfaceForSelection`/
+  // `setCariesActiveDepthForSelection`/`setRootCariesForSelection`/
+  // `openCariesDepthPopup` — no imperative wiring here.
 
   // Filling material dropdown
   buildSelect($("#fillingSelect"), getFillingOptions(false), (mat)=>{

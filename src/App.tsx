@@ -42,6 +42,8 @@ export { default as ToothControlsSurface } from "./surfaces/ToothControlsSurface
 // and the per-card engine API they use (additive public surface).
 export { default as OrthodonticsCard } from "./surfaces/cards/OrthodonticsCard";
 export { default as StatusesCard } from "./surfaces/cards/StatusesCard";
+export { default as CariesCard } from "./surfaces/cards/CariesCard";
+export { default as SurfaceCross } from "./surfaces/cards/SurfaceCross";
 export { useEngineState } from "./surfaces/useEngineState";
 export {
   getActiveOrtho,
@@ -56,8 +58,16 @@ export {
   applyMixedDentition,
   getStatusExtras,
   applyStatusExtra,
+  getActiveCaries,
+  getCariesDepthOptions,
+  rootCariesOptions,
+  setCariesSurfaceForSelection,
+  setCariesActiveDepthForSelection,
+  setRootCariesForSelection,
+  openCariesDepthPopup,
 } from "./odontogram";
-export type { ActiveOrtho } from "./odontogram";
+export type { ActiveOrtho, ActiveCaries, ActiveCariesSurface } from "./odontogram";
+export type { SurfaceCell, SurfaceIndicator } from "./surfaces/cards/SurfaceCross";
 
 /**
  * Root React component for the Odontogram Editor (aka `OdontogramShell`).

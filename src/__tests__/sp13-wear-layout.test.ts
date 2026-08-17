@@ -32,6 +32,13 @@ vi.mock("../odontogram", async () => {
     rewireControls: vi.fn(),
     // Composable-UI Tier 3: OrthodonticsCard reads these engine exports.
     getActiveOrtho: actual.getActiveOrtho,
+    getActiveCaries: actual.getActiveCaries,
+    getCariesDepthOptions: actual.getCariesDepthOptions,
+    rootCariesOptions: actual.rootCariesOptions,
+    setCariesSurfaceForSelection: actual.setCariesSurfaceForSelection,
+    setCariesActiveDepthForSelection: actual.setCariesActiveDepthForSelection,
+    setRootCariesForSelection: actual.setRootCariesForSelection,
+    openCariesDepthPopup: actual.openCariesDepthPopup,
     getEdentulous: actual.getEdentulous,
     setEdentulous: actual.setEdentulous,
     resetMouth: actual.resetMouth,

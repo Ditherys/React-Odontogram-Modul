@@ -66,11 +66,42 @@ function normalizeInlinedAssets(html: string): string {
  * come from imperative init or declarative JSX — so it stays byte-stable across
  * all six card conversions. The children themselves (option lists, checkbox
  * grids) are verified by the real-init behavior tests instead.
+ *
+ * The container emptier is NESTING-AWARE: PR 3c's declarative `#cariesChecks`
+ * wraps its cells in a `.surface-cross` <div> (the imperative `buildSurfaceCross`
+ * did too), so a naive `.*?</div>` would stop at the inner close tag and leave a
+ * stray `</div>`. `emptyContainer` walks tags counting depth to find the
+ * container's MATCHING close, then blanks everything between — reducing a
+ * populated container to `<div id="…" …></div>` exactly as the empty
+ * mocked-init shell serialised.
  */
+function emptyContainer(html: string, id: string): string {
+  const openRe = new RegExp(`<div id="${id}"[^>]*>`, "g");
+  let m: RegExpExecArray | null;
+  while ((m = openRe.exec(html)) !== null) {
+    const contentStart = m.index + m[0].length;
+    // Walk forward from the open tag, tracking <div>/</div> nesting depth.
+    let depth = 1;
+    const tagRe = /<\/?div\b[^>]*>/g;
+    tagRe.lastIndex = contentStart;
+    let t: RegExpExecArray | null;
+    while ((t = tagRe.exec(html)) !== null) {
+      depth += t[0].startsWith("</") ? -1 : 1;
+      if (depth === 0) {
+        // t is the matching close tag; blank the content between.
+        html = html.slice(0, contentStart) + html.slice(t.index);
+        openRe.lastIndex = contentStart + "</div>".length;
+        break;
+      }
+    }
+  }
+  return html;
+}
+
 function stripDynamicContents(html: string): string {
   let out = html.replace(/(<select\b[^>]*>).*?(<\/select>)/g, "$1$2");
   for (const id of ["cariesChecks", "fillingSurfaceChecks", "modsChecks", "cariesSubcrownRow", "perioGrid", "statusExtraSelect"]) {
-    out = out.replace(new RegExp(`(<div id="${id}"[^>]*>).*?(</div>)`, "g"), "$1$2");
+    out = emptyContainer(out, id);
   }
   return out;
 }

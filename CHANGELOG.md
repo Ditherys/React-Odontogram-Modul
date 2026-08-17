@@ -15,10 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   each reading engine state via a new `useEngineState()` hook and writing through
   new getters/selection-setters. Converted so far: the **Orthodontics** card
   (`OrthodonticsCard`; `getActiveOrtho()`, `setOrtho{Appliance,Drift,Vertical,Rotation}ForSelection`)
-  and the **Statuses** card body (`StatusesCard`; `getEdentulous()`, `resetMouth()`,
+  the **Statuses** card body (`StatusesCard`; `getEdentulous()`, `resetMouth()`,
   reusing `setEdentulous`/`applyPrimaryDentition`/`applyMixedDentition`/`getStatusExtras`/`applyStatusExtra`)
-  — the latter also fully declarativizing the Edentulous toggle (its `aria-pressed`
-  now derives from state, replacing the delegated handler + imperative syncs).
+  — also fully declarativizing the Edentulous toggle (its `aria-pressed` now derives
+  from state, replacing the delegated handler + imperative syncs) — and the
+  **Caries** card body (`CariesCard` + a reusable `SurfaceCross` per-surface grid
+  component; `getActiveCaries()`, `setCariesSurfaceForSelection`/`…Depth…`/`setRootCariesForSelection`).
   Behavior and rendered DOM are unchanged. No payload/FHIR/render change; all
   goldens byte-identical; payload version unchanged.
 - **Composable UI: on-demand surfaces (issue #20, Tier 2).** Control wiring is now
