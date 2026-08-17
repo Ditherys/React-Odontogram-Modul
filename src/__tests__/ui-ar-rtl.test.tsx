@@ -22,6 +22,13 @@ vi.mock('../odontogram', () => ({
   rewireControls: vi.fn(),
   // Composable-UI Tier 3: OrthodonticsCard reads these engine exports.
   getActiveOrtho: vi.fn().mockReturnValue(null),
+  getEdentulous: vi.fn().mockReturnValue(false),
+  setEdentulous: vi.fn(),
+  resetMouth: vi.fn(),
+  applyPrimaryDentition: vi.fn(),
+  applyMixedDentition: vi.fn(),
+  getStatusExtras: vi.fn().mockReturnValue([]),
+  applyStatusExtra: vi.fn(),
   getOrthoApplianceOptions: vi.fn().mockReturnValue([]),
   getOrthoDriftOptions: vi.fn().mockReturnValue([]),
   getOrthoVerticalOptions: vi.fn().mockReturnValue([]),

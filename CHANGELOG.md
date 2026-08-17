@@ -9,14 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Composable UI: first declarative control card (issue #20, Tier 3a).** The
-  Orthodontics card is now a self-contained declarative React component
-  (`OrthodonticsCard`), reading engine state via a new `useEngineState()` hook and
-  writing through new selection setters (`getActiveOrtho()`,
-  `setOrthoApplianceForSelection`/`…Drift…`/`…Vertical…`/`setOrthoRotationForSelection`)
-  instead of imperative id-bound wiring — the pattern (following `PerioSidebar`) that
-  the remaining control cards will follow. Behavior and rendered DOM are unchanged.
-  No payload/FHIR/render change; all goldens byte-identical; payload version unchanged.
+- **Composable UI: declarative control cards (issue #20, Tier 3).** The control
+  cards are being converted from imperative id-bound wiring to self-contained
+  declarative React components (following `PerioSidebar`), one per release step,
+  each reading engine state via a new `useEngineState()` hook and writing through
+  new getters/selection-setters. Converted so far: the **Orthodontics** card
+  (`OrthodonticsCard`; `getActiveOrtho()`, `setOrtho{Appliance,Drift,Vertical,Rotation}ForSelection`)
+  and the **Statuses** card body (`StatusesCard`; `getEdentulous()`, `resetMouth()`,
+  reusing `setEdentulous`/`applyPrimaryDentition`/`applyMixedDentition`/`getStatusExtras`/`applyStatusExtra`)
+  — the latter also fully declarativizing the Edentulous toggle (its `aria-pressed`
+  now derives from state, replacing the delegated handler + imperative syncs).
+  Behavior and rendered DOM are unchanged. No payload/FHIR/render change; all
+  goldens byte-identical; payload version unchanged.
 - **Composable UI: on-demand surfaces (issue #20, Tier 2).** Control wiring is now
   re-runnable / idempotent, so a surface can **unmount and remount** (e.g. mount on
   demand in a drawer or tab) — the Tier 1 "mount every surface before init / hide

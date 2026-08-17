@@ -13,6 +13,7 @@ import { useEffect } from "react";
 import { useOdontogramUi } from "../OdontogramContext";
 import { rewireControls } from "../odontogram";
 import OrthodonticsCard from "./cards/OrthodonticsCard";
+import StatusesCard from "./cards/StatusesCard";
 
 export default function ToothControlsSurface() {
   const { t, showStatusCard, showOrthoCard } = useOdontogramUi();
@@ -67,17 +68,7 @@ export default function ToothControlsSurface() {
                     <span className="toggle-icon" aria-hidden="true">−</span>
                   </button>
                 </div>
-                <div className="row status-actions" id="statusCardBody">
-                  <button id="btnResetAll" className="btn btn-ghost btn-sm">{t("status.resetAll")}</button>
-                  <button id="btnPrimaryDentition" className="btn btn-ghost btn-sm">{t("status.primaryDentition")}</button>
-                  <button id="btnMixedDentition" className="btn btn-ghost btn-sm">{t("status.mixedDentition")}</button>
-                  <button id="btnEdentulous" className="btn btn-toggle btn-sm" aria-pressed="false">{t("status.edentulous")}</button>
-                </div>
-                <div className="row status-extra-row">
-                  <span>{t("status.extraLabel")}</span>
-                  <select id="statusExtraSelect"></select>
-                  <button id="statusExtraApply" className="btn btn-ghost btn-sm">{t("status.extraApply")}</button>
-                </div>
+                <StatusesCard />
               </section>
             </div>
 

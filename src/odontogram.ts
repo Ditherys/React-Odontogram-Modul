@@ -1307,7 +1307,6 @@ function onGlobalToggleClick(e: Any){
     case "btnOcclView": setOcclusalVisible(!occlusalVisible); break;
     case "btnBoneVisible": setShowBase(!showBase); break;
     case "btnPulpVisible": setHealthyPulpVisible(!showHealthyPulp); break;
-    case "btnEdentulous": setEdentulous(!edentulous); break;
   }
 }
 
@@ -1801,7 +1800,7 @@ function getToothSelectOptions(){
   return all.filter(o => allowed.has(o.value));
 }
 
-function getStatusExtras(){
+export function getStatusExtras(){
   if(!STATUS_EXTRAS || !Array.isArray(STATUS_EXTRAS.options)) return [];
   return STATUS_EXTRAS.options.map((opt)=>({
     ...opt,
@@ -4275,7 +4274,6 @@ function resetTeethGated(toothNos: number[]): void {
   gateToothEditBatch(toothNos, () => {
     if(edentulous){
       edentulous = false;
-      setToggleButton($("#btnEdentulous"), edentulous);
     }
     for(const toothNo of toothNos){
       toothState.set(toothNo, defaultState());
@@ -4290,6 +4288,31 @@ function resetTeethGated(toothNos: number[]): void {
   });
 }
 
+/** Reset the WHOLE mouth to a blank slate — the exact closure the imperative
+ *  `#btnResetAll` handler used, now called directly from the declarative Statuses
+ *  card's onClick. Clears the edentulous flag + case-level metadata, resets every
+ *  tooth to `defaultState()`, re-syncs the active tooth's controls, and notifies
+ *  once at the end so the mounted case-metadata/Statuses subscribers re-read the
+ *  cleared state. */
+export function resetMouth(): void {
+  setEdentulous(false);
+  resetCaseMeta(); // case-level patient metadata is part of the blank-slate reset (like edentulous)
+  for(const toothNo of ALL_TEETH){
+    toothState.set(toothNo, defaultState());
+    applyStateToSvg(toothNo);
+    updateToothTileNumber(toothNo);
+  }
+  if(activeTooth){
+    setControlsEnabled(true);
+    syncControlsFromState(toothState.get(activeTooth));
+  }
+  // caseMeta was cleared above (resetCaseMeta) AFTER setEdentulous's early
+  // notify fired, so the mounted case-metadata panel would otherwise show
+  // stale patient data until the next unrelated change — notify once more now
+  // that all blank-slate resets are done, so subscribers re-read cleared state.
+  notifyStateChange();
+}
+
 /** Apply the PRIMARY (deciduous) dentition preset — a STRUCTURAL
  *  interactive edit (not a reset), routed through the batch gate. `targetFor`
  *  is the state each tooth ends up in; only teeth that actually change are
@@ -4300,7 +4323,7 @@ function resetTeethGated(toothNos: number[]): void {
  *  would leave `edentulous` flipped while every tooth
  *  is untouched (flag/teeth mismatch). `notifyStateChange()` moves inside too so
  *  the whole-mouth refresh fires when the batch actually applies. */
-function applyPrimaryDentition(): void {
+export function applyPrimaryDentition(): void {
   const targetFor = (toothNo: number)=>{
     const s = defaultState();
     s.toothSelection = PRIMARY_MILK.has(toothNo) ? "milktooth" : "none";
@@ -4309,7 +4332,6 @@ function applyPrimaryDentition(): void {
   const changed = ALL_TEETH.filter(tn => JSON.stringify(serializeState(toothState.get(tn) ?? defaultState())) !== JSON.stringify(serializeState(targetFor(tn))));
   gateToothEditBatch(changed, ()=>{
     edentulous = false;
-    setToggleButton($("#btnEdentulous"), edentulous);
     suppressEdentulousSync = true;
     for(const toothNo of ALL_TEETH){
       toothState.set(toothNo, targetFor(toothNo));
@@ -4325,7 +4347,7 @@ function applyPrimaryDentition(): void {
 /** Apply the MIXED dentition preset — see {@link applyPrimaryDentition}; gated
  *  STRUCTURAL edit with per-tooth no-op signaling and the `edentulous` flip
  *  inside the gated closure. */
-function applyMixedDentition(): void {
+export function applyMixedDentition(): void {
   const targetFor = (toothNo: number)=>{
     const s = defaultState();
     if(MIXED_PERMANENT.has(toothNo)){
@@ -4340,7 +4362,6 @@ function applyMixedDentition(): void {
   const changed = ALL_TEETH.filter(tn => JSON.stringify(serializeState(toothState.get(tn) ?? defaultState())) !== JSON.stringify(serializeState(targetFor(tn))));
   gateToothEditBatch(changed, ()=>{
     edentulous = false;
-    setToggleButton($("#btnEdentulous"), edentulous);
     suppressEdentulousSync = true;
     for(const toothNo of ALL_TEETH){
       toothState.set(toothNo, targetFor(toothNo));
@@ -5245,7 +5266,7 @@ function updateToothTileVisibility(){
   updateSelectionUI();
 }
 
-function setEdentulous(on: Any){
+export function setEdentulous(on: Any){
   if(on){
     // Turning on whole-mouth edentulous is a STRUCTURAL interactive edit
     // (not a reset), so route it through the batch gate — in plan mode every
@@ -5266,7 +5287,6 @@ function setEdentulous(on: Any){
     // whole-mouth refresh fires when the batch actually applies.
     gateToothEditBatch(changed, ()=>{
       edentulous = true;
-      setToggleButton($("#btnEdentulous"), edentulous);
       suppressEdentulousSync = true;
       for(const toothNo of ALL_TEETH){
         const s = defaultState();
@@ -5284,9 +5304,15 @@ function setEdentulous(on: Any){
   // Un-setting edentulous is not a per-tooth structural edit (it touches no tooth
   // state here), so it applies immediately and is never gated.
   edentulous = false;
-  setToggleButton($("#btnEdentulous"), edentulous);
   notifyStateChange();
 }
+
+/** Read the whole-mouth edentulous flag. Backs the declarative Statuses card's
+ *  `#btnEdentulous` `aria-pressed` via `useEngineState(getEdentulous)`, replacing
+ *  the former imperative `setToggleButton($("#btnEdentulous"), …)` syncs — every
+ *  path that flips `edentulous` fires `notifyStateChange()`, so the React button
+ *  re-reads this and re-renders. */
+export function getEdentulous(): boolean { return edentulous; }
 
 /** Toggle visibility of wisdom teeth (18, 28, 38, 48). */
 function setWisdomVisible(on: Any){
@@ -8490,7 +8516,6 @@ export function importStatus(data: Any){
     if(typeof data.globals.showHealthyPulp === "boolean") setHealthyPulpVisible(data.globals.showHealthyPulp);
     if(typeof data.globals.edentulous === "boolean"){
       edentulous = data.globals.edentulous;
-      setToggleButton($("#btnEdentulous"), edentulous);
     }
   }
   updateSelectionFilterButtons();
@@ -8529,7 +8554,7 @@ export function importFhirBundle(input: Any){
   importStatus(payload);
 }
 
-function applyStatusExtra(option: Any){
+export function applyStatusExtra(option: Any){
   if(!option) return;
   const meta = getStatusExtrasMeta();
   const archTeeth = (arch)=> meta?.[arch] || [];
@@ -9310,41 +9335,12 @@ function wireControls(){
     resetTeethGated(Array.from(selectedTeeth) as number[]);
   });
 
-  bindOnce($("#btnResetAll"), "click", ()=>{
-    setEdentulous(false);
-    resetCaseMeta(); // case-level patient metadata is part of the blank-slate reset (like edentulous)
-    for(const toothNo of ALL_TEETH){
-      toothState.set(toothNo, defaultState());
-      applyStateToSvg(toothNo);
-      updateToothTileNumber(toothNo);
-    }
-    if(activeTooth){
-      setControlsEnabled(true);
-      syncControlsFromState(toothState.get(activeTooth));
-    }
-    // caseMeta was cleared above (resetCaseMeta) AFTER setEdentulous's early
-    // notify fired, so the mounted case-metadata panel would otherwise show
-    // stale patient data until the next unrelated change — notify once more now
-    // that all blank-slate resets are done, so subscribers re-read cleared state.
-    notifyStateChange();
-  });
-
-  bindOnce($("#btnPrimaryDentition"), "click", applyPrimaryDentition);
-
-  bindOnce($("#btnMixedDentition"), "click", applyMixedDentition);
-
-  // Status extras
-  const statusExtras = getStatusExtras();
-  if(statusExtras.length){
-    const statusOptions = statusExtras.map((opt)=>({ value: opt.id, label: opt.label }));
-    buildSelect($("#statusExtraSelect"), statusOptions, ()=>{});
-    setSelectOptions($("#statusExtraSelect"), statusOptions, statusOptions[0]?.value);
-    bindOnce($("#statusExtraApply"), "click", ()=>{
-      const id = $("#statusExtraSelect").value;
-      const option = statusExtras.find(o => o.id === id);
-      applyStatusExtra(option);
-    });
-  }
+  // The Statuses card body (#btnResetAll / #btnPrimaryDentition /
+  // #btnMixedDentition / #btnEdentulous + the #statusExtraSelect/#statusExtraApply
+  // row) is now the declarative `StatusesCard` (composable-UI Tier 3, PR 3b): it
+  // calls resetMouth()/applyPrimaryDentition()/applyMixedDentition()/setEdentulous()
+  // and applyStatusExtra() directly through the engine API and reads getStatusExtras()
+  // for its options — no imperative wiring here anymore.
 
   bindOnce($("#btnSelectAll"), "click", ()=>{
     selectedTeeth = new Set(ALL_TEETH);
@@ -9431,8 +9427,9 @@ function wireControls(){
   bindOnce($("#chartModeStatus"), "click", ()=>setChartMode("status"));
   bindOnce($("#chartModePlan"), "click", ()=>setChartMode("plan"));
 
-  // The global visibility toggles (edentulous / wisdom / occlusal / bone / pulp)
-  // are handled by the delegated onGlobalToggleClick listener registered above.
+  // The global visibility toggles (wisdom / occlusal / bone / pulp) are handled
+  // by the delegated onGlobalToggleClick listener registered above. (#btnEdentulous
+  // is now the declarative StatusesCard's own onClick — composable-UI Tier 3.)
 
   // Card collapse toggles use a single delegated listener on `document` (see
   // onCardToggleClick). Here we only set the initial a11y labels to match each

@@ -41,6 +41,7 @@ export { default as ToothControlsSurface } from "./surfaces/ToothControlsSurface
 // Composable-UI Tier 3: declarative control cards + the shared subscription hook
 // and the per-card engine API they use (additive public surface).
 export { default as OrthodonticsCard } from "./surfaces/cards/OrthodonticsCard";
+export { default as StatusesCard } from "./surfaces/cards/StatusesCard";
 export { useEngineState } from "./surfaces/useEngineState";
 export {
   getActiveOrtho,
@@ -48,6 +49,13 @@ export {
   setOrthoDriftForSelection,
   setOrthoVerticalForSelection,
   setOrthoRotationForSelection,
+  getEdentulous,
+  setEdentulous,
+  resetMouth,
+  applyPrimaryDentition,
+  applyMixedDentition,
+  getStatusExtras,
+  applyStatusExtra,
 } from "./odontogram";
 export type { ActiveOrtho } from "./odontogram";
 
