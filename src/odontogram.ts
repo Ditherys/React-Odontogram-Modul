@@ -1098,25 +1098,9 @@ function isBound(el: Any, type: string): boolean {
 }
 
 // ---- UI builders ----
-function buildChecks(container: Any, items: Any, onToggle: Any){
-  if(!container || container.childElementCount > 0) return;
-  container.innerHTML = "";
-  for(const it of items){
-    const id = `chk-${it.value}`;
-    const labelId = `lbl-${it.value}`;
-    const labelText = it.labelKey ? t(it.labelKey) : it.label;
-    const label = el("label", {}, [
-      el("input", { type:"checkbox", id, value:it.value }),
-      el("span", { id: labelId, text: labelText })
-    ]);
-    const input = label.querySelector("input") as HTMLInputElement;
-    input.addEventListener("change", (e)=>onToggle(it.value, (e.target as HTMLInputElement).checked));
-    if(container.id === "cariesChecks" && it.value === "caries-subcrown"){
-      setDisabled(input, true);
-    }
-    container.appendChild(label);
-  }
-}
+// (The former `buildChecks()` container builder was removed with PR 3e — the
+// declarative `RootPeriodontiumCard` owns the `#modsChecks` inflammation/
+// parodontal checkboxes now, and it was the last remaining caller.)
 
 /**
  * Render surface toggles in an anatomical cross/plus layout:
@@ -2620,6 +2604,283 @@ function applyPeriImplantSelection(s: Any, value: string){
  *  the change handler does. Not part of the public API. */
 export function __applyPeriImplantSelectionForTest(s: Record<string, unknown>, value: string): void {
   applyPeriImplantSelection(s, value);
+}
+
+// ── Root / periodontium card engine API (composable-UI Tier 3, PR 3e) ────────
+// The declarative `RootPeriodontiumCard` reads/writes the root (endo/apical/
+// lesion/resorption/resection/pin) and periodontal (mobility/mods/calculus/
+// peri-implant) axes through these functions instead of the former imperative
+// `wireControls()`/`syncControlsFromState()` Root/perio block.
+// `getActiveRootPerio()` returns the ACTIVE tooth's values + (write-back-
+// normalized) option sets, the grouped pulp/endo optgroups mirroring
+// `buildPulpEndoSelect`, ALL row/sub-block/section visibility flags, the
+// per-control disabled flags, and — crucially — the ALREADY-RESOLVED
+// mod-checkbox visibility + dynamic label strings (the ordering-dependent
+// `syncInflammationModVisibility`-after-`syncPeriImplantVisibility` logic is
+// folded in here so the card never has to replay it). The setters wrap the
+// exact `applyToSelected(...)` closures `wireControls()` bound (incl. the
+// pulp/endo `pulpEndoOnSelect` mutual exclusion and the apical→periapical
+// reset), so behavior is identical — only the call site moves from a DOM
+// listener to a React onChange. The 6-site `#perioGrid` probing subsystem
+// stays imperative (`buildPerioGrid`/`syncPerioRow`); this card renders it as a
+// static empty container.
+
+export type RootPerioOption = { value: string; label: string };
+export type RootPerioOptGroup = { label: string; options: RootPerioOption[] };
+
+/** One `#modsChecks` checkbox's fully-resolved render state. `hiddenClass`
+ *  reproduces the `.hidden` class the sub-syncs toggled on the wrapping
+ *  `<label>`; `styleHidden` reproduces the `style.display:none` the
+ *  `setDisabled()`→`syncControlLabelVisibility()` path applied. */
+export type ActiveRootPerioMod = {
+  value: string;         // "parodontal" | "inflammation"
+  label: string;         // resolved (dynamic) caption text
+  checked: boolean;
+  disabled: boolean;
+  hiddenClass: boolean;
+  styleHidden: boolean;
+};
+
+export type ActiveRootPerio = {
+  // Section + sub-block visibility (reconciled hide predicates).
+  sectionVisible: boolean;
+  rootBlockVisible: boolean;
+  perioBlockVisible: boolean;
+  // Pulp / endo merged optgroup select.
+  pulpEndoValue: string;
+  pulpEndoNoneOption: RootPerioOption | null; // Plan-mode standalone "none"
+  pulpEndoGroups: RootPerioOptGroup[];
+  pulpEndoDisabled: boolean;
+  // Apical (AAE) diagnosis.
+  apicalDxValue: string;
+  apicalDxOptions: RootPerioOption[];
+  apicalDxDisabled: boolean;
+  apicalDxRowVisible: boolean;
+  // Periapical lesion subtype.
+  periapicalTypeValue: string;
+  periapicalTypeOptions: RootPerioOption[];
+  periapicalRowVisible: boolean;
+  // Root resorption.
+  resorptionValue: string;
+  resorptionOptions: RootPerioOption[];
+  resorptionDisabled: boolean;
+  resorptionRowVisible: boolean;
+  // Resection / parapulpal pin.
+  endoResectionChecked: boolean;
+  endoResectionDisabled: boolean;
+  parapulpalPinChecked: boolean;
+  parapulpalPinDisabled: boolean;
+  // Mobility.
+  mobilityValue: string;
+  mobilityOptions: RootPerioOption[];
+  mobilityDisabled: boolean;
+  mobilityRowVisible: boolean;
+  // 6-site probing grid (imperative carve-out) — row visibility only.
+  perioRowVisible: boolean;
+  // Inflammation / parodontal mod checkboxes.
+  mods: ActiveRootPerioMod[];
+  // Calculus.
+  calculusChecked: boolean;
+  calculusRowVisible: boolean;
+  // Peri-implant status (implant-only).
+  periImplantValue: string;
+  periImplantOptions: RootPerioOption[];
+  periImplantRowVisible: boolean;
+};
+
+export function getActiveRootPerio(): ActiveRootPerio {
+  // No active tooth → derive from a default state so the card always renders
+  // (its selects/checks were built once at init regardless of selection),
+  // mirroring getActiveCaries/getActiveFillings.
+  const state = (activeTooth != null ? toothState.get(activeTooth) : null) ?? defaultState();
+  const isPlan = getChartMode() === "plan";
+  const isMilktooth = state.toothSelection === "milktooth";
+  const isImplant = state.toothSelection === "implant";
+  const present = isToothPresent(state.toothSelection);
+  const underGum = isUnderGum(state.toothSelection);
+  const extraction = isExtraction(state.toothSelection) || (state.toothSelection === "none" && state.extractionWound);
+
+  // Fold in the write-back-if-out-of-set normalization each old sync block did:
+  // if a stored value isn't in its current option set, snap it to the first
+  // option and write it back to state (a no-op for these static enums, kept for
+  // behavior parity with every synced select — mirrors getActiveOrtho).
+  const apicalDxOptions = getApicalDxOptions();
+  if(!apicalDxOptions.some(o => o.value === state.apicalDx)) state.apicalDx = apicalDxOptions[0]?.value ?? "normal";
+  const periapicalTypeOptions = getPeriapicalTypeOptions();
+  if(!periapicalTypeOptions.some(o => o.value === state.periapicalType)) state.periapicalType = periapicalTypeOptions[0]?.value ?? "none";
+  const resorptionOptions = getResorptionOptions();
+  if(!resorptionOptions.some(o => o.value === state.resorptionType)) state.resorptionType = resorptionOptions[0]?.value ?? "none";
+  const mobilityOptions = getMobilityOptions();
+  if(!mobilityOptions.some(o => o.value === state.mobility)) state.mobility = mobilityOptions[0]?.value ?? "none";
+  const periImplantOptions = getPeriImplantOptions();
+  if(!periImplantOptions.some(o => o.value === state.periImplant)) state.periImplant = periImplantOptions[0]?.value ?? "none";
+
+  // Merged pulp/endo grouped select — mirrors buildPulpEndoSelect (Status: the
+  // vital-pulp diagnosis group + treated-endo group; Plan: a standalone "none"
+  // + the treated-endo group only, collapsing any non-endo state to "none").
+  const pulpEndoSelected = pulpEndoDisplayValue(state);
+  let pulpEndoNoneOption: RootPerioOption | null = null;
+  let pulpEndoGroups: RootPerioOptGroup[];
+  let pulpEndoValue: string;
+  if(!isPlan){
+    pulpEndoGroups = [
+      { label: t("pulpEndo.groupVital"), options: getPulpOptions() },
+      { label: t("pulpEndo.groupTreated"), options: getEndoOptions(isMilktooth).filter(o => o.value !== "none") },
+    ];
+    pulpEndoValue = pulpEndoSelected;
+  }else{
+    const endoOpts = getEndoOptions(isMilktooth);
+    const none = endoOpts.find(o => o.value === "none");
+    pulpEndoNoneOption = none ?? null;
+    pulpEndoGroups = [
+      { label: t("pulpEndo.groupTreated"), options: endoOpts.filter(o => o.value !== "none") },
+    ];
+    pulpEndoValue = isEndoValue(pulpEndoSelected) ? pulpEndoSelected : "none";
+  }
+
+  // Per-control disabled: endo/apical/resorption/resection/pin are enabled only
+  // on a present, non-under-gum, non-extraction tooth.
+  const endoDisabled = !present || underGum || extraction;
+
+  // Whole-selection block/section hide predicates, folded verbatim from the old
+  // syncControlsFromState() Root/perio block.
+  const selectedArr = selectedTeeth.size > 0 ? Array.from(selectedTeeth) : [];
+  const hiddenSelected = selectedArr.length > 0 && selectedArr.some(tn => {
+    const sel = toothState.get(tn)?.toothSelection;
+    return sel === "implant" || sel === "none" || sel === "tooth-under-gum" || sel === "no-tooth-after-extraction";
+  });
+  const noneSelected = selectedArr.length > 0 && selectedArr.some(tn => toothState.get(tn)?.toothSelection === "none");
+  const hideByBase = isImplant || state.toothSelection === "none" || underGum || extraction || hiddenSelected;
+  const hideByNone = state.toothSelection === "none" || noneSelected;
+
+  // Mod checkboxes — resolve the ordering-dependent visibility here.
+  // syncPeriImplantVisibility() ran FIRST (an implant hides BOTH mods), then
+  // syncInflammationModVisibility() ran AFTER and is authoritative for the
+  // `inflammation` checkbox (hidden for a present non-socket tooth or an
+  // implant, visible for a missing tooth / extraction-socket). The `parodontal`
+  // checkbox's disabled/`style.display` mirrors the setDisabled(extraction) the
+  // sync applied; the `inflammation` checkbox is only ever explicitly enabled
+  // (on extraction), i.e. never disabled.
+  const mods: ActiveRootPerioMod[] = MOD_OPTIONS.map((opt) => {
+    if(opt.value === "parodontal"){
+      return {
+        value: "parodontal",
+        label: t("mods.parodontal"),
+        checked: state.mods.has("parodontal"),
+        disabled: extraction,
+        hiddenClass: isImplant,
+        styleHidden: extraction,
+      };
+    }
+    return {
+      value: "inflammation",
+      label: extraction ? t("mods.periodontalInflammation") : t("mods.periapicalInflammation"),
+      checked: state.mods.has("inflammation"),
+      disabled: false,
+      hiddenClass: isImplant || (present && !extraction),
+      styleHidden: false,
+    };
+  });
+
+  return {
+    // The section collapses only when BOTH blocks would be gone; the root block
+    // stays visible in Plan so endo TREATMENT remains plannable.
+    sectionVisible: !(hideByBase && (hideByNone || isPlan)),
+    rootBlockVisible: !hideByBase,
+    perioBlockVisible: !(hideByNone || isPlan),
+    pulpEndoValue,
+    pulpEndoNoneOption,
+    pulpEndoGroups,
+    pulpEndoDisabled: endoDisabled,
+    apicalDxValue: state.apicalDx,
+    apicalDxOptions,
+    apicalDxDisabled: endoDisabled,
+    apicalDxRowVisible: !isPlan,
+    periapicalTypeValue: state.periapicalType,
+    periapicalTypeOptions,
+    periapicalRowVisible: periapicalRowVisible(state) && !isPlan,
+    resorptionValue: state.resorptionType,
+    resorptionOptions,
+    resorptionDisabled: endoDisabled,
+    resorptionRowVisible: !isPlan,
+    endoResectionChecked: !!state.endoResection,
+    endoResectionDisabled: endoDisabled,
+    parapulpalPinChecked: !!state.parapulpalPin,
+    parapulpalPinDisabled: endoDisabled,
+    mobilityValue: state.mobility,
+    mobilityOptions,
+    mobilityDisabled: mobilityDisabled(state),
+    mobilityRowVisible: !mobilityRowHidden(state),
+    perioRowVisible: !perioRowHidden(state),
+    mods,
+    calculusChecked: !!state.calculus,
+    // The old static shell authored #calculusRow hidden (the imperative sync
+    // then showed it for a natural tooth); with no active tooth keep it hidden,
+    // so the mocked-init shell-DOM golden stays byte-identical.
+    calculusRowVisible: activeTooth != null && (state.toothSelection === "tooth-base" || state.toothSelection === "milktooth"),
+    periImplantValue: state.periImplant,
+    periImplantOptions,
+    periImplantRowVisible: isImplant,
+  };
+}
+
+/** Merged pulp/endo selection on the current selection — wraps the exact
+ *  `pulpEndoOnSelect` closure `wireControls()` bound (incl. the endo↔pulpDx
+ *  mutual-exclusion normalization). */
+export function setPulpEndoForSelection(value: string): void {
+  applyToSelected((s: Any)=>{ pulpEndoOnSelect(s, value); });
+}
+
+/** Apical (AAE) diagnosis on the current selection — clears the periapical
+ *  lesion subtype unless the diagnosis is (a)symptomatic apical periodontitis. */
+export function setApicalDxForSelection(value: string): void {
+  applyToSelected((s: Any)=>{
+    s.apicalDx = value;
+    if(value !== "symptomatic-apical-periodontitis" && value !== "asymptomatic-apical-periodontitis"){
+      s.periapicalType = "none";
+    }
+  });
+}
+
+/** Periapical lesion subtype on the current selection. */
+export function setPeriapicalTypeForSelection(value: string): void {
+  applyToSelected((s: Any)=>{ s.periapicalType = value; });
+}
+
+/** Root resorption type on the current selection. */
+export function setResorptionForSelection(value: string): void {
+  applyToSelected((s: Any)=>{ s.resorptionType = value; });
+}
+
+/** Apicoectomy (resected tooth) toggle on the current selection. */
+export function setEndoResectionForSelection(on: boolean): void {
+  applyToSelected((s: Any)=>{ s.endoResection = on; });
+}
+
+/** Parapulpal pin toggle on the current selection. */
+export function setParapulpalPinForSelection(on: boolean): void {
+  applyToSelected((s: Any)=>{ s.parapulpalPin = on; });
+}
+
+/** Tooth mobility grade on the current selection. */
+export function setMobilityForSelection(value: string): void {
+  applyToSelected((s: Any)=>{ s.mobility = value; });
+}
+
+/** Toggle one `#modsChecks` modifier (parodontal / inflammation) on the current
+ *  selection — wraps the exact set add/delete closure `wireControls()` bound. */
+export function setModForSelection(id: string, on: boolean): void {
+  applyToSelected((s: Any)=>{ if(on) s.mods.add(id); else s.mods.delete(id); });
+}
+
+/** Calculus toggle on the current selection. */
+export function setCalculusForSelection(on: boolean): void {
+  applyToSelected((s: Any)=>{ s.calculus = on; });
+}
+
+/** Peri-implant status on the current selection. */
+export function setPeriImplantForSelection(value: string): void {
+  applyToSelected((s: Any)=>{ applyPeriImplantSelection(s, value); });
 }
 
 // Symmetrically set the 8 flame sublayers (and their "-N1" variants) of the
@@ -4145,12 +4406,12 @@ function syncControlsFromState(state: Any){
   // block) rather than a single post-hoc sweep, so each control's Status behavior
   // is untouched.
   const isPlan = getChartMode() === "plan";
-  // Apical (AAE) diagnosis picker.
-  setSelectOptions($("#apicalDxSelect"), getApicalDxOptions(), state.apicalDx);
-  if($("#apicalDxSelect").value !== state.apicalDx){
-    state.apicalDx = $("#apicalDxSelect").value;
-  }
-  $("#endoResection").checked = !!state.endoResection;
+  // The Root/perio card body (#rpRootBlock + #rpPerioBlock: pulp/endo, apical
+  // diagnosis, periapical lesion, resorption, resection, parapulpal pin,
+  // mobility, the inflammation/parodontal mods, calculus, peri-implant status)
+  // is now the declarative `RootPeriodontiumCard` (composable-UI Tier 3, PR 3e)
+  // via `getActiveRootPerio()`; no imperative sync here except the imperative
+  // `#perioGrid` probing carve-out (`syncPerioRow(state)`, below).
   // #fissureSealing checkbox is now owned by the declarative `FillingsCard`
   // (composable-UI Tier 3, PR 3d) via `getActiveFillings().fissureSealing`.
   $("#contactMesial").checked = !!state.contactMesial;
@@ -4169,7 +4430,6 @@ function syncControlsFromState(state: Any){
   $("#brokenDistal").checked = !!state.brokenDistal;
   $("#extractionWound").checked = !!state.extractionWound;
   $("#extractionPlan").checked = !!state.extractionPlan;
-  $("#parapulpalPin").checked = !!state.parapulpalPin;
   $("#crownReplace").checked = !!state.crownReplace;
   $("#crownNeeded").checked = !!state.crownNeeded;
   $("#missingClosed").checked = !!state.missingClosed;
@@ -4233,53 +4493,8 @@ function syncControlsFromState(state: Any){
     state.toothSubstrate = "natural";
     $("#substrateSelect").value = "natural";
   }
-  // Merged pulp/endo status selector (two optgroups). Displayed value derives
-  // from (endo, pulpDx) via pulpEndoDisplayValue; the change handler
-  // (wireControls) routes selection through pulpEndoOnSelect, which enforces the
-  // mutual-exclusion invariant, so no post-sync normalization is needed here.
-  buildPulpEndoSelect($("#pulpEndoSelect"), isMilktooth, pulpEndoDisplayValue(state), isPlan);
   // #fillingSelect options + write-back are now owned by the declarative
   // `FillingsCard` (composable-UI Tier 3, PR 3d) via `getActiveFillings()`.
-  setSelectOptions($("#mobilitySelect"), getMobilityOptions(), state.mobility);
-  if($("#mobilitySelect").value !== state.mobility){
-    state.mobility = $("#mobilitySelect").value;
-  }
-  // mods
-  $$("#modsChecks input[type=checkbox]").forEach(c => c.checked = state.mods.has(c.value));
-  // The periapical lesion-subtype row follows the apical diagnosis on a present
-  // tooth (apicalDx !== "normal"). A non-present tooth (implant/missing) never
-  // derives apicalDx but CAN still carry `mods.inflammation` (peri-implant /
-  // periodontal, still toggleable) — for those, show the subtype row when the
-  // inflammation mod is set, so the lesion subtype stays authorable.
-  $("#periapicalTypeRow").classList.toggle("hidden", !periapicalRowVisible(state) || isPlan);
-  setSelectOptions($("#periapicalTypeSelect"), getPeriapicalTypeOptions(), state.periapicalType);
-  if($("#periapicalTypeSelect").value !== state.periapicalType){
-    state.periapicalType = $("#periapicalTypeSelect").value;
-  }
-  $("#calculusToggle").checked = !!state.calculus;
-  const calculusAllowed = state.toothSelection === "tooth-base" || state.toothSelection === "milktooth";
-  $("#calculusRow").classList.toggle("hidden", !calculusAllowed);
-  // periImplant (enum) is authored via a picker, shown only for an implant; on
-  // an implant it also supersedes the parodontal/inflammation mods.
-  setSelectOptions($("#periImplantSelect"), getPeriImplantOptions(), state.periImplant);
-  if($("#periImplantSelect").value !== state.periImplant){
-    state.periImplant = $("#periImplantSelect").value;
-  }
-  syncPeriImplantVisibility($("#periImplantRow"), $("#modsChecks"), state.toothSelection);
-  // The periapical-inflammation mod is retired as an authoring control on a
-  // PRESENT tooth (apicalDx drives the glyph) AND on an implant (periImplant
-  // covers implant inflammation). It stays visible for a missing tooth or an
-  // extraction-socket, where it marks periodontal inflammation that neither
-  // apicalDx nor periImplant cover. MUST run after syncPeriImplantVisibility()
-  // above — see that function's and syncInflammationModVisibility's doc comments
-  // for why the order matters.
-  syncInflammationModVisibility($("#modsChecks"), state.toothSelection);
-  // resorptionType (enum) is authored via a none/internal/external-cervical
-  // picker (both subtypes render identically; the picker only records which).
-  setSelectOptions($("#resorptionSelect"), getResorptionOptions(), state.resorptionType);
-  if($("#resorptionSelect").value !== state.resorptionType){
-    state.resorptionType = $("#resorptionSelect").value;
-  }
 
   // caries card (surface cross + subcrown row + depth/root-caries selects + the
   // `.surf-depth` severity indicators) is now the declarative `CariesCard`
@@ -4290,23 +4505,11 @@ function syncControlsFromState(state: Any){
   // filling-defect gate) is now the declarative `FillingsCard` (composable-UI
   // Tier 3, PR 3d) via `getActiveFillings()`; no imperative sync here.
 
-  // endo only if tooth present
-  const endoDisabled = !isToothPresent(state.toothSelection) || underGum || extraction;
-  setDisabled($("#pulpEndoSelect"), endoDisabled);
-  setDisabled($("#apicalDxSelect"), endoDisabled);
-  setDisabled($("#resorptionSelect"), endoDisabled);
-  setDisabled($("#endoResection"), endoDisabled);
-  setDisabled($("#parapulpalPin"), endoDisabled);
-  setDisabled($("#mobilitySelect"), mobilityDisabled(state));
+  // The Root/perio per-control `disabled` flags (pulp/endo, apical, resorption,
+  // resection, parapulpal pin, mobility) are now the declarative
+  // `RootPeriodontiumCard`'s job via `getActiveRootPerio()`.
 
   const selectedArr = selectedTeeth.size > 0 ? Array.from(selectedTeeth) : [];
-  const hiddenSelected = selectedArr.length > 0 && selectedArr.some(tn => {
-    const sel = toothState.get(tn)?.toothSelection;
-    return sel === "implant" || sel === "none" || sel === "tooth-under-gum" || sel === "no-tooth-after-extraction";
-  });
-  const hideByBase = state.toothSelection === "implant" || state.toothSelection === "none" || underGum || extraction || hiddenSelected;
-  const noneSelected = selectedArr.length > 0 && selectedArr.some(tn => toothState.get(tn)?.toothSelection === "none");
-  const hideByNone = state.toothSelection === "none" || noneSelected;
   // The #cariesSection visibility gate (hideByBase || hideByRadix || isPlan) now
   // lives in `getActiveCaries().cariesSectionVisible` and is applied by the
   // declarative `CariesCard` (composable-UI Tier 3, PR 3c). The #fillingSection
@@ -4322,27 +4525,10 @@ function syncControlsFromState(state: Any){
   $("#substrateRow").classList.toggle("hidden", hideSubstrateRow);
   $("#brokenCrownRow").classList.toggle("hidden", state.toothSubstrate !== "broken" || hideSubstrateRow);
   $("#extractionRow").classList.toggle("hidden", state.toothSelection !== "none");
-  // The merged Root+Periodontium card reconciles the two original cards'
-  // different hide predicates — the root block (endo/apical/lesion/
-  // resorption/resection/pin) keeps the old #endoSection predicate
-  // (hideByBase), the perio block (mobility/mods/calculus) keeps the old
-  // #inflammationSection predicate (hideByNone); the card itself only
-  // collapses away when BOTH blocks would be empty.
-  $("#rpRootBlock").classList.toggle("hidden", hideByBase);
-  // Plan-mode: the entire periodontal block (mobility, 6-site probing grid,
-  // inflammation/parodontal mods, calculus, peri-implant status) is status-only
-  // diagnosis — hidden in Plan. The root block stays visible so endo TREATMENT
-  // remains plannable.
-  $("#rpPerioBlock").classList.toggle("hidden", hideByNone || isPlan);
-  // Section collapses only when BOTH blocks are gone; in Plan the root block
-  // still shows, so the section stays (unless the base already hides it).
-  $("#rootPeriodontiumSection").classList.toggle("hidden", hideByBase && (hideByNone || isPlan));
-  // Plan-mode: inside the still-visible root block, hide the diagnosis-only rows
-  // (apical diagnosis, periapical lesion subtype above, root resorption). Endo
-  // TREATMENT (root canal/post via #pulpEndoSelect, apicoectomy, parapulpal pin)
-  // stays plannable.
-  $("#apicalDxRow").classList.toggle("hidden", isPlan);
-  $("#resorptionRow").classList.toggle("hidden", isPlan);
+  // The Root+Periodontium card's sub-block/section visibility (#rpRootBlock,
+  // #rpPerioBlock, #rootPeriodontiumSection) and its Plan-mode diagnosis-row
+  // gating (#apicalDxRow, #resorptionRow) are now the declarative
+  // `RootPeriodontiumCard`'s job via `getActiveRootPerio()`.
   const selectedList = selectedArr.length > 0 ? selectedArr : (activeTooth ? [activeTooth] : []);
   const contactAllowed = selectedList.length > 0 && selectedList.every(tn => {
     const s = toothState.get(tn);
@@ -4428,11 +4614,6 @@ function syncControlsFromState(state: Any){
     }
     extractionPlanRow.classList.toggle("hidden", !extractionPlanAllowed);
   }
-  // The dedicated periImplant axis owns "peri-implantitis"; the parodontal mod
-  // keeps its plain label on every tooth type.
-  const parodontLabel = $("#lbl-parodontal");
-  if(parodontLabel){ parodontLabel.textContent = t("mods.parodontal"); }
-
   const milkOption = $("#toothSelect").querySelector('option[value="milktooth"]');
   if(milkOption){
     const anyBlocked = selectedArr.length > 0
@@ -4441,23 +4622,14 @@ function syncControlsFromState(state: Any){
     milkOption.disabled = anyBlocked;
   }
 
-  const inflammationLabel = $("#lbl-inflammation");
-  if(inflammationLabel){
-    inflammationLabel.textContent = extraction ? t("mods.periodontalInflammation") : t("mods.periapicalInflammation");
-  }
-  $("#mobilityRow").classList.toggle("hidden", mobilityRowHidden(state));
+  // The #modsChecks label relabel (#lbl-inflammation/#lbl-parodontal), the
+  // #mobilityRow visibility, and the mod-checkbox disabled logic are now the
+  // declarative `RootPeriodontiumCard`'s job via `getActiveRootPerio()`.
   // Sync the #perioRow six-site grid + derived read-out from state on every
-  // syncControlsFromState() call — i.e. on tooth select, mirroring how mobility
-  // syncs its own control above.
+  // syncControlsFromState() call — i.e. on tooth select. This 6-site probing
+  // grid is the Tier 3 PR 3e imperative carve-out (`buildPerioGrid`/
+  // `syncPerioRow`); everything else in the Root/perio block is declarative.
   syncPerioRow(state);
-  const parodontalInput = $("#chk-parodontal");
-  if(parodontalInput){
-    setDisabled(parodontalInput, extraction);
-  }
-  if(extraction){
-    const inflammationInput = $("#chk-inflammation");
-    if(inflammationInput) setDisabled(inflammationInput, false);
-  }
 
   // Re-resolve the "occlusal"/"incisal" surface-picker labels for the (possibly
   // just-changed) active tooth — anterior vs. posterior only affects the
@@ -4727,7 +4899,6 @@ function refreshAllSelectOptions(){
   refreshToothSelectOptions();
   refreshStatusExtraOptions();
   const state = activeTooth ? toothState.get(activeTooth) : null;
-  const isMilktooth = state?.toothSelection === "milktooth";
   const substrateEl = $("#substrateSelect");
   if(substrateEl) setSelectOptions(substrateEl, getSubstrateOptions(), substrateEl.value);
   const restorationEl = $("#restorationSelect");
@@ -4735,19 +4906,11 @@ function refreshAllSelectOptions(){
   // #fillingSelect (+ #fillingSimpleDefectSelect) are re-localized by the
   // declarative `FillingsCard` (composable-UI Tier 3, PR 3d) on its React
   // re-render, like the caries/ortho selects — no imperative re-localize here.
-  const mobilityEl = $("#mobilitySelect");
-  if(mobilityEl) setSelectOptions(mobilityEl, getMobilityOptions(), mobilityEl.value);
-  const periapicalEl = $("#periapicalTypeSelect");
-  if(periapicalEl) setSelectOptions(periapicalEl, getPeriapicalTypeOptions(), periapicalEl.value);
-  // Merged pulp/endo selector — rebuild both optgroups, preserving the currently
-  // selected value (mirrors the other re-localize-in-place calls in this
-  // function).
-  const pulpEndoEl = $("#pulpEndoSelect");
-  if(pulpEndoEl) buildPulpEndoSelect(pulpEndoEl, isMilktooth, pulpEndoEl.value);
-  const apicalEl = $("#apicalDxSelect");
-  if(apicalEl) setSelectOptions(apicalEl, getApicalDxOptions(), apicalEl.value);
-  const resorptionEl = $("#resorptionSelect");
-  if(resorptionEl) setSelectOptions(resorptionEl, getResorptionOptions(), resorptionEl.value);
+  // The Root/perio selects (#pulpEndoSelect merged optgroups, #apicalDxSelect,
+  // #periapicalTypeSelect, #resorptionSelect, #mobilitySelect, #periImplantSelect)
+  // are re-localized by the declarative `RootPeriodontiumCard` (composable-UI
+  // Tier 3, PR 3e) on its React re-render, like the caries/fillings/ortho
+  // selects — no imperative re-localize here.
   // #cariesDepthSelect / #rootCariesSelect are re-localized by the declarative
   // `CariesCard` (composable-UI Tier 3, PR 3c) on its React re-render, like the
   // ortho/status-extra selects — no imperative re-localize here.
@@ -9233,53 +9396,14 @@ function wireControls(){
     setEdentulous(false);
   });
 
-  // Merged pulp/endo status. Custom-built (optgroups) rather than via
-  // buildSelect; the change handler routes to pulpEndoOnSelect, which enforces
-  // the mutual-exclusion invariant (endo <-> vital pulpDx).
-  {
-    const sel = $("#pulpEndoSelect");
-    bindOnce(sel, "change", () => {
-      const value = sel.value;
-      applyToSelected((s)=>{ pulpEndoOnSelect(s, value); });
-    });
-  }
-
-  // Apical (AAE) diagnosis
-  buildSelect($("#apicalDxSelect"), getApicalDxOptions(), (value)=>{
-    applyToSelected((s)=>{
-      s.apicalDx = value;
-      // granuloma/cyst is a refinement of apical periodontitis only.
-      if(value !== "symptomatic-apical-periodontitis" && value !== "asymptomatic-apical-periodontitis"){
-        s.periapicalType = "none";
-      }
-    });
-  });
-
-  // Resection
-  bindOnce($("#endoResection"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.endoResection = (e.target as HTMLInputElement).checked;
-    });
-  });
-
-  // Parapulpal pin
-  bindOnce($("#parapulpalPin"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.parapulpalPin = (e.target as HTMLInputElement).checked;
-    });
-  });
-
-  // Root resorption (resorptionType enum — none / internal / external-cervical
-  // picker; both subtypes render identically).
-  buildSelect($("#resorptionSelect"), getResorptionOptions(), (value)=>{
-    applyToSelected((s)=>{ s.resorptionType = value; });
-  });
-
-  // Peri-implant status (implants only — supersedes the parodontal/inflammation
-  // mods there).
-  buildSelect($("#periImplantSelect"), getPeriImplantOptions(), (value)=>{
-    applyToSelected((s)=>{ applyPeriImplantSelection(s, value); });
-  });
+  // Root card (#rpRootBlock body: the merged pulp/endo optgroup select, the
+  // apical diagnosis / periapical lesion / root-resorption selects, and the
+  // resection + parapulpal-pin checkboxes) is now the declarative
+  // `RootPeriodontiumCard` (composable-UI Tier 3, PR 3e): rendered from
+  // `getActiveRootPerio()` and written through `setPulpEndoForSelection`/
+  // `setApicalDxForSelection`/`setPeriapicalTypeForSelection`/
+  // `setResorptionForSelection`/`setEndoResectionForSelection`/
+  // `setParapulpalPinForSelection` — no imperative wiring here.
 
   // Extraction wound
   bindOnce($("#extractionWound"), "change", (e)=>{
@@ -9323,27 +9447,18 @@ function wireControls(){
     });
   });
 
-  // Mobility
-  buildSelect($("#mobilitySelect"), getMobilityOptions(), (value)=>{
-    applyToSelected((s)=>{
-      s.mobility = value;
-    });
-  });
+  // Mobility, the inflammation/parodontal mod checkboxes (#modsChecks), the
+  // periapical lesion-subtype select, the calculus toggle, and the peri-implant
+  // select are now the declarative `RootPeriodontiumCard` (composable-UI Tier 3,
+  // PR 3e), rendered from `getActiveRootPerio()` and written through
+  // `setMobilityForSelection`/`setModForSelection`/`setPeriapicalTypeForSelection`/
+  // `setCalculusForSelection`/`setPeriImplantForSelection`.
 
-  // The 6-site PD/GM/BOP/SUP grid — built once here (site identities are
-  // static), values synced per-tooth by syncPerioRow()
-  // inside syncControlsFromState(). See buildPerioGrid's own doc comment.
+  // The 6-site PD/GM/BOP/SUP grid stays IMPERATIVE (Tier 3 PR 3e carve-out) —
+  // built once here (site identities are static), values synced per-tooth by
+  // syncPerioRow() inside syncControlsFromState(). See buildPerioGrid's own doc
+  // comment.
   buildPerioGrid($("#perioGrid"));
-
-  // Inflammations
-  buildChecks($("#modsChecks"), MOD_OPTIONS, (id, on)=>{
-    applyToSelected((s)=>{
-      if(on) s.mods.add(id); else s.mods.delete(id);
-    });
-  });
-  buildSelect($("#periapicalTypeSelect"), getPeriapicalTypeOptions(), (val)=>{
-    applyToSelected((s)=>{ s.periapicalType = val; });
-  });
 
   // Caries card (#cariesSection body) is now the declarative `CariesCard`
   // (composable-UI Tier 3, PR 3c): its surface-cross, subcrown row, depth select,
@@ -9361,11 +9476,6 @@ function wireControls(){
   // `setFillingSimpleToggleForSelection`/`setFillingSimpleDefectForSelection`/
   // `setFissureSealingForSelection` + `openCariesDepthPopup`/`openFillingDefectPopup`
   // — no imperative wiring here.
-
-  // Calculus
-  bindOnce($("#calculusToggle"), "change", (e)=>{
-    applyToSelected((s)=>{ s.calculus = (e.target as HTMLInputElement).checked; });
-  });
 
   // Contact point missing
   bindOnce($("#contactMesial"), "change", (e)=>{

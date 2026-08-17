@@ -16,6 +16,7 @@ import OrthodonticsCard from "./cards/OrthodonticsCard";
 import StatusesCard from "./cards/StatusesCard";
 import CariesCard from "./cards/CariesCard";
 import FillingsCard from "./cards/FillingsCard";
+import RootPeriodontiumCard from "./cards/RootPeriodontiumCard";
 
 export default function ToothControlsSurface() {
   const { t, showStatusCard, showOrthoCard } = useOdontogramUi();
@@ -192,56 +193,7 @@ export default function ToothControlsSurface() {
                   <span className="toggle-icon" aria-hidden="true">−</span>
                 </button>
               </div>
-
-              <div id="rpRootBlock">
-                <div className="hint">{t("endo.hint")}</div>
-                <div id="pulpEndoRow" className="row">
-                  <span>{t("pulpEndo.label")}</span>
-                  <select id="pulpEndoSelect"></select>
-                </div>
-                <div id="apicalDxRow" className="row">
-                  <span>{t("apical.dxLabel")}</span>
-                  <select id="apicalDxSelect"></select>
-                </div>
-                <div id="periapicalTypeRow" className="row hidden">
-                  <span>{t("periapical.typeLabel")}</span>
-                  <select id="periapicalTypeSelect"></select>
-                </div>
-                <div id="resorptionRow" className="row">
-                  <span>{t("root.resorption")}</span>
-                  <select id="resorptionSelect"></select>
-                </div>
-                <div className="row inline-checks">
-                  <label>
-                    <input type="checkbox" id="endoResection" />
-                    <span>{t("endo.resection")}</span>
-                  </label>
-                  <label>
-                    <input type="checkbox" id="parapulpalPin" />
-                    <span>{t("endo.parapulpalPin")}</span>
-                  </label>
-                </div>
-              </div>
-
-              <div id="rpPerioBlock">
-                <div id="mobilityRow" className="row">
-                  <span>{t("inflammation.mobilityLabel")}</span>
-                  <select id="mobilitySelect"></select>
-                </div>
-                <div id="perioRow" className="perio-block">
-                  <div className="perio-block-title">{t("perio.title")}</div>
-                  <div id="perioGrid" className="perio-grid"></div>
-                  <div id="perioReadout" className="hint perio-readout"></div>
-                </div>
-                <div id="modsChecks" className="check-grid"></div>
-                <div id="calculusRow" className="row inline-checks hidden">
-                  <label><input type="checkbox" id="calculusToggle" /><span>{t("calculus.label")}</span></label>
-                </div>
-                <div id="periImplantRow" className="row hidden">
-                  <span>{t("periImplant.label")}</span>
-                  <select id="periImplantSelect"></select>
-                </div>
-              </div>
+              <RootPeriodontiumCard />
             </section>
 
           </div>

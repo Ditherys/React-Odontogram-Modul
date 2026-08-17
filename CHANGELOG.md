@@ -22,8 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Caries** card body (`CariesCard` + a reusable `SurfaceCross` per-surface grid
   component; `getActiveCaries()` + its selection setters), and the **Fillings** card
   body (`FillingsCard`, reusing `SurfaceCross` with the recurrent-caries + defect
-  indicators and the simple/complex mode swap; `getActiveFillings()` + its setters).
-  Behavior and rendered DOM are unchanged. No payload/FHIR/render change; all
+  indicators and the simple/complex mode swap; `getActiveFillings()` + its setters),
+  and the **Root / periodontium** card body (`RootPeriodontiumCard`;
+  `getActiveRootPerio()` + its setters — pulp/endo optgroups with the endo↔pulpDx
+  exclusion, apical/resorption/mobility/peri-implant/calculus/mods; the 6-site
+  probing grid stays imperative for now). Behavior and rendered DOM are unchanged. No payload/FHIR/render change; all
   goldens byte-identical; payload version unchanged.
 - **Composable UI: on-demand surfaces (issue #20, Tier 2).** Control wiring is now
   re-runnable / idempotent, so a surface can **unmount and remount** (e.g. mount on
