@@ -52,6 +52,8 @@ export type SurfaceCell = {
   disabled: boolean;                 // true → whole cell display:none
   onToggle: (checked: boolean) => void;
   indicators?: SurfaceIndicator[];
+  attrs?: Record<string, string>;    // extra attributes on the cell <label>
+                                     // (e.g. the Fillings card's data-material)
 };
 
 function Indicator({ ind }: { ind: SurfaceIndicator }) {
@@ -60,7 +62,15 @@ function Indicator({ ind }: { ind: SurfaceIndicator }) {
       className={ind.className}
       title={ind.title}
       {...(ind.attrs ?? {})}
-      onClick={ind.onClick ? (e) => ind.onClick!(e.currentTarget as HTMLElement) : undefined}
+      onClick={ind.onClick ? (e) => {
+        // The indicator sits INSIDE the cell <label>, so a bare click would also
+        // toggle the label's checkbox (native behavior). The imperative handlers
+        // guarded against this with preventDefault()+stopPropagation(); preserve
+        // that so opening the popup never flips the surface on/off.
+        e.preventDefault();
+        e.stopPropagation();
+        ind.onClick!(e.currentTarget as HTMLElement);
+      } : undefined}
     >
       {ind.children}
     </span>
@@ -78,6 +88,7 @@ export default function SurfaceCross({ cells }: { cells: SurfaceCell[] }) {
             key={cell.value}
             className={`surface-cell pos-${cell.pos}`}
             style={cell.disabled ? { display: "none" } : undefined}
+            {...(cell.attrs ?? {})}
           >
             {left.map((ind) => (
               <Indicator key={ind.key} ind={ind} />

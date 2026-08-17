@@ -15,6 +15,7 @@ import { rewireControls } from "../odontogram";
 import OrthodonticsCard from "./cards/OrthodonticsCard";
 import StatusesCard from "./cards/StatusesCard";
 import CariesCard from "./cards/CariesCard";
+import FillingsCard from "./cards/FillingsCard";
 
 export default function ToothControlsSurface() {
   const { t, showStatusCard, showOrthoCard } = useOdontogramUi();
@@ -181,31 +182,7 @@ export default function ToothControlsSurface() {
                   <span className="toggle-icon" aria-hidden="true">−</span>
                 </button>
               </div>
-              <div className="row">
-                <span>{t("filling.typeLabel")}</span>
-                <select id="fillingSelect"></select>
-              </div>
-              <div id="fillingSurfaceChecks" className="hidden"></div>
-              {/* "simple" complexity: one filled/not-filled toggle shown instead
-                  of the 5-surface grid (wired in odontogram.ts). It is a `.row`
-                  LABEL (the whole pill is clickable — the native checkbox is
-                  display:none), like #fissureSealingRow. */}
-              <label id="fillingSimpleRow" className="row fissure-row hidden">
-                <input type="checkbox" id="fillingSimpleToggle" />
-                <span>{t("filling.simpleToggle")}</span>
-              </label>
-              {/* When the filling-defect feature is on, a defect select applies a
-                  defect to ALL filled surfaces (simple mode has no per-surface cells). */}
-              <div id="fillingSimpleDefectRow" className="row hidden">
-                <span>{t("fillingDefect.label")}</span>
-                <select id="fillingSimpleDefectSelect"></select>
-              </div>
-              <label id="fissureSealingRow" className="row fissure-row">
-                <input type="checkbox" id="fissureSealing" />
-                <span>{t("filling.fissureSealing")}</span>
-              </label>
-              <div id="fillingSubcariesSummary" className="hint hidden"></div>
-              <div id="fillingDefectSummary" className="hint hidden"></div>
+              <FillingsCard />
             </section>
 
             <section id="rootPeriodontiumSection" className="card">

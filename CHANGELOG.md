@@ -20,7 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   — also fully declarativizing the Edentulous toggle (its `aria-pressed` now derives
   from state, replacing the delegated handler + imperative syncs) — and the
   **Caries** card body (`CariesCard` + a reusable `SurfaceCross` per-surface grid
-  component; `getActiveCaries()`, `setCariesSurfaceForSelection`/`…Depth…`/`setRootCariesForSelection`).
+  component; `getActiveCaries()` + its selection setters), and the **Fillings** card
+  body (`FillingsCard`, reusing `SurfaceCross` with the recurrent-caries + defect
+  indicators and the simple/complex mode swap; `getActiveFillings()` + its setters).
   Behavior and rendered DOM are unchanged. No payload/FHIR/render change; all
   goldens byte-identical; payload version unchanged.
 - **Composable UI: on-demand surfaces (issue #20, Tier 2).** Control wiring is now

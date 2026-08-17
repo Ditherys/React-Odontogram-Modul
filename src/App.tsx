@@ -43,6 +43,7 @@ export { default as ToothControlsSurface } from "./surfaces/ToothControlsSurface
 export { default as OrthodonticsCard } from "./surfaces/cards/OrthodonticsCard";
 export { default as StatusesCard } from "./surfaces/cards/StatusesCard";
 export { default as CariesCard } from "./surfaces/cards/CariesCard";
+export { default as FillingsCard } from "./surfaces/cards/FillingsCard";
 export { default as SurfaceCross } from "./surfaces/cards/SurfaceCross";
 export { useEngineState } from "./surfaces/useEngineState";
 export {
@@ -65,8 +66,15 @@ export {
   setCariesActiveDepthForSelection,
   setRootCariesForSelection,
   openCariesDepthPopup,
+  getActiveFillings,
+  setFillingMaterialForSelection,
+  setFillingSurfaceForSelection,
+  setFillingSimpleToggleForSelection,
+  setFillingSimpleDefectForSelection,
+  setFissureSealingForSelection,
+  openFillingDefectPopup,
 } from "./odontogram";
-export type { ActiveOrtho, ActiveCaries, ActiveCariesSurface } from "./odontogram";
+export type { ActiveOrtho, ActiveCaries, ActiveCariesSurface, ActiveFillings, ActiveFillingSurface } from "./odontogram";
 export type { SurfaceCell, SurfaceIndicator } from "./surfaces/cards/SurfaceCross";
 
 /**

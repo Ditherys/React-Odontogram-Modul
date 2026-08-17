@@ -92,10 +92,6 @@ const ALL_TEETH = [
   48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38
 ];
 
-const GROUPS = {
-  fillingSurfaces: ["buccal","lingual","mesial","distal","occlusal"],
-};
-
 const MILKTOOTH_BLOCKED = new Set([16,17,18,26,27,28,36,37,38,46,47,48]);
 // Fissure sealing applies to the occlusal posterior teeth — premolars and
 // first/second molars. Third molars are excluded (rarely sealed).
@@ -159,14 +155,6 @@ function getPeriapicalTypeOptions(){
 
 // (The former `CARIES_OPTIONS` relabel table was removed with PR 3c — the
 // declarative `CariesCard` owns the caries surface-cross labels/letters now.)
-
-const FILLING_SURFACE_LABELS: Record<string, string> = {
-  buccal: "surface.buccal",
-  lingual: "surface.lingualPalatal",
-  mesial: "surface.mesial",
-  distal: "surface.distal",
-  occlusal: "surface.occlusal",
-};
 
 type Any = any;
 
@@ -2402,6 +2390,222 @@ export function setRootCariesForSelection(value: string): void {
   applyToSelected((s: Any)=>{ s.rootCaries = value; });
 }
 
+// ── Fillings card engine API (composable-UI Tier 3, PR 3d) ──────────────────
+// The declarative `FillingsCard` reads/writes the filling axes through these
+// functions instead of the former imperative `wireControls()`/
+// `syncControlsFromState()` `#fillingSection` block. `getActiveFillings()`
+// returns the ACTIVE tooth's filling-material value + (milktooth-aware,
+// write-back-normalized) option set, the 5 per-surface cells with the TWO
+// injected indicators (RIGHT-side `.surf-depth` recurrent-caries mirroring
+// `syncFillingSubcariesIndicator`, LEFT-side `.surf-defect` mirroring
+// `syncFillingDefectIndicator`), the simple/complex-swap flags, the fissure
+// toggle + its whole-selection gate, the whole-selection summary lines, and the
+// section-visibility flag. The setters wrap the exact `applyToSelected(...)`
+// closures `wireControls()` bound, so behavior is identical — only the call site
+// moves from a DOM listener to a React onChange.
+
+/** One filling-surface cell's fully-resolved render state (mirrors the DOM the
+ *  imperative `buildSurfaceCross` + `syncFillingSubcariesIndicator` +
+ *  `syncFillingDefectIndicator` produced for `#fillingSurfaceChecks`). */
+export type ActiveFillingSurface = {
+  value: string;         // checkbox value + id source (chk-{value}); == surface
+  surface: string;       // stored surface key (buccal/mesial/occlusal/distal/lingual)
+  pos: string;           // grid position class suffix (pos-{pos})
+  letter: string;        // arch/notation-aware boxed letter (surfaceLetter)
+  label: string;         // arch/notation-aware caption (surfaceLabelKey → t)
+  labelId: string;       // id on the caption span (lbl-{surface})
+  checked: boolean;      // surface is filled (fillingSurfaceMaterials.has)
+  material: string;      // data-material attribute ("" when unfilled)
+  // RIGHT-side `.surf-depth` recurrent-caries indicator state.
+  hasSubcaries: boolean;
+  subDepth: string;      // data-depth (icdasToThreeLevel)
+  subIcdas: number;      // data-icdas
+  isIcdas: boolean;      // badge (true) vs 3-bar (false) rendering
+  // LEFT-side `.surf-defect` structural-defect indicator state.
+  hasDefect: boolean;
+  defectValue: string | null;  // data-defect (or null → attr omitted)
+};
+
+export type ActiveFillings = {
+  surfaces: ActiveFillingSurface[];  // 5 cells, in buildSurfaceCross order
+  fillingMaterial: string;           // #fillingSelect value (write-back normalized)
+  fillingOptions: { value: string; label: string }[];  // milktooth-aware
+  surfaceGridVisible: boolean;       // #fillingSurfaceChecks not-hidden
+  defectDisabled: boolean;           // #fillingSurfaceChecks .defect-disabled
+  simpleMode: boolean;               // fillingComplexity === "simple"
+  simpleRowVisible: boolean;         // #fillingSimpleRow
+  simpleToggleChecked: boolean;      // #fillingSimpleToggle
+  simpleDefectRowVisible: boolean;   // #fillingSimpleDefectRow
+  simpleDefectValue: string;         // #fillingSimpleDefectSelect value
+  simpleDefectOptions: { value: string; label: string }[];
+  fissureSealing: boolean;           // #fissureSealing checked
+  fissureRowVisible: boolean;        // #fissureSealingRow
+  fillingSectionVisible: boolean;    // #fillingSection
+  subcariesSummary: string;          // #fillingSubcariesSummary text
+  defectSummary: string;             // #fillingDefectSummary text
+};
+
+// The 5 filling surface cells, in the exact order `buildSurfaceCross(
+// $("#fillingSurfaceChecks"), …)` emitted (value == the plain surface key).
+const FILLING_SURFACE_CELLS: Array<{ value: string; surface: string; pos: string }> = [
+  { value: "buccal", surface: "buccal", pos: "buccal" },
+  { value: "mesial", surface: "mesial", pos: "mesial" },
+  { value: "occlusal", surface: "occlusal", pos: "occlusal" },
+  { value: "distal", surface: "distal", pos: "distal" },
+  { value: "lingual", surface: "lingual", pos: "lingual" },
+];
+
+export function getActiveFillings(): ActiveFillings {
+  // No active tooth → derive from a default state so the cross always renders
+  // (buildSurfaceCross built it once at init regardless of selection) and the
+  // visibility flags default to the static shell's pre-sync state.
+  const realState = activeTooth != null ? toothState.get(activeTooth) : null;
+  const state = realState ?? defaultState();
+  const toothNo = activeTooth ?? null;
+
+  const isMilktooth = state.toothSelection === "milktooth";
+  const fillingOptions = getFillingOptions(isMilktooth);
+  // Fold in the write-back-if-out-of-set normalization the old sync block did:
+  // if the stored material isn't in its current option set, snap it to the first
+  // option and write it back to state (only for a real active tooth).
+  let fillingMaterial = state.fillingMaterial;
+  if(!fillingOptions.some(o => o.value === fillingMaterial)){
+    fillingMaterial = fillingOptions[0]?.value ?? "none";
+    if(realState) realState.fillingMaterial = fillingMaterial;
+  }
+
+  const surfaces: ActiveFillingSurface[] = FILLING_SURFACE_CELLS.map((cell) => {
+    const surface = cell.surface;
+    const filled = state.fillingSurfaceMaterials.has(surface);
+    const hasSubcaries = filled && state.caries.has(`caries-${surface}`);
+    const code = state.cariesSeverity.get(surface) || 2;
+    const defVal = state.fillingDefect?.get(surface);
+    const hasDefect = filled && !!defVal && defVal !== "none";
+    return {
+      value: cell.value,
+      surface,
+      pos: cell.pos,
+      letter: surfaceLetter(surface, toothNo),
+      label: t(surfaceLabelKey(surface, toothNo)),
+      labelId: `lbl-${surface}`,
+      checked: filled,
+      material: state.fillingSurfaceMaterials.get(surface) || "",
+      hasSubcaries,
+      subDepth: icdasToThreeLevel(code),
+      subIcdas: code,
+      isIcdas: icdasEnabled,
+      hasDefect,
+      defectValue: hasDefect ? String(defVal) : null,
+    };
+  });
+
+  const hasCrown = state.restorationType !== "none";
+  const showFillingSurfaces = fillingMaterial !== "none" && !hasCrown;
+  const simpleMode = fillingComplexity === "simple";
+  const filledCount = state.fillingSurfaceMaterials.size;
+  const firstSurf = [...state.fillingSurfaceMaterials.keys()][0];
+  const simpleDefectValue = firstSurf ? (state.fillingDefect?.get(firstSurf) ?? "none") : "none";
+
+  // Whole-selection fissure gate (mirrors the sync's `fissureAllowed`). With no
+  // active tooth AND no selection (the not-yet-synced static shell), the row
+  // stays shown — matching the pre-sync markup.
+  const selectedArr = selectedTeeth.size > 0 ? Array.from(selectedTeeth) : [];
+  const selectedList = selectedArr.length > 0 ? selectedArr : (activeTooth != null ? [activeTooth] : []);
+  const fissureAllowed = selectedList.length > 0 && selectedList.every(tn => {
+    const s = toothState.get(tn);
+    return !!s && s.toothSelection === "tooth-base" && FISSURE_ALLOWED.has(tn as number);
+  });
+  const fissureRowVisible = selectedList.length === 0 ? true : (fissureAllowed && fissureSealingEnabled);
+
+  // Section-visibility gate, folded verbatim out of syncControlsFromState
+  // (hideByBase || hideFillingsByCrown; NOT plan-gated).
+  const underGum = isUnderGum(state.toothSelection);
+  const extraction = isExtraction(state.toothSelection) || (state.toothSelection === "none" && state.extractionWound);
+  const hiddenSelected = selectedArr.length > 0 && selectedArr.some(tn => {
+    const sel = toothState.get(tn)?.toothSelection;
+    return sel === "implant" || sel === "none" || sel === "tooth-under-gum" || sel === "no-tooth-after-extraction";
+  });
+  const hideByBase = state.toothSelection === "implant" || state.toothSelection === "none" || underGum || extraction || hiddenSelected;
+  const hideFillingsByCrown = state.toothSelection === "tooth-base" && hasCrown;
+
+  return {
+    surfaces,
+    fillingMaterial,
+    fillingOptions,
+    surfaceGridVisible: showFillingSurfaces && !simpleMode,
+    defectDisabled: !fillingDefectEnabled,
+    simpleMode,
+    simpleRowVisible: showFillingSurfaces && simpleMode,
+    simpleToggleChecked: filledCount > 0,
+    simpleDefectRowVisible: showFillingSurfaces && simpleMode && fillingDefectEnabled && filledCount > 0,
+    simpleDefectValue,
+    simpleDefectOptions: fillingDefectOptions(),
+    fissureSealing: !!state.fissureSealing,
+    fissureRowVisible,
+    fillingSectionVisible: !(hideByBase || hideFillingsByCrown),
+    subcariesSummary: computeFillingSubcariesSummaryLine(selectedArr as number[], (tn) => toothState.get(tn)),
+    defectSummary: computeFillingDefectSummaryLine(selectedArr as number[], (tn) => toothState.get(tn)),
+  };
+}
+
+/** Set the active filling material on the current selection — wraps the exact
+ *  `#fillingSelect` closure `wireControls()` bound (clearing "none" removes any
+ *  orphaned per-surface fillings). */
+export function setFillingMaterialForSelection(mat: string): void {
+  applyToSelected((s: Any)=>{
+    s.fillingMaterial = mat;
+    if(mat === "none"){
+      s.fillingSurfaces.clear();
+      s.fillingSurfaceMaterials.clear();
+    }
+  });
+}
+
+/** Toggle one filling surface on the current selection — wraps the exact
+ *  `buildSurfaceCross($("#fillingSurfaceChecks"), …)` closure. */
+export function setFillingSurfaceForSelection(surf: string, on: boolean): void {
+  applyToSelected((s: Any)=>{
+    if(on && s.fillingMaterial !== "none"){
+      s.fillingSurfaces.add(surf);
+      s.fillingSurfaceMaterials.set(surf, s.fillingMaterial);
+    }else{
+      s.fillingSurfaces.delete(surf);
+      s.fillingSurfaceMaterials.delete(surf);
+    }
+  });
+}
+
+/** Simple-mode filled/not-filled toggle — applies the current material to ALL
+ *  surfaces (or clears them). Wraps the `#fillingSimpleToggle` closure. */
+export function setFillingSimpleToggleForSelection(on: boolean): void {
+  applyToSelected((s: Any)=>{
+    if(on){
+      const mat = s.fillingMaterial !== "none" ? s.fillingMaterial : "composite";
+      for(const surf of ["buccal", "mesial", "occlusal", "distal", "lingual"]){ s.fillingSurfaceMaterials.set(surf, mat); s.fillingSurfaces.add(surf); }
+    }else{
+      s.fillingSurfaceMaterials.clear();
+      s.fillingSurfaces.clear();
+      s.fillingDefect.clear();
+    }
+  });
+}
+
+/** Simple-mode filling-defect select — applies a defect to EVERY filled surface.
+ *  Wraps the `#fillingSimpleDefectSelect` closure. */
+export function setFillingSimpleDefectForSelection(value: string): void {
+  applyToSelected((s: Any)=>{
+    for(const surf of (s.fillingSurfaceMaterials as Map<string, string>).keys()){
+      applyFillingDefect(s.fillingDefect, surf, value);
+    }
+  });
+}
+
+/** Fissure-sealing toggle on the current selection. Wraps the `#fissureSealing`
+ *  closure. */
+export function setFissureSealingForSelection(on: boolean): void {
+  applyToSelected((s: Any)=>{ s.fissureSealing = on; });
+}
+
 function getPeriImplantOptions(): { value: string; label: string }[]{
   return Array.from(VALID_PERI_IMPLANT).map(v => ({ value: v, label: t("periImplant." + kebabToCamel(v)) }));
 }
@@ -3694,15 +3898,10 @@ export function computeFillingSubcariesSummaryLine(
   return t(key, { teeth: entries.join(", ") });
 }
 
-/** DOM sync for the fillings-panel subcaries-summary line (`#fillingSubcariesSummary`).
- *  No-op when the element isn't present (e.g. in a DOM-free test harness). */
-function updateFillingSubcariesSummary(): void {
-  const lineEl = $("#fillingSubcariesSummary");
-  if(!lineEl) return;
-  const line = computeFillingSubcariesSummaryLine(Array.from(selectedTeeth) as number[], (toothNo) => toothState.get(toothNo));
-  lineEl.textContent = line;
-  lineEl.classList.toggle("hidden", !line);
-}
+// The DOM-sync writer for `#fillingSubcariesSummary` is retired: the declarative
+// `FillingsCard` (composable-UI Tier 3, PR 3d) renders that line from
+// `getActiveFillings().subcariesSummary`, computed by the still-shared pure
+// `computeFillingSubcariesSummaryLine` helper below.
 
 /** A minimal shape covering what {@link fillingDefectLettersForTooth} and
  *  {@link computeFillingDefectSummaryLine} read from a tooth state. */
@@ -3762,16 +3961,9 @@ export function computeFillingDefectSummaryLine(
   return t(key, { teeth: entries.join(", ") });
 }
 
-/** DOM sync for the fillings-panel filling-defect-summary line
- *  (`#fillingDefectSummary`), parallel to {@link updateFillingSubcariesSummary}.
- *  No-op when the element isn't present (e.g. in a DOM-free test harness). */
-function updateFillingDefectSummary(): void {
-  const lineEl = $("#fillingDefectSummary");
-  if(!lineEl) return;
-  const line = computeFillingDefectSummaryLine(Array.from(selectedTeeth) as number[], (toothNo) => toothState.get(toothNo));
-  lineEl.textContent = line;
-  lineEl.classList.toggle("hidden", !line);
-}
+// The DOM-sync writer for `#fillingDefectSummary` is retired in the same way as
+// its subcaries sibling above — `FillingsCard` renders it from
+// `getActiveFillings().defectSummary` (pure `computeFillingDefectSummaryLine`).
 
 /** Toggle the wear (edge + cervical, shared wearDetailLevel) and discoloration
  *  (own discolorationDetailLevel) controls between their "complex" <select> and
@@ -3959,7 +4151,8 @@ function syncControlsFromState(state: Any){
     state.apicalDx = $("#apicalDxSelect").value;
   }
   $("#endoResection").checked = !!state.endoResection;
-  $("#fissureSealing").checked = !!state.fissureSealing;
+  // #fissureSealing checkbox is now owned by the declarative `FillingsCard`
+  // (composable-UI Tier 3, PR 3d) via `getActiveFillings().fissureSealing`.
   $("#contactMesial").checked = !!state.contactMesial;
   $("#contactDistal").checked = !!state.contactDistal;
   setSelectOptions($("#wearEdgeSelect"), getWearEdgeOptions(), state.wearEdge);
@@ -4045,10 +4238,8 @@ function syncControlsFromState(state: Any){
   // (wireControls) routes selection through pulpEndoOnSelect, which enforces the
   // mutual-exclusion invariant, so no post-sync normalization is needed here.
   buildPulpEndoSelect($("#pulpEndoSelect"), isMilktooth, pulpEndoDisplayValue(state), isPlan);
-  setSelectOptions($("#fillingSelect"), getFillingOptions(isMilktooth), state.fillingMaterial);
-  if($("#fillingSelect").value !== state.fillingMaterial){
-    state.fillingMaterial = $("#fillingSelect").value;
-  }
+  // #fillingSelect options + write-back are now owned by the declarative
+  // `FillingsCard` (composable-UI Tier 3, PR 3d) via `getActiveFillings()`.
   setSelectOptions($("#mobilitySelect"), getMobilityOptions(), state.mobility);
   if($("#mobilitySelect").value !== state.mobility){
     state.mobility = $("#mobilitySelect").value;
@@ -4094,51 +4285,10 @@ function syncControlsFromState(state: Any){
   // `.surf-depth` severity indicators) is now the declarative `CariesCard`
   // (composable-UI Tier 3, PR 3c) via `getActiveCaries()`; no imperative sync here.
 
-  // filling surfaces
-  $$("#fillingSurfaceChecks input[type=checkbox]").forEach(c => {
-    c.checked = state.fillingSurfaceMaterials.has(c.value);
-    const cell = c.closest(".surface-cell") as HTMLElement | null;
-    if(cell){
-      const mat = state.fillingSurfaceMaterials.get(c.value);
-      cell.setAttribute("data-material", mat || "");
-    }
-  });
-  // Recurrent-caries dark-border indicator on filled surfaces.
-  $$("#fillingSurfaceChecks .surface-cell").forEach(cell => syncFillingSubcariesIndicator(cell, state));
-  // Structural filling-defect dark-border indicator (LEFT side).
-  $$("#fillingSurfaceChecks .surface-cell").forEach(cell => syncFillingDefectIndicator(cell, state));
-
-  // disable logic in UI
-  const hasCrown = state.restorationType !== "none";
-  const showFillingSurfaces = state.fillingMaterial !== "none" && !hasCrown;
-  // In "simple" complexity, the per-surface grid is replaced by a single
-  // filled/not-filled toggle (both gated on showFillingSurfaces).
-  const simpleFilling = fillingComplexity === "simple";
-  $("#fillingSurfaceChecks").classList.toggle("hidden", !showFillingSurfaces || simpleFilling);
-  const simpleRow = $("#fillingSimpleRow") as HTMLElement | null;
-  if(simpleRow){
-    simpleRow.classList.toggle("hidden", !showFillingSurfaces || !simpleFilling);
-    const simpleInput = simpleRow.querySelector("input") as HTMLInputElement | null;
-    if(simpleInput) simpleInput.checked = state.fillingSurfaceMaterials.size > 0;
-  }
-  // In simple mode, a defect button (applying to ALL filled surfaces) shows only
-  // when the defect feature is on and the tooth is filled.
-  const simpleDefectRow = $("#fillingSimpleDefectRow") as HTMLElement | null;
-  if(simpleDefectRow){
-    const showSimpleDefect = showFillingSurfaces && simpleFilling && fillingDefectEnabled && state.fillingSurfaceMaterials.size > 0;
-    simpleDefectRow.classList.toggle("hidden", !showSimpleDefect);
-    const sel = $("#fillingSimpleDefectSelect") as HTMLSelectElement | null;
-    if(sel){
-      // Reflect the representative (first filled surface's) defect; applying via
-      // the select writes the chosen value to EVERY filled surface.
-      const firstSurf = [...state.fillingSurfaceMaterials.keys()][0];
-      const cur = firstSurf ? (state.fillingDefect?.get(firstSurf) ?? "none") : "none";
-      setSelectOptions(sel, fillingDefectOptions(), cur);
-    }
-  }
-  // Hide the per-surface filling-defect indicator when the defect feature is
-  // turned off in Settings → Fillings.
-  $("#fillingSurfaceChecks").classList.toggle("defect-disabled", !fillingDefectEnabled);
+  // fillings card (#fillingSection body: material select, surface cross with the
+  // recurrent-caries + defect indicators, the simple/complex swap, and the
+  // filling-defect gate) is now the declarative `FillingsCard` (composable-UI
+  // Tier 3, PR 3d) via `getActiveFillings()`; no imperative sync here.
 
   // endo only if tooth present
   const endoDisabled = !isToothPresent(state.toothSelection) || underGum || extraction;
@@ -4159,9 +4309,10 @@ function syncControlsFromState(state: Any){
   const hideByNone = state.toothSelection === "none" || noneSelected;
   // The #cariesSection visibility gate (hideByBase || hideByRadix || isPlan) now
   // lives in `getActiveCaries().cariesSectionVisible` and is applied by the
-  // declarative `CariesCard` (composable-UI Tier 3, PR 3c).
-  const hideFillingsByCrown = state.toothSelection === "tooth-base" && hasCrown;
-  $("#fillingSection").classList.toggle("hidden", hideByBase || hideFillingsByCrown);
+  // declarative `CariesCard` (composable-UI Tier 3, PR 3c). The #fillingSection
+  // gate (hideByBase || (tooth-base && crown)) likewise lives in
+  // `getActiveFillings().fillingSectionVisible`, applied by `FillingsCard`
+  // (composable-UI Tier 3, PR 3d).
   // Combined restoration dropdown: available on a present permanent tooth and on
   // a gap (bridge pontic); hidden for milk/implant/under-gum/extraction.
   const hideRestorationRow = restorationRowHidden(state);
@@ -4216,15 +4367,12 @@ function syncControlsFromState(state: Any){
   // #orthoCard visibility is now owned by the declarative `OrthodonticsCard`
   // (composable-UI Tier 3) via `getActiveOrtho().visible`, which reuses the same
   // whole-selection `orthoAllowed` predicate this block used.
-  const fissureAllowed = selectedList.length > 0 && selectedList.every(tn => {
-    const s = toothState.get(tn);
-    return s && s.toothSelection === "tooth-base" && FISSURE_ALLOWED.has(tn);
-  });
   $("#contactPointRow").classList.toggle("hidden", !contactAllowed);
   $("#bruxismRow").classList.toggle("hidden", !bruxismAllowed);
   $("#discolorationRow").classList.toggle("hidden", !discolorationRowAllowed);
-  // Also hidden when fissure sealing is turned off in Settings.
-  $("#fissureSealingRow").classList.toggle("hidden", !fissureAllowed || !fissureSealingEnabled);
+  // #fissureSealingRow visibility is now owned by the declarative `FillingsCard`
+  // (composable-UI Tier 3, PR 3d) via `getActiveFillings().fissureRowVisible`,
+  // which reuses the same whole-selection fissure predicate this block used.
   const extractionPlanAllowed = selectedList.length > 0 && selectedList.every(tn => {
     const s = toothState.get(tn);
     return s && ["tooth-base","milktooth","implant","tooth-under-gum"].includes(s.toothSelection);
@@ -4315,13 +4463,10 @@ function syncControlsFromState(state: Any){
   // just-changed) active tooth — anterior vs. posterior only affects the
   // displayed label, never the stored surface value.
   refreshCheckLabels();
-  // The "Fillings and restorative" panel's informational subcaries-summary line
-  // depends on ALL selected teeth, not just the active one, so it reads
-  // `selectedTeeth`/`toothState` directly rather than `state`.
-  updateFillingSubcariesSummary();
-  // Parallel filling-defect-summary line, same all-selected-teeth rationale as
-  // updateFillingSubcariesSummary above.
-  updateFillingDefectSummary();
+  // The "Fillings and restorative" panel's informational subcaries + defect
+  // summary lines are now owned by the declarative `FillingsCard` (composable-UI
+  // Tier 3, PR 3d) via `getActiveFillings().subcariesSummary`/`.defectSummary`;
+  // no imperative DOM sync here.
 }
 
 // ---- Event handlers ----
@@ -4531,19 +4676,10 @@ function refreshCheckLabels(){
     if(label) label.textContent = t(opt.labelKey);
   }
   // The caries surface-cross labels/letters (#lbl-caries-*) are now owned by the
-  // declarative `CariesCard` (composable-UI Tier 3, PR 3c), which computes them
-  // arch/notation-aware from `getActiveCaries()` — no imperative relabel here.
-  for(const surface of GROUPS.fillingSurfaces){
-    const label = $(`#lbl-${surface}`);
-    if(!label) continue;
-    // Mirrors the caries-picker swap above.
-    const key = (surface === "occlusal" || surface === "buccal" || surface === "lingual")
-      ? surfaceLabelKey(surface, activeTooth)
-      : (FILLING_SURFACE_LABELS[surface] || "surface.mesial");
-    label.textContent = t(key);
-    const letterEl = label.parentElement?.querySelector(".surf-letter");
-    if(letterEl) letterEl.textContent = surfaceLetter(surface, activeTooth);
-  }
+  // declarative `CariesCard` (composable-UI Tier 3, PR 3c), and the filling
+  // surface-cross labels/letters (#lbl-{surface}) by the declarative
+  // `FillingsCard` (composable-UI Tier 3, PR 3d) — both compute them
+  // arch/notation-aware from their getters, so no imperative relabel here.
 }
 
 function refreshToothSelectOptions(){
@@ -4596,8 +4732,9 @@ function refreshAllSelectOptions(){
   if(substrateEl) setSelectOptions(substrateEl, getSubstrateOptions(), substrateEl.value);
   const restorationEl = $("#restorationSelect");
   if(restorationEl) setSelectOptions(restorationEl, getRestorationOptions(restorationViewFor(activeTooth), { isImplant: state?.toothSelection === "implant", toothSelection: state?.toothSelection }), restorationEl.value);
-  const fillingEl = $("#fillingSelect");
-  if(fillingEl) setSelectOptions(fillingEl, getFillingOptions(isMilktooth), fillingEl.value);
+  // #fillingSelect (+ #fillingSimpleDefectSelect) are re-localized by the
+  // declarative `FillingsCard` (composable-UI Tier 3, PR 3d) on its React
+  // re-render, like the caries/ortho selects — no imperative re-localize here.
   const mobilityEl = $("#mobilitySelect");
   if(mobilityEl) setSelectOptions(mobilityEl, getMobilityOptions(), mobilityEl.value);
   const periapicalEl = $("#periapicalTypeSelect");
@@ -5064,6 +5201,15 @@ function showCariesDepthPopup(surface: string, anchor: HTMLElement, toothNo?: nu
  *  `activeTooth` / `applyToSelected`). */
 export function openCariesDepthPopup(surface: string, anchor: HTMLElement): void {
   showCariesDepthPopup(surface, anchor, activeTooth);
+}
+
+/** Public entry point for the declarative `FillingsCard`'s per-surface LEFT-side
+ *  `.surf-defect` indicator click: opens the contextual filling-defect popup for
+ *  `surface`, anchored to `anchor`, on the currently-active tooth — the exact
+ *  call `wireControls()` made (`showFillingDefectPopup(surface, ind,
+ *  activeTooth)`). Thin wrapper so the popup itself stays imperative. */
+export function openFillingDefectPopup(surface: string, anchor: HTMLElement): void {
+  showFillingDefectPopup(surface, anchor, activeTooth);
 }
 
 /** Small dedicated anchored popup to author the structural
@@ -9206,107 +9352,15 @@ function wireControls(){
   // `setCariesActiveDepthForSelection`/`setRootCariesForSelection`/
   // `openCariesDepthPopup` — no imperative wiring here.
 
-  // Filling material dropdown
-  buildSelect($("#fillingSelect"), getFillingOptions(false), (mat)=>{
-    applyToSelected((s)=>{
-      s.fillingMaterial = mat;
-      // Clearing the active material removes any existing per-surface fillings,
-      // otherwise they would become orphaned (surface UI hides but state lingers,
-      // still rendering/serializing/exporting). Keeps the map and set in sync.
-      if(mat === "none"){
-        s.fillingSurfaces.clear();
-        s.fillingSurfaceMaterials.clear();
-      }
-    });
-  });
-
-  // Filling surfaces in a cross layout.
-  buildSurfaceCross($("#fillingSurfaceChecks"), [
-    { value: "buccal", labelKey: "surface.buccal", letter: "B", pos: "buccal" },
-    { value: "mesial", labelKey: "surface.mesial", letter: "M", pos: "mesial" },
-    { value: "occlusal", labelKey: "surface.occlusal", letter: "O", pos: "occlusal" },
-    { value: "distal", labelKey: "surface.distal", letter: "D", pos: "distal" },
-    { value: "lingual", labelKey: "surface.lingualPalatal", letter: "L", pos: "lingual" },
-  ], (surf: Any, on: Any)=>{
-    applyToSelected((s)=>{
-      if(on && s.fillingMaterial !== "none"){
-        s.fillingSurfaces.add(surf);
-        s.fillingSurfaceMaterials.set(surf, s.fillingMaterial);
-      }else{
-        s.fillingSurfaces.delete(surf);
-        s.fillingSurfaceMaterials.delete(surf);
-      }
-    });
-  });
-  // Mirror the caries-cell per-surface indicator onto each FILLING-surface cell.
-  // It signposts (and, via the contextual popup, authors)
-  // recurrent caries on a filled surface — CSS shows it only when the filling
-  // checkbox is checked, and the dark border (`.has-subcaries`) is toggled in
-  // syncFillingSubcariesIndicator when the surface actually has caries.
-  $$("#fillingSurfaceChecks .surface-cell").forEach((cell) => {
-    const input = cell.querySelector("input") as HTMLInputElement | null;
-    if(!input) return;
-    if(cell.querySelector(".surf-depth")) return; // still-mounted cell already has its indicator
-    const surface = String(input.value);
-    const ind = el("span", { class: "surf-depth", title: t("caries.recurrentHint") }, [ el("i"), el("i"), el("i") ]);
-    ind.addEventListener("click", (e: Any)=>{
-      e.preventDefault();
-      e.stopPropagation();
-      if(!input.checked || readOnly) return;
-      showCariesDepthPopup(surface, ind, activeTooth);
-    });
-    cell.appendChild(ind);
-  });
-  // LEFT-side per-surface filling-defect indicator (the RIGHT-side .surf-depth
-  // authors recurrent caries; this authors the structural defect). Shown by CSS only
-  // when the filling checkbox is checked; the dark border (.has-defect) is toggled in
-  // syncFillingDefectIndicator when the surface actually carries a defect.
-  $$("#fillingSurfaceChecks .surface-cell").forEach((cell) => {
-    const input = cell.querySelector("input") as HTMLInputElement | null;
-    if(!input) return;
-    if(cell.querySelector(".surf-defect")) return; // still-mounted cell already has its indicator
-    const surface = String(input.value);
-    const ind = el("span", { class: "surf-defect", title: t("fillingDefect.label") }, [ el("i") ]);
-    ind.addEventListener("click", (e: Any)=>{
-      e.preventDefault(); e.stopPropagation();
-      // no-op when the filling-defect feature is disabled.
-      if(!input.checked || readOnly || !fillingDefectEnabled) return;
-      showFillingDefectPopup(surface, ind, activeTooth);
-    });
-    cell.insertBefore(ind, cell.firstChild); // LEFT side
-  });
-
-  // "simple" filling complexity — one filled/not-filled toggle applying the
-  // current material to ALL surfaces (or clearing them).
-  bindOnce($("#fillingSimpleToggle"), "change", (e)=>{
-    const on = (e.target as HTMLInputElement).checked;
-    applyToSelected((s)=>{
-      if(on){
-        const mat = s.fillingMaterial !== "none" ? s.fillingMaterial : "composite";
-        for(const surf of ["buccal", "mesial", "occlusal", "distal", "lingual"]){ s.fillingSurfaceMaterials.set(surf, mat); s.fillingSurfaces.add(surf); }
-      }else{
-        s.fillingSurfaceMaterials.clear();
-        s.fillingSurfaces.clear();
-        s.fillingDefect.clear();
-      }
-    });
-  });
-  // simple-mode filling-defect button — applies a defect to ALL filled surfaces.
-  bindOnce($("#fillingSimpleDefectSelect"), "change", (e: Any)=>{
-    const value = String((e.target as HTMLSelectElement).value);
-    applyToSelected((s)=>{
-      for(const surf of (s.fillingSurfaceMaterials as Map<string, string>).keys()){
-        applyFillingDefect(s.fillingDefect, surf, value);
-      }
-    });
-  });
-
-  // Fissure sealing
-  bindOnce($("#fissureSealing"), "change", (e)=>{
-    applyToSelected((s)=>{
-      s.fissureSealing = (e.target as HTMLInputElement).checked;
-    });
-  });
+  // Fillings card (#fillingSection body) is now the declarative `FillingsCard`
+  // (composable-UI Tier 3, PR 3d): its material select, surface cross (with the
+  // RIGHT-side recurrent-caries `.surf-depth` and LEFT-side `.surf-defect`
+  // indicators), the simple/complex swap, the simple-mode defect select, and the
+  // fissure-sealing toggle are rendered from `getActiveFillings()` and written
+  // through `setFillingMaterialForSelection`/`setFillingSurfaceForSelection`/
+  // `setFillingSimpleToggleForSelection`/`setFillingSimpleDefectForSelection`/
+  // `setFissureSealingForSelection` + `openCariesDepthPopup`/`openFillingDefectPopup`
+  // — no imperative wiring here.
 
   // Calculus
   bindOnce($("#calculusToggle"), "change", (e)=>{
