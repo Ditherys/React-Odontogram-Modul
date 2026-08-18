@@ -1543,12 +1543,16 @@ select:focus{
 }
 .odon-credits-star{
   align-self: flex-start;
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 8px 14px;
-  background: var(--brand, #3b7bff); color: #fff;
-  border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 40px; margin-top: 4px; padding: 8px 14px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: transparent; color: var(--text);
+  font-size: 14px; font-weight: 600; text-decoration: none;
+  transition: background-color .12s ease, border-color .12s ease;
 }
-.odon-credits-star:hover{ filter: brightness(1.05); }
+.odon-credits-star svg{ opacity: .75; }
+.odon-credits-star:hover{ background: rgba(0,0,0,.05); border-color: var(--text); }
+.dark .odon-credits-star:hover{ background: rgba(255,255,255,.08); }
 .odon-credits-star:focus-visible{ outline: none; box-shadow: 0 0 0 3px rgba(59,123,255,.35); }
 
 /* P2 Task 1: perio-chart overlay shell. Full-screen, layered ABOVE the

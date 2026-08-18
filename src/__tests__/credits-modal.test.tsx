@@ -34,6 +34,18 @@ describe("CreditsModal", () => {
     }
   });
 
+  it("separates the creator from the other contributors", () => {
+    render(<CreditsModal open t={t} onClose={() => {}} />);
+    // Both section headings render (Creator/Main developer, then Contributors).
+    expect(screen.getByText("credits.creatorTitle")).toBeInTheDocument();
+    expect(screen.getByText("credits.contributorsTitle")).toBeInTheDocument();
+    // The creator (ZoliQua) is listed under the creator heading, not the
+    // contributors list: it precedes the first contributor in DOM order.
+    const zoliqua = screen.getByRole("link", { name: "@ZoliQua" });
+    const odontodev = screen.getByRole("link", { name: "@odontodev" });
+    expect(zoliqua.compareDocumentPosition(odontodev) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("never credits Claude / the AI assistant", () => {
     const { container } = render(<CreditsModal open t={t} onClose={() => {}} />);
     expect(container.textContent ?? "").not.toMatch(/claude|assistant|\bAI\b/i);
