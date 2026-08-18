@@ -87,6 +87,95 @@ export const TOOTH_TEMPLATE = new Map([
   [46,{tpl:16,rot:180,mirror:true}],[47,{tpl:16,rot:180,mirror:true}],[48,{tpl:16,rot:180,mirror:true}],
 ]);
 
+// ---- Tooth-anatomy profile (Stage A: classic only) ----
+// An `AnatomyProfile` bundles everything anatomy-specific — the tooth-template
+// SVG text maps, the per-tooth template/orientation map, the tpl/occl id lists,
+// the grid layout kind, and the perio-chart CEJ baseline anchors — so a runtime
+// "tooth anatomy" switch can swap the whole set at once. Stage A ships ONLY the
+// CLASSIC profile (today's artwork/layout/anchors verbatim), so behavior and all
+// goldens are byte-identical; a later stage adds a "measured" profile.
+
+/** Per-template CEJ (crown-root boundary) y-anchor for the CLASSIC anatomy — the
+ *  perio-chart row-baseline anchor. Owned here (as part of the profile) and
+ *  re-exported by `perioGraphic.ts` for backward compatibility. Values measured
+ *  from each template's `gum-base` geometry (see `perioGraphic.ts` for the full
+ *  measurement note). */
+export const CLASSIC_CEJ_Y: Record<number, number> = { 11: 32.2, 13: 32.4, 14: 32.1, 16: 31.0 };
+/** Per-template baseline anchor for an IMPLANT tooth (the `#implant-base`
+ *  platform), CLASSIC anatomy. */
+export const CLASSIC_IMPLANT_CEJ_Y: Record<number, number> = { 11: 33.0, 13: 35.4, 14: 34.6, 16: 34.3 };
+/** Per-template baseline anchor for a MILKTOOTH rendering, CLASSIC anatomy —
+ *  approximated as the natural `CLASSIC_CEJ_Y`. */
+export const CLASSIC_MILKTOOTH_CEJ_Y: Record<number, number> = { ...CLASSIC_CEJ_Y };
+
+/** Selectable tooth-anatomy profiles. Stage A: only `classic` is realized;
+ *  `measured` is accepted but falls back to the classic profile (harmless). */
+export type ToothAnatomy = "classic" | "measured";
+
+/** Everything anatomy-specific, bundled so a runtime switch swaps it atomically.
+ *  `templates`/`templatesOccl` hold inlined SVG text; `toothTemplate` maps each
+ *  FDI tooth to its `{tpl,rot,mirror}`; `occlusalTemplate` is optional (only a
+ *  profile that splits front/occlusal artwork populates it — classic reuses
+ *  `toothTemplate`); `layout` drives the `buildGrid` branch; the three `*CejY`
+ *  records are the perio-chart baseline anchors. */
+export type AnatomyProfile = {
+  templates: Record<number, string>;
+  templatesOccl: Record<number, string>;
+  toothTemplate: Map<number, { tpl: number; rot: number; mirror: boolean }>;
+  occlusalTemplate?: Map<number, { tpl: number; rot: number; mirror: boolean }>;
+  tplNos: number[];
+  occlNos: number[];
+  layout: "uniform16" | "twoArch";
+  cejY: Record<number, number>;
+  implantCejY: Record<number, number>;
+  milktoothCejY: Record<number, number>;
+};
+
+/** The CLASSIC profile — today's exact values. Referencing the existing
+ *  `TEMPLATES`/`TEMPLATES_OCCL`/`TOOTH_TEMPLATE` objects (not copies) keeps the
+ *  live grid and perio chart reading the identical artwork → byte-identical. */
+const CLASSIC_PROFILE: AnatomyProfile = {
+  templates: TEMPLATES,
+  templatesOccl: TEMPLATES_OCCL,
+  toothTemplate: TOOTH_TEMPLATE,
+  tplNos: [11, 13, 14, 16],
+  occlNos: [14, 16],
+  layout: "uniform16",
+  cejY: CLASSIC_CEJ_Y,
+  implantCejY: CLASSIC_IMPLANT_CEJ_Y,
+  milktoothCejY: CLASSIC_MILKTOOTH_CEJ_Y,
+};
+
+// Registry keyed by `ToothAnatomy`. Only `classic` is realized in Stage A; a
+// missing key (e.g. `measured`) falls back to `CLASSIC_PROFILE` via
+// `activeAnatomyProfile()`.
+const ANATOMY_PROFILES: Partial<Record<ToothAnatomy, AnatomyProfile>> = {
+  classic: CLASSIC_PROFILE,
+};
+
+// Session-only selected anatomy (mirrors `perioViewMode`): a module `let` +
+// getter/setter that notifies on change. NOT part of the export payload — never
+// referenced by `collectExportPayload`/`getPlanChart`/hydrate.
+let toothAnatomy: ToothAnatomy = "classic";
+
+/** Current tooth-anatomy profile selector. Defaults to `"classic"`. */
+export function getToothAnatomy(): ToothAnatomy {
+  return toothAnatomy;
+}
+
+/** Switch the tooth-anatomy profile. No-op (does not notify) if unchanged. */
+export function setToothAnatomy(v: ToothAnatomy): void {
+  if(v === toothAnatomy) return;
+  toothAnatomy = v;
+  notifyStateChange();
+}
+
+/** The active `AnatomyProfile` per the current flag; falls back to classic for
+ *  any profile not (yet) realized in the registry. */
+export function activeAnatomyProfile(): AnatomyProfile {
+  return ANATOMY_PROFILES[toothAnatomy] ?? CLASSIC_PROFILE;
+}
+
 const ALL_TEETH = [
   18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28,
   48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38
@@ -9355,17 +9444,22 @@ async function buildGrid(token: number){
   if(!grid) return;
   grid.innerHTML = "";
 
+  // Read the active anatomy profile for the template maps + tpl/occl lists. For
+  // the classic profile these are the same objects/values as the module-level
+  // constants, so the built DOM is byte-identical to before this refactor.
+  const profile = activeAnatomyProfile();
+
   // preload SVG templates in parallel
   const tplCache = new Map();
   const occlCache = new Map();
-  const tplNos = [11,13,14,16] as const;
-  const occlNos = [14,16] as const;
+  const tplNos = profile.tplNos;
+  const occlNos = profile.occlNos;
   await Promise.all([
     ...tplNos.map(async (tplNo) => {
-      tplCache.set(tplNo, await loadSvg(TEMPLATES[tplNo]));
+      tplCache.set(tplNo, await loadSvg(profile.templates[tplNo]));
     }),
     ...occlNos.map(async (tplNo) => {
-      occlCache.set(tplNo, await loadSvg(TEMPLATES_OCCL[tplNo]));
+      occlCache.set(tplNo, await loadSvg(profile.templatesOccl[tplNo]));
     }),
   ]);
   if(!initialized || token !== initToken) return;
@@ -9422,7 +9516,7 @@ async function buildGrid(token: number){
 
   function addRowSide(rowTeeth: Any){
     for(const toothNo of rowTeeth){
-      const map = TOOTH_TEMPLATE.get(toothNo);
+      const map = profile.toothTemplate.get(toothNo);
       const tplNo = map ? map.tpl : 16;
       addTile({ toothNo, tplNo, rot: map?.rot ?? 0, mirror: map?.mirror ?? false, view: "side", clickable: true });
     }
@@ -9443,7 +9537,7 @@ async function buildGrid(token: number){
 
   function addRowOccl(rowTeeth: Any, placeholders: Any){
     for(const toothNo of rowTeeth){
-      const map = TOOTH_TEMPLATE.get(toothNo);
+      const map = profile.toothTemplate.get(toothNo);
       const tplNo = occlTemplateForTooth(toothNo);
       if(placeholders.has(toothNo) || !tplNo || !map){
         addPlaceholderTile();
@@ -9470,12 +9564,17 @@ async function buildGrid(token: number){
   const lowerOcclPlaceholders = new Set([43,42,41,31,32,33]);
 
   if(!initialized || token !== initToken) return;
-  addLabelRow(upperSide, toothLabelUpper);
-  addRowSide(upperSide);
-  addRowOccl(upperSide, upperOcclPlaceholders);
-  addRowOccl(lowerSide, lowerOcclPlaceholders);
-  addRowSide(lowerSide);
-  addLabelRow(lowerSide, toothLabelLower);
+  // Layout assembly branches on the profile. Classic = the flat, single
+  // `#toothGrid` uniform-16 grid below (identical DOM). A later stage adds a
+  // `profile.layout === "twoArch"` branch here for the measured profile.
+  if(profile.layout === "uniform16"){
+    addLabelRow(upperSide, toothLabelUpper);
+    addRowSide(upperSide);
+    addRowOccl(upperSide, upperOcclPlaceholders);
+    addRowOccl(lowerSide, lowerOcclPlaceholders);
+    addRowSide(lowerSide);
+    addLabelRow(lowerSide, toothLabelLower);
+  }
 
   // ARIA on grid container
   grid.setAttribute("role", "listbox");
