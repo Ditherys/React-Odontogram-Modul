@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Selectable tooth-anatomy profile (Settings → Odontogram → Tooth anatomy;
+  #18/#22).** A new session-level setting chooses the tooth-anatomy profile:
+  **classic** (the default, unchanged) or **measured**. The measured profile
+  renders nine literature-measured tooth templates in a two-arch, per-tooth-width
+  layout (from the cognovis "candidate anatomy" work), switchable at runtime via
+  the shared session. The `tools/toothgen` Python generator (dev-only, out of the
+  npm package) regenerates the measured drawings from their hand-authored source
+  SVGs. No payload/render change for the classic profile; goldens byte-identical.
+  **Known limitation:** the measured molar templates 17/46 omit ~16 milktooth /
+  pulp-inflammation layers, so those specific findings do not draw on those
+  positions in the measured profile.
 - **Composable UI: declarative control cards (issue #20, Tier 3).** The control
   cards are being converted from imperative id-bound wiring to self-contained
   declarative React components (following `PerioSidebar`), one per release step,
