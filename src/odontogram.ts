@@ -2175,8 +2175,9 @@ export type ActiveOrtho = {
 
 export function getActiveOrtho(): ActiveOrtho | null {
   if(activeTooth == null) return null;
-  const state = toothState.get(activeTooth);
-  if(!state) return null;
+  // A selected tooth may be unedited (state lazily vivified on first edit); read
+  // it as its defaultState() so the card follows selection, like the other cards.
+  const state = toothState.get(activeTooth) ?? defaultState();
   // Fold in the write-back-if-out-of-set normalization the old sync block did:
   // if a stored value isn't in its current option set, snap it to the first
   // option and write it back to state (a no-op for ortho's static enums, kept
@@ -2964,7 +2965,12 @@ export function getActiveToothDetails(): ActiveToothDetails {
   const discolorationOptions = getDiscolorationOptions();
   const restoView = restorationViewFor(activeTooth);
 
-  const hasActive = activeTooth != null && toothState.get(activeTooth) != null;
+  // A tooth is "active" as soon as it is selected — even if it hasn't been
+  // edited yet (its state is lazily vivified on first edit). Reading an unedited
+  // selected tooth as its `defaultState()` (below) is what makes the card show
+  // that tooth's real base/rows (e.g. a permanent tooth hides the
+  // extraction-wound / closed-gap rows) instead of the no-selection shell.
+  const hasActive = activeTooth != null;
 
   if(!hasActive){
     // No active tooth → reproduce the static shell verbatim. The imperative
@@ -3022,7 +3028,7 @@ export function getActiveToothDetails(): ActiveToothDetails {
     };
   }
 
-  const state = toothState.get(activeTooth) as Any; // hasActive guarantees non-null
+  const state = (toothState.get(activeTooth) ?? defaultState()) as Any; // selected tooth may be unedited (state lazily vivified on first edit)
   const isMilktooth = state.toothSelection === "milktooth";
   const isImplant = state.toothSelection === "implant";
   const underGum = isUnderGum(state.toothSelection);
@@ -5117,6 +5123,11 @@ function updateSelectionUI(){
     syncControlsFromState(defaultState());
     setControlsEnabled(false);
   }
+  // The declarative control cards re-read via onStateChange, so a selection
+  // change (new active tooth) must notify — otherwise a card would keep showing
+  // the previously-active tooth's state. Selection funnels through here and the
+  // edit path (applyToSelected) notifies on its own, so this adds no double-fire.
+  notifyStateChange();
 }
 
 // ---- Touch: Zoom Popover ----
