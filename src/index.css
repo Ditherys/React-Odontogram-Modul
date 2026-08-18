@@ -1497,6 +1497,60 @@ select:focus{
 .dark .odon-confirm-cancel{ background: rgba(255,255,255,.06); }
 .dark .odon-confirm-cancel:hover{ background: rgba(255,255,255,.12); }
 
+/* Credits ("About and credits") popup. Reuses .odon-confirm-backdrop for the
+   centered, blurred backdrop; the card is a little wider and scrolls its body. */
+.odon-credits-modal{
+  position: relative;
+  display: flex; flex-direction: column; gap: 14px;
+  width: min(520px, 96vw); max-height: 88vh;
+  padding: 22px 22px 20px;
+  background: var(--panel, #fff);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(20,28,40,.30);
+  animation: odon-ctx-pop .12s ease;
+}
+.odon-credits-title{
+  margin: 0; padding-right: 40px;
+  font-size: 18px; font-weight: 700; color: var(--text);
+}
+.odon-credits-body{
+  display: flex; flex-direction: column; gap: 16px;
+  overflow-y: auto; padding-right: 2px;
+}
+.odon-credits-intro{
+  margin: 0; font-size: 14px; line-height: 1.55; color: var(--text);
+}
+.odon-credits-section{ display: flex; flex-direction: column; gap: 8px; }
+.odon-credits-heading{
+  margin: 0; font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--muted, #6b7280);
+}
+.odon-credits-list{ margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.odon-credits-list li{ font-size: 14px; line-height: 1.45; color: var(--text); }
+.odon-credits-desc{ display: block; color: var(--muted, #6b7280); }
+.odon-credits-libs{
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.odon-credits-libs li{ display: inline-flex; }
+.odon-credits-link{
+  color: var(--brand, #3b7bff); font-weight: 600; text-decoration: none;
+}
+.odon-credits-link:hover{ text-decoration: underline; }
+.odon-credits-welcome{
+  margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted, #6b7280);
+}
+.odon-credits-star{
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  background: var(--brand, #3b7bff); color: #fff;
+  border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none;
+}
+.odon-credits-star:hover{ filter: brightness(1.05); }
+.odon-credits-star:focus-visible{ outline: none; box-shadow: 0 0 0 3px rgba(59,123,255,.35); }
+
 /* P2 Task 1: perio-chart overlay shell. Full-screen, layered ABOVE the
    odontogram (which it never unmounts) — higher z-index than every other
    overlay/modal in this file (settings modal is 150). Mirrors

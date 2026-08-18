@@ -18,6 +18,7 @@ import PerioChart from "./PerioChart";
 import PerioSidebar from "./PerioSidebar";
 import DualStateConfirm from "./DualStateConfirm";
 import ExportOptionsModal from "./ExportOptionsModal";
+import CreditsModal from "./CreditsModal";
 import { type OdontogramThemeConfig } from "./theme";
 export type { OdontogramThemeConfig };
 import type { OdontogramPlugin, PluginLayer } from "./plugin";
@@ -172,6 +173,8 @@ function ShellLayout(){
     setSettingsOpen,
     pdfOpen,
     setPdfOpen,
+    creditsOpen,
+    setCreditsOpen,
   } = useOdontogramUi();
 
   return (
@@ -262,6 +265,11 @@ function ShellLayout(){
         open={pdfOpen}
         t={t}
         onClose={() => setPdfOpen(false)}
+      />
+      <CreditsModal
+        open={creditsOpen}
+        t={t}
+        onClose={() => setCreditsOpen(false)}
       />
     </>
   );
