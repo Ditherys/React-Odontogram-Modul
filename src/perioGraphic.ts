@@ -39,7 +39,10 @@ export {
   CLASSIC_MILKTOOTH_CEJ_Y as MILKTOOTH_CEJ_Y,
 } from "./odontogram";
 
-export type TemplateNo = 11 | 13 | 14 | 16;
+// The union of every template tooth any anatomy profile can supply. The classic
+// profile realizes only 11/13/14/16; the measured profile adds 12/15/17/31/46.
+// Widened so the profile-aware anchor/template lookups type-check for both.
+export type TemplateNo = 11 | 12 | 13 | 14 | 15 | 16 | 17 | 31 | 46;
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -127,6 +130,13 @@ export async function loadTemplateCache(): Promise<TemplateDocCache> {
     });
   }
   return cachedPromise;
+}
+
+/** Drop the memoized template cache so the next `loadTemplateCache()` re-parses
+ *  from the (now possibly different) active anatomy profile's templates. Called
+ *  when the tooth-anatomy profile switches, so the perio chart tracks it. */
+export function resetTemplateCache(): void {
+  cachedPromise = null;
 }
 
 function viewBoxOf(doc: Document): { w: number; h: number } {

@@ -38,6 +38,7 @@ export default function OdontogramChartSurface() {
     screenNumberSize,
     selectionColor,
     selectionBorderStyle,
+    toothAnatomy,
   } = useOdontogramUi();
 
   // Re-wire the chart-header controls whenever this surface (re)mounts, and also
@@ -87,12 +88,16 @@ export default function OdontogramChartSurface() {
               </button>
             </div>
           </div>
+          {/* `data-anatomy` is emitted ONLY for the measured profile so the
+              classic shell-DOM golden stays byte-identical (classic renders no
+              data-anatomy attribute at all). The measured CSS keys off it. */}
           <div
             id="toothGrid"
             className="tooth-grid"
             dir="ltr"
             data-screen-spacing={screenSpacing}
             data-tooth-num={screenNumberSize}
+            data-anatomy={toothAnatomy === "measured" ? "measured" : undefined}
             style={{
               "--odon-select-rgb": hexToRgbCss(selectionColor),
               "--odon-select-border-style": selectionBorderStyle,

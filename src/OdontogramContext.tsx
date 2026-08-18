@@ -70,6 +70,9 @@ import {
   setFissureSealingEnabled,
   getFillingMaterialAvailability,
   setFillingMaterialAvailability,
+  getToothAnatomy,
+  setToothAnatomy,
+  rebuildGrid,
 } from "./odontogram";
 import type {
   OdontogramSummary,
@@ -82,6 +85,7 @@ import type {
   PerioViewMode,
   PerioRowId,
   PerioIndexNameMode,
+  ToothAnatomy,
 } from "./odontogram";
 import { useI18n } from "./i18n/useI18n";
 import type { SettingsState, ScreenToothSpacing, ScreenToothNumberSize, SelectionBorderStyle, FillingComplexity } from "./SettingsModal";
@@ -301,6 +305,8 @@ export type OdontogramUiContextValue = {
   screenNumberSize: ScreenToothNumberSize;
   selectionColor: string;
   selectionBorderStyle: SelectionBorderStyle;
+  // Active tooth-anatomy profile (drives the chart surface's `data-anatomy`).
+  toothAnatomy: ToothAnatomy;
   planModeAvailable: boolean;
   // Right-panel card gates.
   showStatusCard: boolean;
@@ -420,6 +426,10 @@ export function OdontogramProvider({
   // toggle's two segments is showing, only meaningful while `viewMode === "toggle"`.
   const [viewMode, setViewMode] = useState<PerioViewMode>(() => getPerioViewMode());
   const [activeView, setActiveView] = useState<"odontogram" | "dentalChart">("odontogram");
+  // Mirror the module-level tooth-anatomy profile into React state, kept in sync
+  // via onStateChange (setToothAnatomy notifies) so a host calling it directly
+  // re-renders both the Settings select and the chart surface's data-anatomy.
+  const [toothAnatomy, setToothAnatomyState] = useState<ToothAnatomy>(() => getToothAnatomy());
   // Mirror the two Settings -> Periodontal tab module flags into React state,
   // kept in sync via the shared `onStateChange` subscription so a host calling
   // the setters directly still re-renders the Settings modal.
@@ -630,6 +640,14 @@ export function OdontogramProvider({
     return onStateChange(refresh);
   }, []);
 
+  // Mirror the module-level tooth-anatomy profile the same way perioViewMode is
+  // mirrored above.
+  useEffect(() => {
+    const refresh = () => setToothAnatomyState(getToothAnatomy());
+    refresh();
+    return onStateChange(refresh);
+  }, []);
+
   // Mirror the module-level perioRowVisibility/perioIndexNameMode flags into
   // React state the same way perioViewMode is mirrored above.
   useEffect(() => {
@@ -701,6 +719,13 @@ export function OdontogramProvider({
     onScreenToothSpacing: (v) => setScreenSpacing(v),
     screenToothNumberSize: screenNumberSize,
     onScreenToothNumberSize: (v) => setScreenNumberSize(v),
+    toothAnatomy,
+    onToothAnatomy: (v) => {
+      setToothAnatomyState(v);
+      setToothAnatomy(v);
+      // Re-render the grid so the new profile's layout/artwork takes effect.
+      void rebuildGrid();
+    },
     selectionColor,
     onSelectionColor: (v) => setSelectionColor(v),
     selectionBorderStyle,
@@ -762,6 +787,7 @@ export function OdontogramProvider({
     screenNumberSize,
     selectionColor,
     selectionBorderStyle,
+    toothAnatomy,
     planModeAvailable,
     showStatusCard,
     showOrthoCard,

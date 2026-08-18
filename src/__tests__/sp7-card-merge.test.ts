@@ -147,6 +147,8 @@ vi.mock("../odontogram", async () => {
     getFillingMaterialAvailability: vi.fn().mockReturnValue({ amalgam: true, composite: true, gic: true, temporary: true }),
     setFillingMaterialAvailability: vi.fn(),
     setPerioViewMode: vi.fn(),
+    getToothAnatomy: vi.fn().mockReturnValue("classic"),
+    setToothAnatomy: vi.fn(),
     getPerioRowVisibility: vi.fn().mockReturnValue({
       plaque: true, bop: true, cal: true, gm: true, pd: true, furcation: true,
       mobility: true, cej: true, rootConcavity: true, pi: true, gi: true,

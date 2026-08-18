@@ -161,6 +161,8 @@ vi.mock("../odontogram", async () => {
     getFillingMaterialAvailability: actual.getFillingMaterialAvailability,
     setFillingMaterialAvailability: actual.setFillingMaterialAvailability,
     setPerioViewMode: actual.setPerioViewMode,
+    getToothAnatomy: vi.fn().mockReturnValue("classic"),
+    setToothAnatomy: vi.fn(),
     getPerioRowVisibility: actual.getPerioRowVisibility,
     setPerioRowVisibility: actual.setPerioRowVisibility,
     getPerioIndexNameMode: actual.getPerioIndexNameMode,

@@ -14,6 +14,7 @@ import type {
   PerioViewMode,
   PerioRowId,
   PerioIndexNameMode,
+  ToothAnatomy,
   PdfSettings,
   PdfDateFormat,
   PdfToothSpacing,
@@ -105,6 +106,9 @@ export type SettingsState = {
   onScreenToothSpacing: (value: ScreenToothSpacing) => void;
   screenToothNumberSize: ScreenToothNumberSize;
   onScreenToothNumberSize: (value: ScreenToothNumberSize) => void;
+  // Tooth-anatomy profile — classic (default) vs. measured two-arch layout.
+  toothAnatomy: ToothAnatomy;
+  onToothAnatomy: (value: ToothAnatomy) => void;
   showStatusCard: boolean;
   onShowStatusCard: (value: boolean) => void;
   showOrthoCard: boolean;
@@ -214,6 +218,10 @@ const SCREEN_NUMBER_SIZE_OPTIONS: { value: ScreenToothNumberSize; labelKey: stri
   { value: "small", labelKey: "settings.screen.numberSize.small" },
   { value: "normal", labelKey: "settings.screen.numberSize.normal" },
   { value: "xlarge", labelKey: "settings.screen.numberSize.xlarge" },
+];
+const TOOTH_ANATOMY_OPTIONS: { value: ToothAnatomy; labelKey: string }[] = [
+  { value: "classic", labelKey: "settings.toothAnatomy.classic" },
+  { value: "measured", labelKey: "settings.toothAnatomy.measured" },
 ];
 const SELECTION_BORDER_OPTIONS: { value: SelectionBorderStyle; labelKey: string }[] = [
   { value: "solid", labelKey: "settings.selection.border.solid" },
@@ -556,6 +564,14 @@ export const SETTINGS_TABS: SettingsTab[] = [
           value={s.screenToothNumberSize}
           options={SCREEN_NUMBER_SIZE_OPTIONS}
           onChange={s.onScreenToothNumberSize}
+        />
+        <SelectRow<ToothAnatomy>
+          t={t}
+          label={t("settings.toothAnatomy")}
+          descKey="settings.toothAnatomy.desc"
+          value={s.toothAnatomy}
+          options={TOOTH_ANATOMY_OPTIONS}
+          onChange={s.onToothAnatomy}
         />
         <ToggleRow
           t={t}
