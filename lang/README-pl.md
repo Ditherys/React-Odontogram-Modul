@@ -789,3 +789,19 @@ Jeśli używasz tego modułu w swojej pracy, zacytuj go.
 > cytować ją za pomocą DOI koncepcyjnego.
 
 Metadane cytowania w formacie maszynowym znajdują się w [`CITATION.cff`](../CITATION.cff).
+
+## 🙌 Podziękowania
+
+React Advanced Odontogram jest tworzony i utrzymywany przez [@ZoliQua](https://github.com/ZoliQua), z cennym wkładem osób wymienionych poniżej. Dziękujemy wszystkim, którzy pomogli.
+
+**Współautorzy**
+
+- [@ZoliQua](https://github.com/ZoliQua): twórca i główny programista całego silnika
+- [@odontodev](https://github.com/odontodev): hydratacja stanu i API cyklu życia, ustawienia wypełnień jako kontrolowane props, idempotentne settery i zwijane karty
+- [@JulianoBazzi](https://github.com/JulianoBazzi): tłumaczenie na brazylijski portugalski
+- [@yassine-bhn](https://github.com/yassine-bhn): tłumaczenie na francuski i proponowana zmierzona anatomia
+- [@saegerdirk-star](https://github.com/saegerdirk-star): zmierzona anatomia zęba i generator zębów, a także propozycja komponowalnego interfejsu
+
+**Zbudowano przy użyciu** [jsPDF](https://github.com/parallax/jsPDF), [DOMPurify](https://github.com/cure53/DOMPurify), [React](https://react.dev), [Vite](https://vite.dev), [TypeScript](https://www.typescriptlang.org) i [Tailwind CSS](https://tailwindcss.com).
+
+Wkład jest mile widziany. Otwórz pull request na GitHub, a zostaniesz tu wymieniony. Jeśli projekt jest dla Ciebie przydatny, [zostaw mu gwiazdkę na GitHub](https://github.com/ZoliQua/React-Odontogram-Modul).

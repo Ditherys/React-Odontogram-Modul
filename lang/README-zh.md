@@ -789,3 +789,19 @@ enablePersistence({
 > 都会为该版本铸造一个版本专属 DOI。在 v2.4.0 被归档之前，请使用概念 DOI 进行引用。
 
 机器可读的引用元数据位于 [`CITATION.cff`](../CITATION.cff)。
+
+## 🙌 致谢
+
+React Advanced Odontogram 由 [@ZoliQua](https://github.com/ZoliQua) 开发和维护，并得到下列人员的宝贵贡献。感谢所有提供帮助的人。
+
+**贡献者**
+
+- [@ZoliQua](https://github.com/ZoliQua): 整个引擎的创建者和主要开发者
+- [@odontodev](https://github.com/odontodev): 状态注水和生命周期 API，作为受控 props 的充填设置，幂等的 setter 以及可折叠卡片
+- [@JulianoBazzi](https://github.com/JulianoBazzi): 巴西葡萄牙语翻译
+- [@yassine-bhn](https://github.com/yassine-bhn): 法语翻译以及提议的测量解剖结构
+- [@saegerdirk-star](https://github.com/saegerdirk-star): 测量的牙齿解剖结构和牙齿生成器，以及可组合接口的提案
+
+**基于** [jsPDF](https://github.com/parallax/jsPDF)、[DOMPurify](https://github.com/cure53/DOMPurify)、[React](https://react.dev)、[Vite](https://vite.dev)、[TypeScript](https://www.typescriptlang.org) 和 [Tailwind CSS](https://tailwindcss.com) 构建。
+
+欢迎贡献。在 GitHub 上开启一个 pull request，您的名字就会被记入此处。如果本项目对您有用，请[在 GitHub 上给它点亮星标](https://github.com/ZoliQua/React-Odontogram-Modul)。

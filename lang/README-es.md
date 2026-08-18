@@ -794,3 +794,19 @@ Los metadatos de citación legibles por máquina están en [`CITATION.cff`](CITA
 
 Created with ❤️ by Zoltan Dul (2026)
 Released under the MIT License.
+
+## 🙌 Créditos
+
+React Advanced Odontogram es desarrollado y mantenido por [@ZoliQua](https://github.com/ZoliQua), con valiosas contribuciones de las personas indicadas a continuación. Gracias a todos los que han ayudado.
+
+**Colaboradores**
+
+- [@ZoliQua](https://github.com/ZoliQua): creador y desarrollador principal de todo el motor
+- [@odontodev](https://github.com/odontodev): hidratación de estado y API de ciclo de vida, ajustes de obturaciones como props controladas, setters idempotentes y tarjetas plegables
+- [@JulianoBazzi](https://github.com/JulianoBazzi): traducción al portugués brasileño
+- [@yassine-bhn](https://github.com/yassine-bhn): traducción al francés y la anatomía medida candidata
+- [@saegerdirk-star](https://github.com/saegerdirk-star): anatomía dental medida y el generador de dientes, además de la propuesta de interfaz componible
+
+**Construido con** [jsPDF](https://github.com/parallax/jsPDF), [DOMPurify](https://github.com/cure53/DOMPurify), [React](https://react.dev), [Vite](https://vite.dev), [TypeScript](https://www.typescriptlang.org) y [Tailwind CSS](https://tailwindcss.com).
+
+Las contribuciones son bienvenidas. Abre un pull request en GitHub y aparecerás aquí acreditado. Si el proyecto te resulta útil, por favor [dale una estrella en GitHub](https://github.com/ZoliQua/React-Odontogram-Modul).

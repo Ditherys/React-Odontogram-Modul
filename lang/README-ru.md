@@ -789,3 +789,19 @@ enablePersistence({
 > заархивирована, ссылайтесь на неё через концептуальный DOI.
 
 Машиночитаемые метаданные для цитирования находятся в файле [`CITATION.cff`](../CITATION.cff).
+
+## 🙌 Благодарности
+
+React Advanced Odontogram разрабатывается и поддерживается [@ZoliQua](https://github.com/ZoliQua), с ценным вкладом перечисленных ниже людей. Спасибо всем, кто помогал.
+
+**Участники**
+
+- [@ZoliQua](https://github.com/ZoliQua): создатель и ведущий разработчик всего движка
+- [@odontodev](https://github.com/odontodev): гидратация состояния и API жизненного цикла, настройки пломб как управляемые props, идемпотентные сеттеры и сворачиваемые карточки
+- [@JulianoBazzi](https://github.com/JulianoBazzi): перевод на бразильский португальский
+- [@yassine-bhn](https://github.com/yassine-bhn): перевод на французский и предлагаемая измеренная анатомия
+- [@saegerdirk-star](https://github.com/saegerdirk-star): измеренная анатомия зуба и генератор зубов, а также предложение компонуемого интерфейса
+
+**Создано с помощью** [jsPDF](https://github.com/parallax/jsPDF), [DOMPurify](https://github.com/cure53/DOMPurify), [React](https://react.dev), [Vite](https://vite.dev), [TypeScript](https://www.typescriptlang.org) и [Tailwind CSS](https://tailwindcss.com).
+
+Вклад приветствуется. Откройте pull request на GitHub, и вы будете указаны здесь. Если проект вам полезен, пожалуйста, [поставьте ему звезду на GitHub](https://github.com/ZoliQua/React-Odontogram-Modul).

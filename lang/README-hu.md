@@ -796,3 +796,19 @@ A géppel olvasható hivatkozási metaadatok a [`CITATION.cff`](../CITATION.cff)
 
 Created with ❤️ by Zoltan Dul (2026)
 Released under the MIT License.
+
+## 🙌 Köszönet
+
+A React Advanced Odontogramot [@ZoliQua](https://github.com/ZoliQua) készíti és tartja karban, az alább felsorolt közreműködők értékes segítségével. Köszönet mindenkinek, aki hozzájárult.
+
+**Közreműködők**
+
+- [@ZoliQua](https://github.com/ZoliQua): a teljes motor megalkotója és vezető fejlesztője
+- [@odontodev](https://github.com/odontodev): állapot hidratálás és életciklus API, tömésbeállítások vezérelt propként, idempotens setterek és összecsukható kártyák
+- [@JulianoBazzi](https://github.com/JulianoBazzi): brazil portugál fordítás
+- [@yassine-bhn](https://github.com/yassine-bhn): francia fordítás és a felmért anatómia jelöltje
+- [@saegerdirk-star](https://github.com/saegerdirk-star): felmért foganatómia és a foggenerátor, valamint a komponálható felület javaslata
+
+**Felhasznált eszközök:** [jsPDF](https://github.com/parallax/jsPDF), [DOMPurify](https://github.com/cure53/DOMPurify), [React](https://react.dev), [Vite](https://vite.dev), [TypeScript](https://www.typescriptlang.org) és [Tailwind CSS](https://tailwindcss.com).
+
+A hozzájárulásokat szívesen fogadjuk. Nyiss egy pull requestet a GitHubon, és itt feltüntetünk. Ha hasznosnak találod a projektet, kérlek [csillagozd a GitHubon](https://github.com/ZoliQua/React-Odontogram-Modul).

@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Guided intro tour, reworked and extended.** The tour now steps with the left
+  and right arrow keys (a teardown bug used to unbind the keyboard handler after
+  the first step), targets the real restoration control instead of a control that
+  no longer exists, points the numbering step at Settings (where numbering now
+  lives) and the language step at the language menu, and grows from 12 to 16 steps
+  with new steps for root canal treatment and the periodontal view (it switches
+  into the periodontal view and back, and skips those steps when the periodontal
+  chart is turned off). The Intro toolbar icon is now a play in a circle.
+- **About and credits popup.** A new toolbar button after Import opens an About
+  and credits dialog with a short program description, a contributor list that
+  links each person to their GitHub profile, the external libraries the app is
+  built with, an invitation to open a pull request, and a Star on GitHub badge. A
+  GitHub link is also added to the toolbar. Translated into all 12 UI languages.
+- **Community health files.** Added `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md` and
+  `SECURITY.md`, and a Credits section to every language README in `lang/`.
 - **Selectable tooth-anatomy profile (Settings → Odontogram → Tooth anatomy;
   #18/#22).** A new session-level setting chooses the tooth-anatomy profile:
   **classic** (the default, unchanged) or **measured**. The measured profile

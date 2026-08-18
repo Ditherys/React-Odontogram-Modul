@@ -788,3 +788,19 @@ Ak tento modul použijete vo svojej práci, prosím, citujte ho.
 > archivácie na Zenodo. Kým nie je v2.4.0 archivovaná, citujte ju cez konceptové DOI.
 
 Strojovo čitateľné citačné metadáta sú v súbore [`CITATION.cff`](../CITATION.cff).
+
+## 🙌 Poďakovanie
+
+React Advanced Odontogram vyvíja a spravuje [@ZoliQua](https://github.com/ZoliQua), s cennými príspevkami od ľudí uvedených nižšie. Ďakujeme všetkým, ktorí pomohli.
+
+**Prispievatelia**
+
+- [@ZoliQua](https://github.com/ZoliQua): tvorca a hlavný vývojár celého enginu
+- [@odontodev](https://github.com/odontodev): hydratácia stavu a API životného cyklu, nastavenia výplní ako riadené props, idempotentné settery a zbaliteľné karty
+- [@JulianoBazzi](https://github.com/JulianoBazzi): preklad do brazílskej portugalčiny
+- [@yassine-bhn](https://github.com/yassine-bhn): preklad do francúzštiny a navrhovaná meraná anatómia
+- [@saegerdirk-star](https://github.com/saegerdirk-star): meraná anatómia zuba a generátor zubov, plus návrh skladateľného rozhrania
+
+**Vytvorené pomocou** [jsPDF](https://github.com/parallax/jsPDF), [DOMPurify](https://github.com/cure53/DOMPurify), [React](https://react.dev), [Vite](https://vite.dev), [TypeScript](https://www.typescriptlang.org) a [Tailwind CSS](https://tailwindcss.com).
+
+Príspevky sú vítané. Otvorte pull request na GitHub a budete tu uvedení. Ak je pre vás projekt užitočný, [pridajte mu hviezdu na GitHub](https://github.com/ZoliQua/React-Odontogram-Modul).

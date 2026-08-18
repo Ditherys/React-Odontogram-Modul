@@ -790,3 +790,19 @@ enablePersistence({
 > وإلى حين أرشفة الإصدار v2.4.0، يُرجى الاستشهاد به عبر معرّف DOI المفاهيمي.
 
 البيانات الوصفية للاستشهاد القابلة للقراءة الآلية موجودة في [`CITATION.cff`](../CITATION.cff).
+
+## 🙌 شكر وتقدير
+
+React Advanced Odontogram يطوّره ويصونه [@ZoliQua](https://github.com/ZoliQua)، بمساهمات قيّمة من الأشخاص المذكورين أدناه. شكرًا لكل من قدّم المساعدة.
+
+**المساهمون**
+
+- [@ZoliQua](https://github.com/ZoliQua): مبتكر المحرك بأكمله ومطوّره الرئيسي
+- [@odontodev](https://github.com/odontodev): ترطيب الحالة وواجهة API لدورة الحياة، وإعدادات الحشوات كخصائص props مُتحكَّم بها، وأدوات ضبط idempotent، وبطاقات قابلة للطي
+- [@JulianoBazzi](https://github.com/JulianoBazzi): الترجمة إلى البرتغالية البرازيلية
+- [@yassine-bhn](https://github.com/yassine-bhn): الترجمة إلى الفرنسية والتشريح المقاس المقترح
+- [@saegerdirk-star](https://github.com/saegerdirk-star): تشريح الأسنان المقاس ومولّد الأسنان، إضافة إلى اقتراح الواجهة القابلة للتركيب
+
+**مبني باستخدام** [jsPDF](https://github.com/parallax/jsPDF)، [DOMPurify](https://github.com/cure53/DOMPurify)، [React](https://react.dev)، [Vite](https://vite.dev)، [TypeScript](https://www.typescriptlang.org) و[Tailwind CSS](https://tailwindcss.com).
+
+المساهمات مرحّب بها. افتح pull request على GitHub وسيُذكر اسمك هنا. إذا كان المشروع مفيدًا لك، من فضلك [امنحه نجمة على GitHub](https://github.com/ZoliQua/React-Odontogram-Modul).
