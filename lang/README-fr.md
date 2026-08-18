@@ -15,6 +15,31 @@
 
 ---
 
+## 📑 Sommaire
+
+- [📋 Aperçu général](#-aperçu-général)
+- [📦 Utilisation comme paquet npm](#-utilisation-comme-paquet-npm)
+- [✨ Fonctionnalités clés](#-fonctionnalités-clés)
+- [📦 Modules](#-modules)
+- [🛠️ Contrôles de l'interface](#-contrôles-de-linterface)
+- [🦷 Types et états de dents](#-types-et-états-de-dents)
+- [⚙️ Paramètres](#-paramètres)
+- [🖼️ Système de modèles SVG](#-système-de-modèles-svg)
+- [🔢 Systèmes de numérotation](#-systèmes-de-numérotation)
+- [🚀 Utilisation](#-utilisation)
+- [🔗 Intégration](#-intégration)
+- [🧪 Tests](#-tests)
+- [📖 Documentation d'API](#-documentation-dapi)
+- [📡 API publique](#-api-publique)
+- [💾 Persistance de l'état (localStorage)](#-persistance-de-létat-localstorage)
+- [💾 Format d'export/import de l'état](#-format-dexportimport-de-létat)
+- [🖨️ Export](#-export)
+- [📁 Structure des dossiers](#-structure-des-dossiers)
+- [⚙️ Pile technique](#-pile-technique)
+- [📝 Notes](#-notes)
+- [🔒 Notes de sécurité](#-notes-de-sécurité)
+- [📖 Comment citer](#-comment-citer)
+
 ## 🇫🇷 Français
 
 > ℹ️ Cette version française est une traduction de la source anglaise (EN). En cas de divergence, la version anglaise fait foi.
@@ -794,11 +819,10 @@ Les métadonnées de citation lisibles par machine se trouvent dans [`CITATION.c
 
 ## 🙌 Remerciements
 
-React Advanced Odontogram est développé et maintenu par [@ZoliQua](https://github.com/ZoliQua), avec de précieuses contributions des personnes citées ci-dessous. Merci à toutes celles et ceux qui ont apporté leur aide.
+React Advanced Odontogram est créé et maintenu par Zoltan Dul ([@ZoliQua](https://github.com/ZoliQua)), créateur et développeur principal de l'ensemble du moteur. Avec la précieuse aide des contributeurs cités ci-dessous. Merci à toutes celles et ceux qui ont contribué.
 
 **Contributeurs**
 
-- [@ZoliQua](https://github.com/ZoliQua): créateur et développeur principal de tout le moteur
 - [@odontodev](https://github.com/odontodev): hydratation de l'état et API de cycle de vie, réglages des obturations en tant que props contrôlées, setters idempotents et cartes repliables
 - [@JulianoBazzi](https://github.com/JulianoBazzi): traduction en portugais brésilien
 - [@yassine-bhn](https://github.com/yassine-bhn): traduction en français et l'anatomie mesurée proposée

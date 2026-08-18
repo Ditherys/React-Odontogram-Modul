@@ -15,6 +15,31 @@
 
 ---
 
+## 📑 Contents
+
+- [📋 Overview](#-overview)
+- [📦 Use as an npm package](#-use-as-an-npm-package)
+- [✨ Key Features](#-key-features)
+- [📦 Modules](#-modules)
+- [🛠️ UI Controls](#-ui-controls)
+- [🦷 Tooth Types and States](#-tooth-types-and-states)
+- [⚙️ Settings](#-settings)
+- [🖼️ SVG Template System](#-svg-template-system)
+- [🔢 Numbering Systems](#-numbering-systems)
+- [🚀 Usage](#-usage)
+- [🔗 Integration](#-integration)
+- [🧪 Testing](#-testing)
+- [📖 API Documentation](#-api-documentation)
+- [📡 Public API](#-public-api)
+- [💾 State persistence (localStorage)](#-state-persistence-localstorage)
+- [💾 Status Export/Import Format](#-status-exportimport-format)
+- [🖨️ Export](#-export)
+- [📁 Folder Structure](#-folder-structure)
+- [⚙️ Tech Stack](#-tech-stack)
+- [📝 Notes](#-notes)
+- [🔒 Security notes](#-security-notes)
+- [📖 How to cite](#-how-to-cite)
+
 ## 🇬🇧 English
 
 ### 📋 Overview
@@ -791,11 +816,10 @@ Machine-readable citation metadata is in [`CITATION.cff`](CITATION.cff).
 
 ## 🙌 Credits
 
-React Advanced Odontogram is built and maintained by [@ZoliQua](https://github.com/ZoliQua), with valued contributions from the people listed below. Thank you to everyone who has helped.
+React Advanced Odontogram is created and maintained by Zoltan Dul ([@ZoliQua](https://github.com/ZoliQua)), the creator and lead developer of the whole engine. With the valued help of the contributors listed below. Thank you to everyone who has contributed.
 
 **Contributors**
 
-- [@ZoliQua](https://github.com/ZoliQua): creator and lead developer of the whole engine
 - [@odontodev](https://github.com/odontodev): state hydration and lifecycle API, fillings settings as controlled props, idempotent setters and collapsible cards
 - [@JulianoBazzi](https://github.com/JulianoBazzi): Brazilian Portuguese translation
 - [@yassine-bhn](https://github.com/yassine-bhn): French translation and the candidate measured anatomy

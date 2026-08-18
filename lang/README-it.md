@@ -15,6 +15,31 @@
 
 ---
 
+## 📑 Indice
+
+- [📋 Panoramica](#-panoramica)
+- [📦 Utilizzo come pacchetto npm](#-utilizzo-come-pacchetto-npm)
+- [✨ Funzionalità principali](#-funzionalità-principali)
+- [📦 Moduli](#-moduli)
+- [🛠️ Controlli dell'interfaccia](#-controlli-dellinterfaccia)
+- [🦷 Tipi di dente e stati](#-tipi-di-dente-e-stati)
+- [⚙️ Impostazioni](#-impostazioni)
+- [🖼️ Sistema di template SVG](#-sistema-di-template-svg)
+- [🔢 Sistemi di numerazione](#-sistemi-di-numerazione)
+- [🚀 Utilizzo](#-utilizzo)
+- [🔗 Integrazione](#-integrazione)
+- [🧪 Test](#-test)
+- [📖 Documentazione API](#-documentazione-api)
+- [📡 API pubblica](#-api-pubblica)
+- [💾 Persistenza dello stato (localStorage)](#-persistenza-dello-stato-localstorage)
+- [💾 Formato di esportazione/importazione dello stato](#-formato-di-esportazioneimportazione-dello-stato)
+- [🖨️ Esportazione](#-esportazione)
+- [📁 Struttura delle cartelle](#-struttura-delle-cartelle)
+- [⚙️ Stack tecnologico](#-stack-tecnologico)
+- [📝 Note](#-note)
+- [🔒 Note sulla sicurezza](#-note-sulla-sicurezza)
+- [📖 Come citare](#-come-citare)
+
 ## 🇮🇹 Italiano
 
 ### 📋 Panoramica
@@ -792,11 +817,10 @@ I metadati di citazione leggibili dalla macchina si trovano in [`CITATION.cff`](
 
 ## 🙌 Crediti
 
-React Advanced Odontogram è sviluppato e mantenuto da [@ZoliQua](https://github.com/ZoliQua), con preziosi contributi delle persone elencate di seguito. Grazie a tutti coloro che hanno dato una mano.
+React Advanced Odontogram è creato e mantenuto da Zoltan Dul ([@ZoliQua](https://github.com/ZoliQua)), creatore e sviluppatore principale dell'intero motore. Con il prezioso aiuto dei collaboratori elencati di seguito. Grazie a tutti coloro che hanno contribuito.
 
 **Contributori**
 
-- [@ZoliQua](https://github.com/ZoliQua): creatore e sviluppatore principale dell'intero motore
 - [@odontodev](https://github.com/odontodev): idratazione dello stato e API del ciclo di vita, impostazioni delle otturazioni come props controllate, setter idempotenti e schede comprimibili
 - [@JulianoBazzi](https://github.com/JulianoBazzi): traduzione in portoghese brasiliano
 - [@yassine-bhn](https://github.com/yassine-bhn): traduzione in francese e l'anatomia misurata proposta

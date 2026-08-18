@@ -15,6 +15,31 @@
 
 ---
 
+## 📑 Contenido
+
+- [📋 Descripción general](#-descripción-general)
+- [📦 Uso como paquete npm](#-uso-como-paquete-npm)
+- [✨ Características principales](#-características-principales)
+- [📦 Módulos](#-módulos)
+- [🛠️ Controles de interfaz](#-controles-de-interfaz)
+- [🦷 Tipos de dientes y estados](#-tipos-de-dientes-y-estados)
+- [⚙️ Ajustes](#-ajustes)
+- [🖼️ Sistema de plantillas SVG](#-sistema-de-plantillas-svg)
+- [🔢 Sistemas de numeración](#-sistemas-de-numeración)
+- [🚀 Uso](#-uso)
+- [🔗 Integración](#-integración)
+- [🧪 Pruebas](#-pruebas)
+- [📖 Documentación API](#-documentación-api)
+- [📡 API pública](#-api-pública)
+- [💾 Persistencia de estado (localStorage)](#-persistencia-de-estado-localstorage)
+- [💾 Formato de exportación/importación de estado](#-formato-de-exportaciónimportación-de-estado)
+- [🖨️ Exportación](#-exportación)
+- [📁 Estructura de carpetas](#-estructura-de-carpetas)
+- [⚙️ Stack tecnológico](#-stack-tecnológico)
+- [📝 Notas](#-notas)
+- [🔒 Notas de seguridad](#-notas-de-seguridad)
+- [📖 Cómo citar](#-cómo-citar)
+
 ## 🇪🇸 Español
 
 ### 📋 Descripción general
@@ -797,11 +822,10 @@ Released under the MIT License.
 
 ## 🙌 Créditos
 
-React Advanced Odontogram es desarrollado y mantenido por [@ZoliQua](https://github.com/ZoliQua), con valiosas contribuciones de las personas indicadas a continuación. Gracias a todos los que han ayudado.
+React Advanced Odontogram es creado y mantenido por Zoltan Dul ([@ZoliQua](https://github.com/ZoliQua)), creador y desarrollador principal de todo el motor. Con la valiosa ayuda de los colaboradores indicados a continuación. Gracias a todos los que han contribuido.
 
 **Colaboradores**
 
-- [@ZoliQua](https://github.com/ZoliQua): creador y desarrollador principal de todo el motor
 - [@odontodev](https://github.com/odontodev): hidratación de estado y API de ciclo de vida, ajustes de obturaciones como props controladas, setters idempotentes y tarjetas plegables
 - [@JulianoBazzi](https://github.com/JulianoBazzi): traducción al portugués brasileño
 - [@yassine-bhn](https://github.com/yassine-bhn): traducción al francés y la anatomía medida candidata

@@ -15,6 +15,31 @@
 
 ---
 
+## 📑 Tartalomjegyzék
+
+- [📋 Áttekintés](#-áttekintés)
+- [📦 Használat npm csomagként](#-használat-npm-csomagként)
+- [✨ Főbb funkciók](#-főbb-funkciók)
+- [📦 Modulok](#-modulok)
+- [🛠️ UI vezérlők](#-ui-vezérlők)
+- [🦷 Fogtípusok és állapotok](#-fogtípusok-és-állapotok)
+- [⚙️ Beállítások](#-beállítások)
+- [🖼️ SVG sablon rendszer](#-svg-sablon-rendszer)
+- [🔢 Számozási rendszerek](#-számozási-rendszerek)
+- [🚀 Használat](#-használat)
+- [🔗 Integráció](#-integráció)
+- [🧪 Tesztelés](#-tesztelés)
+- [📖 API Dokumentáció](#-api-dokumentáció)
+- [📡 Nyilvános API](#-nyilvános-api)
+- [💾 Állapotmentés (localStorage)](#-állapotmentés-localstorage)
+- [💾 Állapot Export/Import formátum](#-állapot-exportimport-formátum)
+- [🖨️ Export](#-export)
+- [📁 Mappastruktúra](#-mappastruktúra)
+- [⚙️ Technológia](#-technológia)
+- [📝 Megjegyzések](#-megjegyzések)
+- [🔒 Biztonsági megjegyzések](#-biztonsági-megjegyzések)
+- [📖 Hivatkozás](#-hivatkozás)
+
 ## 🇭🇺 Magyar
 
 ### 📋 Áttekintés
@@ -799,11 +824,10 @@ Released under the MIT License.
 
 ## 🙌 Köszönet
 
-A React Advanced Odontogramot [@ZoliQua](https://github.com/ZoliQua) készíti és tartja karban, az alább felsorolt közreműködők értékes segítségével. Köszönet mindenkinek, aki hozzájárult.
+A React Advanced Odontogramot Zoltan Dul ([@ZoliQua](https://github.com/ZoliQua)) készíti és tartja karban, ő a teljes motor megalkotója és vezető fejlesztője. Az alább felsorolt közreműködők értékes segítségével. Köszönet mindenkinek, aki hozzájárult.
 
 **Közreműködők**
 
-- [@ZoliQua](https://github.com/ZoliQua): a teljes motor megalkotója és vezető fejlesztője
 - [@odontodev](https://github.com/odontodev): állapot hidratálás és életciklus API, tömésbeállítások vezérelt propként, idempotens setterek és összecsukható kártyák
 - [@JulianoBazzi](https://github.com/JulianoBazzi): brazil portugál fordítás
 - [@yassine-bhn](https://github.com/yassine-bhn): francia fordítás és a felmért anatómia jelöltje

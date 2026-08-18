@@ -15,6 +15,31 @@
 
 ---
 
+## 📑 Inhaltsverzeichnis
+
+- [📋 Übersicht](#-übersicht)
+- [📦 Als npm-Paket verwenden](#-als-npm-paket-verwenden)
+- [✨ Hauptmerkmale](#-hauptmerkmale)
+- [📦 Module](#-module)
+- [🛠️ UI-Steuerung](#-ui-steuerung)
+- [🦷 Zahntypen und Zustände](#-zahntypen-und-zustände)
+- [⚙️ Einstellungen](#-einstellungen)
+- [🖼️ SVG-Vorlagensystem](#-svg-vorlagensystem)
+- [🔢 Nummerierungssysteme](#-nummerierungssysteme)
+- [🚀 Verwendung](#-verwendung)
+- [🔗 Integration](#-integration)
+- [🧪 Tests](#-tests)
+- [📖 API-Dokumentation](#-api-dokumentation)
+- [📡 Öffentliche API](#-öffentliche-api)
+- [💾 Zustandspersistenz (localStorage)](#-zustandspersistenz-localstorage)
+- [💾 Status Export-/Importformat](#-status-export-importformat)
+- [🖨️ Export](#-export)
+- [📁 Ordnerstruktur](#-ordnerstruktur)
+- [⚙️ Technologie-Stack](#-technologie-stack)
+- [📝 Hinweise](#-hinweise)
+- [🔒 Sicherheitshinweise](#-sicherheitshinweise)
+- [📖 Zitierung](#-zitierung)
+
 ## 🇩🇪 Deutsch
 
 *(Deutsche Version des README — übersetzt aus der englischen Ausgangsversion, Stand v2.4.0)*
@@ -794,11 +819,10 @@ Maschinenlesbare Zitationsmetadaten finden Sie in [`CITATION.cff`](../CITATION.c
 
 ## 🙌 Danksagung
 
-React Advanced Odontogram wird von [@ZoliQua](https://github.com/ZoliQua) entwickelt und gepflegt, mit wertvollen Beiträgen der unten aufgeführten Personen. Vielen Dank an alle, die geholfen haben.
+React Advanced Odontogram wird von Zoltan Dul ([@ZoliQua](https://github.com/ZoliQua)) erstellt und gepflegt, dem Schöpfer und leitenden Entwickler der gesamten Engine. Mit der wertvollen Hilfe der unten aufgeführten Mitwirkenden. Vielen Dank an alle, die beigetragen haben.
 
 **Mitwirkende**
 
-- [@ZoliQua](https://github.com/ZoliQua): Schöpfer und leitender Entwickler der gesamten Engine
 - [@odontodev](https://github.com/odontodev): State-Hydration und Lifecycle-API, Füllungseinstellungen als kontrollierte Props, idempotente Setter und einklappbare Karten
 - [@JulianoBazzi](https://github.com/JulianoBazzi): Übersetzung ins brasilianische Portugiesisch
 - [@yassine-bhn](https://github.com/yassine-bhn): französische Übersetzung und die vorgeschlagene vermessene Anatomie

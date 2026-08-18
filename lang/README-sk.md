@@ -15,6 +15,31 @@
 
 ---
 
+## 📑 Obsah
+
+- [📋 Prehľad](#-prehľad)
+- [📦 Použitie ako npm balík](#-použitie-ako-npm-balík)
+- [✨ Kľúčové funkcie](#-kľúčové-funkcie)
+- [📦 Moduly](#-moduly)
+- [🛠️ Ovládacie prvky rozhrania](#-ovládacie-prvky-rozhrania)
+- [🦷 Typy a stavy zubov](#-typy-a-stavy-zubov)
+- [⚙️ Nastavenia](#-nastavenia)
+- [🖼️ Systém SVG šablón](#-systém-svg-šablón)
+- [🔢 Systémy číslovania](#-systémy-číslovania)
+- [🚀 Použitie](#-použitie)
+- [🔗 Integrácia](#-integrácia)
+- [🧪 Testovanie](#-testovanie)
+- [📖 Dokumentácia API](#-dokumentácia-api)
+- [📡 Verejné API](#-verejné-api)
+- [💾 Perzistencia stavu (localStorage)](#-perzistencia-stavu-localstorage)
+- [💾 Formát exportu/importu stavu](#-formát-exportuimportu-stavu)
+- [🖨️ Export](#-export)
+- [📁 Štruktúra priečinkov](#-štruktúra-priečinkov)
+- [⚙️ Technologický zásobník](#-technologický-zásobník)
+- [📝 Poznámky](#-poznámky)
+- [🔒 Bezpečnostné poznámky](#-bezpečnostné-poznámky)
+- [📖 Ako citovať](#-ako-citovať)
+
 ## 🇸🇰 Slovenčina
 
 ### 📋 Prehľad
@@ -791,11 +816,10 @@ Strojovo čitateľné citačné metadáta sú v súbore [`CITATION.cff`](../CITA
 
 ## 🙌 Poďakovanie
 
-React Advanced Odontogram vyvíja a spravuje [@ZoliQua](https://github.com/ZoliQua), s cennými príspevkami od ľudí uvedených nižšie. Ďakujeme všetkým, ktorí pomohli.
+React Advanced Odontogram vytvára a spravuje Zoltan Dul ([@ZoliQua](https://github.com/ZoliQua)), tvorca a hlavný vývojár celého enginu. S cennou pomocou prispievateľov uvedených nižšie. Ďakujeme všetkým, ktorí prispeli.
 
 **Prispievatelia**
 
-- [@ZoliQua](https://github.com/ZoliQua): tvorca a hlavný vývojár celého enginu
 - [@odontodev](https://github.com/odontodev): hydratácia stavu a API životného cyklu, nastavenia výplní ako riadené props, idempotentné settery a zbaliteľné karty
 - [@JulianoBazzi](https://github.com/JulianoBazzi): preklad do brazílskej portugalčiny
 - [@yassine-bhn](https://github.com/yassine-bhn): preklad do francúzštiny a navrhovaná meraná anatómia

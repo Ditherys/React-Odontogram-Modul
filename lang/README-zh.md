@@ -15,6 +15,31 @@
 
 ---
 
+## 📑 目录
+
+- [📋 概述](#-概述)
+- [📦 作为 npm 包使用](#-作为-npm-包使用)
+- [✨ 主要功能](#-主要功能)
+- [📦 模块组成](#-模块组成)
+- [🛠️ 界面控件](#-界面控件)
+- [🦷 牙齿类型与状态](#-牙齿类型与状态)
+- [⚙️ 设置](#-设置)
+- [🖼️ SVG 模板系统](#-svg-模板系统)
+- [🔢 编号系统](#-编号系统)
+- [🚀 使用方法](#-使用方法)
+- [🔗 集成](#-集成)
+- [🧪 测试](#-测试)
+- [📖 API 文档](#-api-文档)
+- [📡 公共 API](#-公共-api)
+- [💾 状态持久化（localStorage）](#-状态持久化localstorage)
+- [💾 状态导出/导入格式](#-状态导出导入格式)
+- [🖨️ 导出](#-导出)
+- [📁 目录结构](#-目录结构)
+- [⚙️ 技术栈](#-技术栈)
+- [📝 说明](#-说明)
+- [🔒 安全说明](#-安全说明)
+- [📖 如何引用](#-如何引用)
+
 ## 🇨🇳 简体中文
 
 *(本文档为 README 的简体中文版本 — 译自英文原版，对应 v2.4.0)*
@@ -792,11 +817,10 @@ enablePersistence({
 
 ## 🙌 致谢
 
-React Advanced Odontogram 由 [@ZoliQua](https://github.com/ZoliQua) 开发和维护，并得到下列人员的宝贵贡献。感谢所有提供帮助的人。
+React Advanced Odontogram 由 Zoltan Dul ([@ZoliQua](https://github.com/ZoliQua)) 创建和维护，他是整个引擎的创造者和主要开发者。并得到下列贡献者的宝贵帮助。感谢所有做出贡献的人。
 
 **贡献者**
 
-- [@ZoliQua](https://github.com/ZoliQua): 整个引擎的创建者和主要开发者
 - [@odontodev](https://github.com/odontodev): 状态注水和生命周期 API，作为受控 props 的充填设置，幂等的 setter 以及可折叠卡片
 - [@JulianoBazzi](https://github.com/JulianoBazzi): 巴西葡萄牙语翻译
 - [@yassine-bhn](https://github.com/yassine-bhn): 法语翻译以及提议的测量解剖结构

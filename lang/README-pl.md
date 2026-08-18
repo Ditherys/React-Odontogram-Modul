@@ -15,6 +15,31 @@
 
 ---
 
+## 📑 Spis treści
+
+- [📋 Przegląd](#-przegląd)
+- [📦 Użycie jako pakiet npm](#-użycie-jako-pakiet-npm)
+- [✨ Kluczowe funkcje](#-kluczowe-funkcje)
+- [📦 Moduły](#-moduły)
+- [🛠️ Kontrolki interfejsu](#-kontrolki-interfejsu)
+- [🦷 Typy zębów i stany](#-typy-zębów-i-stany)
+- [⚙️ Ustawienia](#-ustawienia)
+- [🖼️ System szablonów SVG](#-system-szablonów-svg)
+- [🔢 Systemy numeracji](#-systemy-numeracji)
+- [🚀 Użycie](#-użycie)
+- [🔗 Integracja](#-integracja)
+- [🧪 Testowanie](#-testowanie)
+- [📖 Dokumentacja API](#-dokumentacja-api)
+- [📡 Publiczne API](#-publiczne-api)
+- [💾 Trwałość stanu (localStorage)](#-trwałość-stanu-localstorage)
+- [💾 Format eksportu/importu statusu](#-format-eksportuimportu-statusu)
+- [🖨️ Eksport](#-eksport)
+- [📁 Struktura folderów](#-struktura-folderów)
+- [⚙️ Stos technologiczny](#-stos-technologiczny)
+- [📝 Uwagi](#-uwagi)
+- [🔒 Uwagi dotyczące bezpieczeństwa](#-uwagi-dotyczące-bezpieczeństwa)
+- [📖 Jak cytować](#-jak-cytować)
+
 ## 🇵🇱 Polski
 
 ### 📋 Przegląd
@@ -792,11 +817,10 @@ Metadane cytowania w formacie maszynowym znajdują się w [`CITATION.cff`](../CI
 
 ## 🙌 Podziękowania
 
-React Advanced Odontogram jest tworzony i utrzymywany przez [@ZoliQua](https://github.com/ZoliQua), z cennym wkładem osób wymienionych poniżej. Dziękujemy wszystkim, którzy pomogli.
+React Advanced Odontogram jest tworzony i utrzymywany przez Zoltan Dul ([@ZoliQua](https://github.com/ZoliQua)), twórcę i głównego programistę całego silnika. Z cenną pomocą współtwórców wymienionych poniżej. Dziękujemy wszystkim, którzy wnieśli swój wkład.
 
 **Współautorzy**
 
-- [@ZoliQua](https://github.com/ZoliQua): twórca i główny programista całego silnika
 - [@odontodev](https://github.com/odontodev): hydratacja stanu i API cyklu życia, ustawienia wypełnień jako kontrolowane props, idempotentne settery i zwijane karty
 - [@JulianoBazzi](https://github.com/JulianoBazzi): tłumaczenie na brazylijski portugalski
 - [@yassine-bhn](https://github.com/yassine-bhn): tłumaczenie na francuski i proponowana zmierzona anatomia

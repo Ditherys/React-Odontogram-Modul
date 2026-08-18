@@ -15,6 +15,31 @@
 
 ---
 
+## 📑 Conteúdo
+
+- [📋 Visão geral](#-visão-geral)
+- [📦 Usar como pacote npm](#-usar-como-pacote-npm)
+- [✨ Principais recursos](#-principais-recursos)
+- [📦 Módulos](#-módulos)
+- [🛠️ Controles da interface](#-controles-da-interface)
+- [🦷 Tipos e estados de dente](#-tipos-e-estados-de-dente)
+- [⚙️ Configurações](#-configurações)
+- [🖼️ Sistema de modelos SVG](#-sistema-de-modelos-svg)
+- [🔢 Sistemas de numeração](#-sistemas-de-numeração)
+- [🚀 Uso](#-uso)
+- [🔗 Integração](#-integração)
+- [🧪 Testes](#-testes)
+- [📖 Documentação da API](#-documentação-da-api)
+- [📡 API pública](#-api-pública)
+- [💾 Persistência de estado (localStorage)](#-persistência-de-estado-localstorage)
+- [💾 Formato de exportação/importação de status](#-formato-de-exportaçãoimportação-de-status)
+- [🖨️ Exportação](#-exportação)
+- [📁 Estrutura de pastas](#-estrutura-de-pastas)
+- [⚙️ Stack tecnológica](#-stack-tecnológica)
+- [📝 Notas](#-notas)
+- [🔒 Notas de segurança](#-notas-de-segurança)
+- [📖 Como citar](#-como-citar)
+
 ## 🇧🇷 Português (Brasil)
 
 ### 📋 Visão geral
@@ -791,11 +816,10 @@ Metadados de citação legíveis por máquina estão em [`CITATION.cff`](CITATIO
 
 ## 🙌 Créditos
 
-React Advanced Odontogram é desenvolvido e mantido por [@ZoliQua](https://github.com/ZoliQua), com valiosas contribuições das pessoas listadas abaixo. Obrigado a todos que ajudaram.
+React Advanced Odontogram é criado e mantido por Zoltan Dul ([@ZoliQua](https://github.com/ZoliQua)), criador e desenvolvedor principal de todo o motor. Com a valiosa ajuda dos colaboradores listados abaixo. Obrigado a todos que contribuíram.
 
 **Colaboradores**
 
-- [@ZoliQua](https://github.com/ZoliQua): criador e desenvolvedor principal de todo o motor
 - [@odontodev](https://github.com/odontodev): hidratação de estado e API de ciclo de vida, configurações de restaurações como props controladas, setters idempotentes e cartões recolhíveis
 - [@JulianoBazzi](https://github.com/JulianoBazzi): tradução para o português brasileiro
 - [@yassine-bhn](https://github.com/yassine-bhn): tradução para o francês e a anatomia medida proposta
