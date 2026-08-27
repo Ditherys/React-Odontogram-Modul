@@ -279,13 +279,33 @@ select:focus{
    surface only for the measured profile), so the classic grid above is
    completely unaffected. */
 .tooth-grid[data-anatomy="measured"]{
+  --measured-tooth-gap:2px;
   display:flex;
   flex-direction:column;
+  gap:22px;
+  padding:8px 4px;
 }
 .tooth-grid[data-anatomy="measured"] .tooth-arch{
   display:grid;
   justify-content:center;
-  gap:4px;
+  gap:var(--measured-tooth-gap);
+  position:relative;
+  isolation:isolate;
+  padding:4px 2px;
+}
+.tooth-grid[data-anatomy="measured"] .tooth-arch::before{
+  content:"";
+  position:absolute;
+  inset:18px -4px 6px;
+  z-index:-1;
+  pointer-events:none;
+  background:linear-gradient(
+    90deg,
+    transparent,
+    rgba(148,163,184,.055) 7%,
+    rgba(148,163,184,.055) 93%,
+    transparent
+  );
 }
 .tooth-grid[data-anatomy="measured"] .upper-arch{
   grid-template-columns:
@@ -309,6 +329,18 @@ select:focus{
    (distinct from the PDF/export spacing). "normal" keeps the default 4px gap. */
 .tooth-grid[data-screen-spacing="wide"]{ gap:12px }
 .tooth-grid[data-screen-spacing="close"]{ gap:0 }
+.tooth-grid[data-anatomy="measured"][data-screen-spacing="close"]{
+  --measured-tooth-gap:0px;
+  gap:22px;
+}
+.tooth-grid[data-anatomy="measured"][data-screen-spacing="normal"]{
+  --measured-tooth-gap:2px;
+  gap:22px;
+}
+.tooth-grid[data-anatomy="measured"][data-screen-spacing="wide"]{
+  --measured-tooth-gap:6px;
+  gap:22px;
+}
 /* On-screen tooth-number size. "normal" (the default) is larger than the base
    11px; "small" restores the old size, "xlarge" is larger still. */
 .tooth-grid[data-tooth-num="normal"] .tooth-label-cell{ font-size:14px }
@@ -404,6 +436,65 @@ select:focus{
   outline-offset: 2px;
   box-shadow: 0 0 0 3px rgba(59,123,255,.25);
   z-index: 1;
+}
+
+/* Measured hit areas retain state affordances without classic card chrome. */
+.tooth-grid[data-anatomy="measured"] .tooth-tile{
+  border-color:transparent;
+  border-radius:6px;
+  background:transparent;
+  padding:2px 1px;
+}
+.tooth-grid[data-anatomy="measured"] .tooth-tile::after{
+  inset:-1px;
+  border-radius:7px;
+}
+.tooth-grid[data-anatomy="measured"] .tooth-tile:not(.placeholder):hover{
+  background:rgba(59,123,255,.055);
+}
+.tooth-grid[data-anatomy="measured"] .tooth-tile.active{
+  border-color:rgba(var(--odon-select-rgb, 59,123,255),.55);
+  background:rgba(var(--odon-select-rgb, 59,123,255),.045);
+}
+.tooth-grid[data-anatomy="measured"] .tooth-tile:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:1px;
+  box-shadow:0 0 0 3px rgba(59,123,255,.2);
+  z-index:6;
+}
+.tooth-grid[data-anatomy="measured"] .tooth-tile.occl-view:not(.placeholder){
+  min-height:68px;
+  opacity:.72;
+  transition:transform .05s ease, background .12s ease, opacity .12s ease;
+}
+.tooth-grid[data-anatomy="measured"] .tooth-tile.occl-view .tooth-svg{
+  height:68px;
+}
+.tooth-grid[data-anatomy="measured"] .tooth-tile.occl-view .tooth-svg svg{
+  width:56px;
+  height:56px;
+}
+.tooth-grid[data-anatomy="measured"] .upper-arch .tooth-tile.occl-view{
+  margin-top:8px;
+}
+.tooth-grid[data-anatomy="measured"] .lower-arch .tooth-tile.occl-view{
+  margin-bottom:8px;
+}
+.tooth-grid[data-anatomy="measured"] .tooth-tile.occl-view:not(.placeholder):hover,
+.tooth-grid[data-anatomy="measured"] .tooth-tile.occl-view.active{
+  opacity:1;
+}
+.tooth-grid[data-anatomy="measured"] .tooth-tile.placeholder{
+  visibility:hidden;
+  pointer-events:none;
+  border-color:transparent;
+  background:transparent;
+}
+.tooth-grid[data-anatomy="measured"] .upper-arch .tooth-label-cell{
+  padding:0 0 2px;
+}
+.tooth-grid[data-anatomy="measured"] .lower-arch .tooth-label-cell{
+  padding:2px 0 0;
 }
 
 /* ── Read-only mode ──────────────────────────── */
@@ -872,6 +963,26 @@ select:focus{
 .dark .tooth-tile:focus-visible{
   outline-color: rgba(96,165,250,.8);
   box-shadow: 0 0 0 3px rgba(96,165,250,.25);
+}
+.dark .tooth-grid[data-anatomy="measured"] .tooth-arch::before{
+  background:linear-gradient(
+    90deg,
+    transparent,
+    rgba(148,163,184,.045) 7%,
+    rgba(148,163,184,.045) 93%,
+    transparent
+  );
+}
+.dark .tooth-grid[data-anatomy="measured"] .tooth-tile{
+  border-color:transparent;
+  background:transparent;
+}
+.dark .tooth-grid[data-anatomy="measured"] .tooth-tile:not(.placeholder):hover{
+  background:rgba(96,165,250,.09);
+}
+.dark .tooth-grid[data-anatomy="measured"] .tooth-tile.active{
+  border-color:rgba(96,165,250,.55);
+  background:rgba(96,165,250,.065);
 }
 /* Dark note popover */
 .dark .odon-note-backdrop{background: rgba(0,0,0,.55)}
