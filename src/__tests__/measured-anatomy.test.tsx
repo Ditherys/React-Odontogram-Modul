@@ -1,7 +1,7 @@
 // Part of React Advanced Odontogram - https://github.com/ZoliQua/React-Odontogram-Modul
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 //
-// Stage B — the selectable MEASURED tooth-anatomy profile. These tests exercise
+// The selectable canonical MEASURED tooth-anatomy profile. These tests exercise
 // the REAL engine wiring (initOdontogram / buildGrid / rebuildGrid are NOT
 // mocked; the measured SVG templates are `?raw`-inlined and parsed via DOMParser
 // under jsdom), because the point of the tier is that switching to the measured
@@ -24,7 +24,7 @@ import {
 
 // Real init/build under jsdom is heavy and each case rebuilds the grid two or
 // three times (profile switches); give the file generous headroom.
-vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
+vi.setConfig({ testTimeout: 60000, hookTimeout: 60000 });
 
 // jsdom lacks matchMedia (isTouchDevice) and ResizeObserver (bridge-overlay /
 // perio fill-scale); stub both so a REAL initOdontogram()/buildGrid() runs
@@ -124,7 +124,7 @@ describe("measured anatomy profile", () => {
       expect(tile.querySelector("svg"), `svg for ${toothNo}`).toBeTruthy();
     }
     // The measured occlusal map draws a lower first-molar occlusal from its OWN
-    // template (34/46_occl), not an upper one rotated: tooth 46 has an occl tile.
+    // template (36/36_occl), not an upper one rotated: tooth 46 has an occl tile.
     expect(document.querySelector('.tooth-tile.occl-view[data-tooth="46"] svg')).toBeTruthy();
   });
 
@@ -149,6 +149,27 @@ describe("measured anatomy profile", () => {
     const implantBase = svg.querySelector('[id="implant-base"]');
     expect(implantBase).toBeTruthy();
     expect(implantBase!.getAttribute("data-active")).not.toBe("0");
+  });
+
+  it("switches to a separately generated primary template without changing the state key", async () => {
+    render(createElement(App, { language: "en" }));
+    await waitForGrid();
+    await switchAnatomy("measured");
+    await waitForGrid();
+
+    fireEvent.click(sideTile(14));
+    const toothSelect = document.getElementById("toothSelect") as HTMLSelectElement;
+    toothSelect.value = "milktooth";
+    fireEvent.change(toothSelect);
+
+    expect(getStatusChart().teeth[14].toothSelection).toBe("milktooth");
+    const svg = sideTile(14).querySelector("svg")!;
+    expect(svg.getAttribute("data-tooth-template")).toBe("54");
+    // The separately generated primary asset's tooth-base IS the primary
+    // contour. Activating its measured root/crown topology avoids falling back
+    // to an embedded donor milk layer whose root count may differ.
+    expect(svg.querySelector('[id="tooth-base"]')?.getAttribute("data-active")).not.toBe("0");
+    expect(svg.querySelector('[id="milktooth-base"]')?.getAttribute("data-active")).toBe("0");
   });
 
   it("switching back to classic restores the flat uniform grid", async () => {

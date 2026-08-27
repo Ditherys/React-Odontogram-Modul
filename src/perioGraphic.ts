@@ -42,7 +42,10 @@ export {
 // The union of every template tooth any anatomy profile can supply. The classic
 // profile realizes only 11/13/14/16; the measured profile adds 12/15/17/31/46.
 // Widened so the profile-aware anchor/template lookups type-check for both.
-export type TemplateNo = 11 | 12 | 13 | 14 | 15 | 16 | 17 | 31 | 46;
+export type TemplateNo =
+  | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18
+  | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38
+  | 51 | 52 | 53 | 54 | 55 | 71 | 72 | 73 | 74 | 75;
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -116,7 +119,8 @@ export async function loadTemplateCache(): Promise<TemplateDocCache> {
     cachedPromise = (async () => {
       const cache: TemplateDocCache = new Map();
       const entries = Object.entries(activeAnatomyProfile().templates) as [string, string][];
-      for (const [tplNoStr, svgText] of entries) {
+      const primaryEntries = Object.entries(activeAnatomyProfile().primaryTemplates || {}) as [string, string][];
+      for (const [tplNoStr, svgText] of [...entries, ...primaryEntries]) {
         const tplNo = Number(tplNoStr) as TemplateNo;
         if (!svgText) throw new Error(`perioGraphic: missing template SVG for ${tplNoStr}`);
         cache.set(tplNo, new DOMParser().parseFromString(svgText, "image/svg+xml"));
@@ -232,7 +236,12 @@ export function getToothBaseGroupFromCache(
   toothNo: number,
   opts: { implant?: boolean; milktooth?: boolean } = {},
 ): SVGGElement {
-  const map = activeAnatomyProfile().toothTemplate.get(toothNo);
+  const profile = activeAnatomyProfile();
+  const requestedMilktooth = opts.milktooth === true && opts.implant !== true;
+  const primaryMap = requestedMilktooth
+    ? profile.primaryToothTemplate?.get(toothNo)
+    : undefined;
+  const map = primaryMap ?? profile.toothTemplate.get(toothNo);
   if (!map) throw new Error(`perioGraphic: no TOOTH_TEMPLATE entry for tooth ${toothNo}`);
   const tplNo = map.tpl as TemplateNo;
   const doc = cache.get(tplNo);
@@ -248,13 +257,22 @@ export function getToothBaseGroupFromCache(
   // flip, horizontal mirror, per-position size, baseline align) is identical for
   // both — only the source layer id and the baseline anchor differ.
   const implant = opts.implant === true;
-  // A milk tooth only exists in the primary positions (1–5, templates 11/13/14);
-  // molar templates carry no `#milktooth-base`. If a milktooth is requested on a
-  // template that lacks it (malformed/imported state on a molar), fall back to
-  // the natural tooth artwork rather than throwing — robustness over a crash.
-  const milktooth = opts.milktooth === true && !implant && !!doc.querySelector("#milktooth-base");
-  const kind: PerioArtworkKind = implant ? "implant" : milktooth ? "milktooth" : "normal";
-  const layerId = implant ? "implant-base" : milktooth ? "milktooth-base" : "tooth-base";
+  // A generated primary template stores its class-specific deciduous geometry
+  // in `#tooth-base`; its donor's optional `#milktooth-base` is intentionally
+  // ignored because it can have a different root count. Classic assets retain
+  // their embedded `#milktooth-base` fallback for backward compatibility.
+  const generatedPrimary = !!primaryMap;
+  const embeddedMilktooth = requestedMilktooth
+    && !generatedPrimary
+    && !!doc.querySelector("#milktooth-base");
+  const kind: PerioArtworkKind = implant ? "implant" : requestedMilktooth ? "milktooth" : "normal";
+  const layerId = implant
+    ? "implant-base"
+    : generatedPrimary
+      ? "tooth-base"
+      : embeddedMilktooth
+        ? "milktooth-base"
+        : "tooth-base";
   const baseLayer = doc.querySelector(`#${layerId}`);
   if (!baseLayer) throw new Error(`perioGraphic: #${layerId} not found in template ${tplNo}`);
   const baseClone = baseLayer.cloneNode(true) as SVGElement;
@@ -272,7 +290,7 @@ export function getToothBaseGroupFromCache(
   outer.setAttribute("data-tooth", String(toothNo));
   outer.setAttribute("data-tpl", String(tplNo));
   if (implant) outer.setAttribute("data-implant", "1");
-  if (milktooth) outer.setAttribute("data-milktooth", "1");
+  if (requestedMilktooth) outer.setAttribute("data-milktooth", "1");
 
   if (defsClone) outer.appendChild(defsClone);
 
@@ -297,12 +315,12 @@ export function getToothBaseGroupFromCache(
   //    regardless of which position transform, if any, is applied).
   const pos = fdiPosition(toothNo);
   const sizeGroup = document.createElementNS(SVG_NS, "g") as unknown as SVGGElement;
-  if (pos === 2) {
+  if (profile.layout === "uniform16" && pos === 2) {
     // scale(0.8,1) anchored at the horizontal center (cx = w/2):
     // x' = 0.8*(x-cx)+cx = 0.8x + cx*0.2 = 0.8x + w*0.1
     sizeGroup.setAttribute("data-perio-size", `position-2-width-${LATERAL_INCISOR_WIDTH_SCALE}`);
     sizeGroup.setAttribute("transform", `matrix(${LATERAL_INCISOR_WIDTH_SCALE} 0 0 1 ${fmt(w * (1 - LATERAL_INCISOR_WIDTH_SCALE) / 2)} 0)`);
-  } else if (pos === 3) {
+  } else if (profile.layout === "uniform16" && pos === 3) {
     // scale(1,K) anchored at CEJ_Y: y' = K*(y-cejY)+cejY = K*y + cejY*(1-K)
     const f = cejY * (1 - CANINE_ROOT_SCALE);
     sizeGroup.setAttribute("data-perio-size", `position-3-root-${CANINE_ROOT_SCALE}`);

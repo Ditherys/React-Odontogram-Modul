@@ -42,7 +42,7 @@ import tooth14Svg from "./assets/teeth-svgs/14.svg?raw";
 import tooth16Svg from "./assets/teeth-svgs/16.svg?raw";
 import tooth14OcclSvg from "./assets/teeth-svgs/14_occl.svg?raw";
 import tooth16OcclSvg from "./assets/teeth-svgs/16_occl.svg?raw";
-// Measured ("candidate anatomy") tooth-template set — coexists with the classic
+// Measured canonical-anatomy tooth-template set — coexists with the classic
 // set above (never overwrites it), inlined the same `?raw` way so both ship in
 // the bundle. Consumed only by the `measured` AnatomyProfile below; the classic
 // profile keeps reading the classic imports, so classic output is byte-identical.
@@ -53,12 +53,39 @@ import measuredTooth14Svg from "./assets/teeth-svgs/measured/14.svg?raw";
 import measuredTooth15Svg from "./assets/teeth-svgs/measured/15.svg?raw";
 import measuredTooth16Svg from "./assets/teeth-svgs/measured/16.svg?raw";
 import measuredTooth17Svg from "./assets/teeth-svgs/measured/17.svg?raw";
+import measuredTooth18Svg from "./assets/teeth-svgs/measured/18.svg?raw";
 import measuredTooth31Svg from "./assets/teeth-svgs/measured/31.svg?raw";
-import measuredTooth46Svg from "./assets/teeth-svgs/measured/46.svg?raw";
+import measuredTooth32Svg from "./assets/teeth-svgs/measured/32.svg?raw";
+import measuredTooth33Svg from "./assets/teeth-svgs/measured/33.svg?raw";
+import measuredTooth34Svg from "./assets/teeth-svgs/measured/34.svg?raw";
+import measuredTooth35Svg from "./assets/teeth-svgs/measured/35.svg?raw";
+import measuredTooth36Svg from "./assets/teeth-svgs/measured/36.svg?raw";
+import measuredTooth37Svg from "./assets/teeth-svgs/measured/37.svg?raw";
+import measuredTooth38Svg from "./assets/teeth-svgs/measured/38.svg?raw";
+import measuredTooth51Svg from "./assets/teeth-svgs/measured/51.svg?raw";
+import measuredTooth52Svg from "./assets/teeth-svgs/measured/52.svg?raw";
+import measuredTooth53Svg from "./assets/teeth-svgs/measured/53.svg?raw";
+import measuredTooth54Svg from "./assets/teeth-svgs/measured/54.svg?raw";
+import measuredTooth55Svg from "./assets/teeth-svgs/measured/55.svg?raw";
+import measuredTooth71Svg from "./assets/teeth-svgs/measured/71.svg?raw";
+import measuredTooth72Svg from "./assets/teeth-svgs/measured/72.svg?raw";
+import measuredTooth73Svg from "./assets/teeth-svgs/measured/73.svg?raw";
+import measuredTooth74Svg from "./assets/teeth-svgs/measured/74.svg?raw";
+import measuredTooth75Svg from "./assets/teeth-svgs/measured/75.svg?raw";
 import measuredTooth14OcclSvg from "./assets/teeth-svgs/measured/14_occl.svg?raw";
+import measuredTooth15OcclSvg from "./assets/teeth-svgs/measured/15_occl.svg?raw";
 import measuredTooth34OcclSvg from "./assets/teeth-svgs/measured/34_occl.svg?raw";
+import measuredTooth35OcclSvg from "./assets/teeth-svgs/measured/35_occl.svg?raw";
 import measuredTooth16OcclSvg from "./assets/teeth-svgs/measured/16_occl.svg?raw";
-import measuredTooth46OcclSvg from "./assets/teeth-svgs/measured/46_occl.svg?raw";
+import measuredTooth17OcclSvg from "./assets/teeth-svgs/measured/17_occl.svg?raw";
+import measuredTooth18OcclSvg from "./assets/teeth-svgs/measured/18_occl.svg?raw";
+import measuredTooth36OcclSvg from "./assets/teeth-svgs/measured/36_occl.svg?raw";
+import measuredTooth37OcclSvg from "./assets/teeth-svgs/measured/37_occl.svg?raw";
+import measuredTooth38OcclSvg from "./assets/teeth-svgs/measured/38_occl.svg?raw";
+import measuredTooth54OcclSvg from "./assets/teeth-svgs/measured/54_occl.svg?raw";
+import measuredTooth55OcclSvg from "./assets/teeth-svgs/measured/55_occl.svg?raw";
+import measuredTooth74OcclSvg from "./assets/teeth-svgs/measured/74_occl.svg?raw";
+import measuredTooth75OcclSvg from "./assets/teeth-svgs/measured/75_occl.svg?raw";
 /* Tooth SVG Test UI (v2) - vanilla JS */
 
 // Exported (read-only use) so `perioGraphic.ts` can parse + clone the same
@@ -105,13 +132,13 @@ export const TOOTH_TEMPLATE = new Map([
   [46,{tpl:16,rot:180,mirror:true}],[47,{tpl:16,rot:180,mirror:true}],[48,{tpl:16,rot:180,mirror:true}],
 ]);
 
-// ---- Tooth-anatomy profile (Stage A: classic only) ----
+// ---- Tooth-anatomy profiles ----
 // An `AnatomyProfile` bundles everything anatomy-specific — the tooth-template
 // SVG text maps, the per-tooth template/orientation map, the tpl/occl id lists,
 // the grid layout kind, and the perio-chart CEJ baseline anchors — so a runtime
-// "tooth anatomy" switch can swap the whole set at once. Stage A ships ONLY the
-// CLASSIC profile (today's artwork/layout/anchors verbatim), so behavior and all
-// goldens are byte-identical; a later stage adds a "measured" profile.
+// "tooth anatomy" switch can swap the whole set at once. The classic profile
+// preserves the historical four-template behavior; measured uses explicit
+// permanent, primary and occlusal class maps.
 
 /** Per-template CEJ (crown-root boundary) y-anchor for the CLASSIC anatomy — the
  *  perio-chart row-baseline anchor. Owned here (as part of the profile) and
@@ -126,8 +153,7 @@ export const CLASSIC_IMPLANT_CEJ_Y: Record<number, number> = { 11: 33.0, 13: 35.
  *  approximated as the natural `CLASSIC_CEJ_Y`. */
 export const CLASSIC_MILKTOOTH_CEJ_Y: Record<number, number> = { ...CLASSIC_CEJ_Y };
 
-/** Selectable tooth-anatomy profiles. Stage A: only `classic` is realized;
- *  `measured` is accepted but falls back to the classic profile (harmless). */
+/** Selectable tooth-anatomy profiles. */
 export type ToothAnatomy = "classic" | "measured";
 
 /** Everything anatomy-specific, bundled so a runtime switch swaps it atomically.
@@ -141,8 +167,14 @@ export type AnatomyProfile = {
   templatesOccl: Record<number, string>;
   toothTemplate: Map<number, { tpl: number; rot: number; mirror: boolean }>;
   occlusalTemplate?: Map<number, { tpl: number; rot: number; mirror: boolean }>;
+  primaryTemplates?: Record<number, string>;
+  primaryTemplatesOccl?: Record<number, string>;
+  primaryToothTemplate?: Map<number, { tpl: number; rot: number; mirror: boolean }>;
+  primaryOcclusalTemplate?: Map<number, { tpl: number; rot: number; mirror: boolean }>;
   tplNos: number[];
   occlNos: number[];
+  primaryTplNos?: number[];
+  primaryOcclNos?: number[];
   layout: "uniform16" | "twoArch";
   cejY: Record<number, number>;
   implantCejY: Record<number, number>;
@@ -164,13 +196,12 @@ const CLASSIC_PROFILE: AnatomyProfile = {
   milktoothCejY: CLASSIC_MILKTOOTH_CEJ_Y,
 };
 
-// ---- MEASURED anatomy profile (Stage B) ----
-// The "candidate anatomy" — nine measured front templates + four measured
-// occlusal templates, arranged as a two-arch, per-tooth-width grid. The SVGs
-// carry the SAME semantic layer ids as the classic set (only their gradient
-// `defs` are `toothgen-N-` namespaced), so `applyStateToSvg` works unchanged.
-// Measured 17/46 legitimately lack a handful of milktooth / pulp-inflammation
-// ids — those layers simply no-op on those two molar positions.
+// ---- MEASURED anatomy profile ----
+// Sixteen permanent side classes, ten primary side classes and fourteen
+// posterior occlusal classes, arranged as a two-arch, per-tooth-width grid.
+// Every generated class retains the canonical clinical IDs; paint servers are
+// namespaced. Primary state swaps in the separately generated primary template
+// while the stored permanent-position FDI key remains unchanged.
 
 /** Measured front (side-view) template SVG text, keyed by template tooth. */
 const MEASURED_TEMPLATES: Record<number, string> = {
@@ -181,19 +212,44 @@ const MEASURED_TEMPLATES: Record<number, string> = {
   15: measuredTooth15Svg,
   16: measuredTooth16Svg,
   17: measuredTooth17Svg,
+  18: measuredTooth18Svg,
   31: measuredTooth31Svg,
-  46: measuredTooth46Svg,
+  32: measuredTooth32Svg,
+  33: measuredTooth33Svg,
+  34: measuredTooth34Svg,
+  35: measuredTooth35Svg,
+  36: measuredTooth36Svg,
+  37: measuredTooth37Svg,
+  38: measuredTooth38Svg,
 };
 /** Measured occlusal template SVG text. A lower molar/premolar occlusal is NOT
  *  an upper one rotated, so 34/46 are their own drawings (not 14/16 flipped). */
 const MEASURED_TEMPLATES_OCCL: Record<number, string> = {
   14: measuredTooth14OcclSvg,
+  15: measuredTooth15OcclSvg,
   34: measuredTooth34OcclSvg,
+  35: measuredTooth35OcclSvg,
   16: measuredTooth16OcclSvg,
-  46: measuredTooth46OcclSvg,
+  17: measuredTooth17OcclSvg,
+  18: measuredTooth18OcclSvg,
+  36: measuredTooth36OcclSvg,
+  37: measuredTooth37OcclSvg,
+  38: measuredTooth38OcclSvg,
 };
 
-/** Measured front-view per-tooth template/orientation map (nine templates). */
+const MEASURED_PRIMARY_TEMPLATES: Record<number, string> = {
+  51: measuredTooth51Svg, 52: measuredTooth52Svg, 53: measuredTooth53Svg,
+  54: measuredTooth54Svg, 55: measuredTooth55Svg, 71: measuredTooth71Svg,
+  72: measuredTooth72Svg, 73: measuredTooth73Svg, 74: measuredTooth74Svg,
+  75: measuredTooth75Svg,
+};
+
+const MEASURED_PRIMARY_TEMPLATES_OCCL: Record<number, string> = {
+  54: measuredTooth54OcclSvg, 55: measuredTooth55OcclSvg,
+  74: measuredTooth74OcclSvg, 75: measuredTooth75OcclSvg,
+};
+
+/** Measured front-view per-tooth template/orientation map (16 classes). */
 const MEASURED_TOOTH_TEMPLATE = new Map<number, { tpl: number; rot: number; mirror: boolean }>([
   // upper central incisor
   [11,{tpl:11,rot:0,mirror:false}],
@@ -202,55 +258,82 @@ const MEASURED_TOOTH_TEMPLATE = new Map<number, { tpl: number; rot: number; mirr
   [12,{tpl:12,rot:0,mirror:false}],
   [22,{tpl:12,rot:0,mirror:true}],
   // lower incisors
-  [31,{tpl:31,rot:180,mirror:false}],[32,{tpl:31,rot:180,mirror:false}],
-  [41,{tpl:31,rot:180,mirror:true}],[42,{tpl:31,rot:180,mirror:true}],
-  // canines
+  [31,{tpl:31,rot:180,mirror:false}],[41,{tpl:31,rot:180,mirror:true}],
+  [32,{tpl:32,rot:180,mirror:false}],[42,{tpl:32,rot:180,mirror:true}],
+  // arch-specific canines
   [13,{tpl:13,rot:0,mirror:false}],
   [23,{tpl:13,rot:0,mirror:true}],
-  [33,{tpl:13,rot:180,mirror:false}],
-  [43,{tpl:13,rot:180,mirror:true}],
+  [33,{tpl:33,rot:180,mirror:false}],
+  [43,{tpl:33,rot:180,mirror:true}],
   // upper 1st premolar - two roots
   [14,{tpl:14,rot:0,mirror:false}],
   [24,{tpl:14,rot:0,mirror:true}],
-  // single-rooted premolars
+  // class-specific single-rooted premolars
   [15,{tpl:15,rot:0,mirror:false}],
   [25,{tpl:15,rot:0,mirror:true}],
-  [34,{tpl:15,rot:180,mirror:false}],[35,{tpl:15,rot:180,mirror:false}],
-  [44,{tpl:15,rot:180,mirror:true}],[45,{tpl:15,rot:180,mirror:true}],
+  [34,{tpl:34,rot:180,mirror:false}],[44,{tpl:34,rot:180,mirror:true}],
+  [35,{tpl:35,rot:180,mirror:false}],[45,{tpl:35,rot:180,mirror:true}],
   // upper molars - three roots
   [16,{tpl:16,rot:0,mirror:false}],
   [26,{tpl:16,rot:0,mirror:true}],
-  [17,{tpl:17,rot:0,mirror:false}],[18,{tpl:17,rot:0,mirror:false}],
-  [27,{tpl:17,rot:0,mirror:true}],[28,{tpl:17,rot:0,mirror:true}],
+  [17,{tpl:17,rot:0,mirror:false}],[27,{tpl:17,rot:0,mirror:true}],
+  [18,{tpl:18,rot:0,mirror:false}],[28,{tpl:18,rot:0,mirror:true}],
   // lower molars - two roots
-  [36,{tpl:46,rot:180,mirror:false}],[37,{tpl:46,rot:180,mirror:false}],[38,{tpl:46,rot:180,mirror:false}],
-  [46,{tpl:46,rot:180,mirror:true}],[47,{tpl:46,rot:180,mirror:true}],[48,{tpl:46,rot:180,mirror:true}],
+  [36,{tpl:36,rot:180,mirror:false}],[46,{tpl:36,rot:180,mirror:true}],
+  [37,{tpl:37,rot:180,mirror:false}],[47,{tpl:37,rot:180,mirror:true}],
+  [38,{tpl:38,rot:180,mirror:false}],[48,{tpl:38,rot:180,mirror:true}],
 ]);
 
 /** Measured occlusal-view per-tooth template/orientation map — its own mapping,
  *  distinct from the front map (a lower posterior is a separate drawing). */
 const MEASURED_OCCLUSAL_TEMPLATE = new Map<number, { tpl: number; rot: number; mirror: boolean }>([
-  [14,{tpl:14,rot:0,mirror:false}],[15,{tpl:14,rot:0,mirror:false}],
-  [16,{tpl:16,rot:0,mirror:false}],[17,{tpl:16,rot:0,mirror:false}],[18,{tpl:16,rot:0,mirror:false}],
-  [24,{tpl:14,rot:0,mirror:true}],[25,{tpl:14,rot:0,mirror:true}],
-  [26,{tpl:16,rot:0,mirror:true}],[27,{tpl:16,rot:0,mirror:true}],[28,{tpl:16,rot:0,mirror:true}],
-  [34,{tpl:34,rot:180,mirror:false}],[35,{tpl:34,rot:180,mirror:false}],
-  [36,{tpl:46,rot:180,mirror:false}],[37,{tpl:46,rot:180,mirror:false}],[38,{tpl:46,rot:180,mirror:false}],
-  [44,{tpl:34,rot:180,mirror:true}],[45,{tpl:34,rot:180,mirror:true}],
-  [46,{tpl:46,rot:180,mirror:true}],[47,{tpl:46,rot:180,mirror:true}],[48,{tpl:46,rot:180,mirror:true}],
+  [14,{tpl:14,rot:0,mirror:false}],[24,{tpl:14,rot:0,mirror:true}],
+  [15,{tpl:15,rot:0,mirror:false}],[25,{tpl:15,rot:0,mirror:true}],
+  [16,{tpl:16,rot:0,mirror:false}],[26,{tpl:16,rot:0,mirror:true}],
+  [17,{tpl:17,rot:0,mirror:false}],[27,{tpl:17,rot:0,mirror:true}],
+  [18,{tpl:18,rot:0,mirror:false}],[28,{tpl:18,rot:0,mirror:true}],
+  [34,{tpl:34,rot:180,mirror:false}],[44,{tpl:34,rot:180,mirror:true}],
+  [35,{tpl:35,rot:180,mirror:false}],[45,{tpl:35,rot:180,mirror:true}],
+  [36,{tpl:36,rot:180,mirror:false}],[46,{tpl:36,rot:180,mirror:true}],
+  [37,{tpl:37,rot:180,mirror:false}],[47,{tpl:37,rot:180,mirror:true}],
+  [38,{tpl:38,rot:180,mirror:false}],[48,{tpl:38,rot:180,mirror:true}],
+]);
+
+const MEASURED_PRIMARY_TOOTH_TEMPLATE = new Map<number, { tpl: number; rot: number; mirror: boolean }>([
+  [11,{tpl:51,rot:0,mirror:false}],[21,{tpl:51,rot:0,mirror:true}],
+  [12,{tpl:52,rot:0,mirror:false}],[22,{tpl:52,rot:0,mirror:true}],
+  [13,{tpl:53,rot:0,mirror:false}],[23,{tpl:53,rot:0,mirror:true}],
+  [14,{tpl:54,rot:0,mirror:false}],[24,{tpl:54,rot:0,mirror:true}],
+  [15,{tpl:55,rot:0,mirror:false}],[25,{tpl:55,rot:0,mirror:true}],
+  [31,{tpl:71,rot:180,mirror:false}],[41,{tpl:71,rot:180,mirror:true}],
+  [32,{tpl:72,rot:180,mirror:false}],[42,{tpl:72,rot:180,mirror:true}],
+  [33,{tpl:73,rot:180,mirror:false}],[43,{tpl:73,rot:180,mirror:true}],
+  [34,{tpl:74,rot:180,mirror:false}],[44,{tpl:74,rot:180,mirror:true}],
+  [35,{tpl:75,rot:180,mirror:false}],[45,{tpl:75,rot:180,mirror:true}],
+]);
+
+const MEASURED_PRIMARY_OCCLUSAL_TEMPLATE = new Map<number, { tpl: number; rot: number; mirror: boolean }>([
+  [14,{tpl:54,rot:0,mirror:false}],[24,{tpl:54,rot:0,mirror:true}],
+  [15,{tpl:55,rot:0,mirror:false}],[25,{tpl:55,rot:0,mirror:true}],
+  [34,{tpl:74,rot:180,mirror:false}],[44,{tpl:74,rot:180,mirror:true}],
+  [35,{tpl:75,rot:180,mirror:false}],[45,{tpl:75,rot:180,mirror:true}],
 ]);
 
 /** Measured per-template CEJ baseline anchors (perio chart), measured from each
  *  measured template's geometry (values from the candidate-anatomy work). */
 const MEASURED_CEJ_Y: Record<number, number> = {
-  11: 40.8, 12: 37.8, 13: 38.1, 14: 37.2, 15: 34.6, 16: 37.7, 17: 38.3, 31: 35.6, 46: 32.9,
+  11:40.5,12:37.5,13:37.9,14:36.9,15:34.4,16:37.5,17:38.0,18:37.5,
+  31:35.4,32:35.6,33:37.5,34:35.4,35:36.1,36:32.7,37:33.9,38:34.8,
 };
 /** Measured per-template implant-platform baseline anchor. */
 const MEASURED_IMPLANT_CEJ_Y: Record<number, number> = {
-  11: 35.0, 12: 32.5, 13: 35.2, 14: 33.2, 15: 31.0, 16: 32.9, 17: 33.4, 31: 30.7, 46: 28.9,
+  11:34.7,12:32.2,13:35.0,14:33.0,15:30.8,16:32.7,17:33.1,18:32.7,
+  31:30.5,32:30.7,33:34.6,34:31.8,35:32.3,36:28.7,37:29.7,38:30.4,
 };
-/** Measured per-template milktooth baseline anchor (approximated as CEJ_Y). */
-const MEASURED_MILKTOOTH_CEJ_Y: Record<number, number> = { ...MEASURED_CEJ_Y };
+const MEASURED_MILKTOOTH_CEJ_Y: Record<number, number> = {
+  51:32.4,52:30.0,53:33.5,54:27.0,55:31.5,
+  71:27.7,72:28.5,73:32.6,74:27.1,75:31.7,
+};
 
 /** The MEASURED profile — two-arch layout, split front/occlusal artwork. */
 const MEASURED_PROFILE: AnatomyProfile = {
@@ -258,8 +341,14 @@ const MEASURED_PROFILE: AnatomyProfile = {
   templatesOccl: MEASURED_TEMPLATES_OCCL,
   toothTemplate: MEASURED_TOOTH_TEMPLATE,
   occlusalTemplate: MEASURED_OCCLUSAL_TEMPLATE,
-  tplNos: [11, 12, 13, 14, 15, 16, 17, 31, 46],
-  occlNos: [14, 16, 34, 46],
+  primaryTemplates: MEASURED_PRIMARY_TEMPLATES,
+  primaryTemplatesOccl: MEASURED_PRIMARY_TEMPLATES_OCCL,
+  primaryToothTemplate: MEASURED_PRIMARY_TOOTH_TEMPLATE,
+  primaryOcclusalTemplate: MEASURED_PRIMARY_OCCLUSAL_TEMPLATE,
+  tplNos: [11,12,13,14,15,16,17,18,31,32,33,34,35,36,37,38],
+  occlNos: [14,15,34,35,16,17,18,36,37,38],
+  primaryTplNos: [51,52,53,54,55,71,72,73,74,75],
+  primaryOcclNos: [54,55,74,75],
   layout: "twoArch",
   cejY: MEASURED_CEJ_Y,
   implantCejY: MEASURED_IMPLANT_CEJ_Y,
@@ -3532,6 +3621,12 @@ function applyStateToSvgSingle(toothNo: Any, svg: Any, state: Any = toothState.g
   const brokenVariant = state.toothSubstrate === "broken" ? getBrokenCrownVariant(state) : null;
   const isImplant = state.toothSelection === "implant";
   const isMilktooth = state.toothSelection === "milktooth";
+  // Measured primary assets are already generated as the requested deciduous
+  // anatomy class. Their transformed, topology-correct artwork lives in the
+  // standard clinical layer family (`tooth-*`). `milktooth-*` remains the
+  // embedded fallback used by classic permanent donor assets.
+  const isGeneratedPrimary = isMilktooth
+    && svg.getAttribute("data-dentition-variant") === "primary";
   const underGum = isUnderGum(state.toothSelection);
   const extraction = isExtraction(state.toothSelection) || (state.toothSelection === "none" && state.extractionWound);
   const hasRemovable = state.toothSelection === "none"
@@ -3622,20 +3717,23 @@ function applyStateToSvgSingle(toothNo: Any, svg: Any, state: Any = toothState.g
 
   // 1) Tooth selection
   setActive(svgGetById(svg, "implant"), isImplant);
-  setActive(svgGetById(svg, "milktooth"), isMilktooth);
+  setActive(svgGetById(svg, "milktooth"), isMilktooth && !isGeneratedPrimary);
 
   if(isImplant){
     setActive(svgGetById(svg, "implant-base"), true);
   }else if(isMilktooth){
-    setActive(svgGetById(svg, "milktooth-base"), true);
-    setActive(svgGetById(svg, "milktooth-beauty"), true);
+    const layerPrefix = isGeneratedPrimary ? "tooth" : "milktooth";
+    setActive(svgGetById(svg, layerPrefix + "-base"), true);
+    setActive(svgGetById(svg, layerPrefix + "-base-beauty"),
+      isGeneratedPrimary && state.toothSubstrate === "natural" && state.restorationType === "none");
+    setActive(svgGetById(svg, layerPrefix + "-beauty"), !isGeneratedPrimary);
     if(pulpDiseased){
       if(!endoTreated){
-        setActive(svgGetById(svg, "milktooth-inflam-pulp"), true);
+        setActive(svgGetById(svg, layerPrefix + "-inflam-pulp"), true);
         setPulpInflamPaths(svg, !pulpTierMild);
       }
     }else if(showHealthyPulp){
-      setActive(svgGetById(svg, "milktooth-healthy-pulp"), true);
+      setActive(svgGetById(svg, layerPrefix + "-healthy-pulp"), true);
     }
   }else if(isToothPresent(state.toothSelection)){
     if(state.toothSelection === "tooth-base"){
@@ -3699,7 +3797,9 @@ function applyStateToSvgSingle(toothNo: Any, svg: Any, state: Any = toothState.g
   {
     const tintOn = discolorationAllowed(state) && state.discoloration !== "none";
     const tint = tintOn ? (DISCOLORATION_TINT[state.discoloration] || "") : "";
-    const activeId = state.toothSelection === "milktooth" ? "milktooth-base" : "tooth-base";
+    const activeId = state.toothSelection === "milktooth" && !isGeneratedPrimary
+      ? "milktooth-base"
+      : "tooth-base";
     for(const id of ["tooth-base", "milktooth-base"]){
       const el = svgGetById(svg, id) as SVGElement | null;
       if(!el) continue;
@@ -4062,6 +4162,7 @@ export function __applyProposedStylingForTest(toothNo: Any, svg: Any): void {
 }
 
 function applyStateToSvg(toothNo: Any){
+  syncToothSvgVariant(toothNo);
   const roots = toothSvgRoot.get(toothNo);
   if(!roots) return;
   for(const svg of roots){
@@ -9552,7 +9653,7 @@ let initToken = 0;
 // `svgText` is the inlined SVG markup from a `?raw` import (see TEMPLATES) —
 // parsed directly, never fetched. Kept `async` so existing `await loadSvg(...)`
 // call sites are unchanged.
-async function loadSvg(svgText: Any){
+function parseSvg(svgText: Any){
   const parser = new DOMParser();
   const doc = parser.parseFromString(svgText, "image/svg+xml");
   const svg = doc.documentElement;
@@ -9560,6 +9661,88 @@ async function loadSvg(svgText: Any){
   stripDisplayNoneToDataActive(svg);
   ensureDataActiveForSwitchables(svg);
   return svg;
+}
+
+async function loadSvg(svgText: Any){
+  return parseSvg(svgText);
+}
+
+let activeSideTemplateCache = new Map<number, Any>();
+let activeOcclTemplateCache = new Map<number, Any>();
+let activePrimarySideTemplateCache = new Map<number, Any>();
+let activePrimaryOcclTemplateCache = new Map<number, Any>();
+const sideTemplateCaches = new Map<ToothAnatomy, Map<number, Any>>();
+const occlTemplateCaches = new Map<ToothAnatomy, Map<number, Any>>();
+const primarySideTemplateCaches = new Map<ToothAnatomy, Map<number, Any>>();
+const primaryOcclTemplateCaches = new Map<ToothAnatomy, Map<number, Any>>();
+
+function profileCache(registry: Map<ToothAnatomy, Map<number, Any>>): Map<number, Any> {
+  let cache = registry.get(toothAnatomy);
+  if(!cache){
+    cache = new Map<number, Any>();
+    registry.set(toothAnatomy, cache);
+  }
+  return cache;
+}
+
+function cloneActiveTemplate(toothNo: number, view: "side" | "occl", primary: boolean): { svg: Any; tplNo: number } | null {
+  const profile = activeAnatomyProfile();
+  const primaryMap = view === "occl" ? profile.primaryOcclusalTemplate : profile.primaryToothTemplate;
+  const permanentMap = view === "occl" ? profile.occlusalTemplate : profile.toothTemplate;
+  const usePrimary = primary && !!primaryMap?.get(toothNo);
+  const placement = (usePrimary ? primaryMap : permanentMap)?.get(toothNo);
+  if(!placement) return null;
+  const cache = usePrimary
+    ? (view === "occl" ? activePrimaryOcclTemplateCache : activePrimarySideTemplateCache)
+    : (view === "occl" ? activeOcclTemplateCache : activeSideTemplateCache);
+  let prototype = cache.get(placement.tpl);
+  if(!prototype && usePrimary){
+    const source = view === "occl"
+      ? profile.primaryTemplatesOccl?.[placement.tpl]
+      : profile.primaryTemplates?.[placement.tpl];
+    if(source){
+      prototype = parseSvg(source);
+      cache.set(placement.tpl, prototype);
+    }
+  }
+  if(!prototype) return null;
+  const svg = prototype.cloneNode(true);
+  if(placement.rot === 180) rotate180(svg);
+  if(placement.mirror) mirrorVertical(svg);
+  svg.setAttribute("data-dentition-variant", usePrimary ? "primary" : "permanent");
+  return { svg, tplNo: placement.tpl };
+}
+
+/** Replace only the SVG clone when a measured tooth crosses the permanent /
+ * primary boundary. The tile, event handlers, FDI data key and accessibility
+ * attributes stay intact, so saved chart semantics do not change. */
+function syncToothSvgVariant(toothNo: number): void {
+  const profile = activeAnatomyProfile();
+  if(!profile.primaryToothTemplate) return;
+  const primary = toothState.get(toothNo)?.toothSelection === "milktooth";
+  const tiles = toothTile.get(toothNo) || [];
+  let changed = false;
+  for(const tile of tiles){
+    const view: "side" | "occl" = tile.classList.contains("occl-view") ? "occl" : "side";
+    const next = cloneActiveTemplate(toothNo, view, primary);
+    if(!next) continue;
+    const current = tile.querySelector(".tooth-svg > svg");
+    const wantedVariant = primary ? "primary" : "permanent";
+    if(current?.getAttribute("data-dentition-variant") === wantedVariant
+      && current?.getAttribute("data-tooth-template") === String(next.tplNo)) continue;
+    current?.replaceWith(next.svg);
+    for(const cls of Array.from(tile.classList) as string[]){
+      if(cls.startsWith("tpl-")) tile.classList.remove(cls);
+    }
+    tile.classList.add(`tpl-${next.tplNo}`);
+    changed = true;
+  }
+  if(changed){
+    toothSvgRoot.set(
+      toothNo,
+      tiles.map((tile: Any) => tile.querySelector(".tooth-svg > svg")).filter(Boolean),
+    );
+  }
 }
 
 async function buildGrid(token: number){
@@ -9581,15 +9764,21 @@ async function buildGrid(token: number){
   let appendTarget: Any = grid;
 
   // preload SVG templates in parallel
-  const tplCache = new Map();
-  const occlCache = new Map();
+  // Parsed template prototypes are immutable and cloned per tile. Cache them
+  // by anatomy profile so repeated grid rebuilds do not reparse ~40 large SVGs.
+  activeSideTemplateCache = profileCache(sideTemplateCaches);
+  activeOcclTemplateCache = profileCache(occlTemplateCaches);
+  activePrimarySideTemplateCache = profileCache(primarySideTemplateCaches);
+  activePrimaryOcclTemplateCache = profileCache(primaryOcclTemplateCaches);
+  const tplCache = activeSideTemplateCache;
+  const occlCache = activeOcclTemplateCache;
   const tplNos = profile.tplNos;
   const occlNos = profile.occlNos;
   await Promise.all([
-    ...tplNos.map(async (tplNo) => {
+    ...tplNos.filter((tplNo) => !tplCache.has(tplNo)).map(async (tplNo) => {
       tplCache.set(tplNo, await loadSvg(profile.templates[tplNo]));
     }),
-    ...occlNos.map(async (tplNo) => {
+    ...occlNos.filter((tplNo) => !occlCache.has(tplNo)).map(async (tplNo) => {
       occlCache.set(tplNo, await loadSvg(profile.templatesOccl[tplNo]));
     }),
   ]);
@@ -9597,15 +9786,22 @@ async function buildGrid(token: number){
 
   function addTile({toothNo, tplNo, rot, mirror, view, clickable}: Any){
     if(!initialized || token !== initToken) return;
-    const tpl = view === "occl" ? occlCache.get(tplNo) : tplCache.get(tplNo);
-    if(!tpl) return;
-    const svg = tpl.cloneNode(true);
-    if(rot === 180) rotate180(svg);
-    if(mirror) mirrorVertical(svg);
+    if(!toothState.has(toothNo)) toothState.set(toothNo, defaultState());
+    const isPrimary = toothState.get(toothNo)?.toothSelection === "milktooth";
+    const selected = cloneActiveTemplate(toothNo, view === "occl" ? "occl" : "side", isPrimary);
+    const fallbackTpl = view === "occl" ? occlCache.get(tplNo) : tplCache.get(tplNo);
+    if(!selected && !fallbackTpl) return;
+    const svg = selected?.svg ?? fallbackTpl.cloneNode(true);
+    const renderedTplNo = selected?.tplNo ?? tplNo;
+    if(!selected){
+      if(rot === 180) rotate180(svg);
+      if(mirror) mirrorVertical(svg);
+      svg.setAttribute("data-dentition-variant", "permanent");
+    }
 
     const tileClasses = [
       "tooth-tile",
-      `tpl-${tplNo}`,
+      `tpl-${renderedTplNo}`,
       toothNo >= 31 ? "lower-row" : "upper-row",
       view === "occl" ? "occl-view" : "side-view"
     ];
@@ -9641,7 +9837,6 @@ async function buildGrid(token: number){
     if(!toothTile.has(toothNo)) toothTile.set(toothNo, []);
     toothTile.get(toothNo).push(tile);
 
-    if(!toothState.has(toothNo)) toothState.set(toothNo, defaultState());
     applyStateToSvg(toothNo);
   }
 

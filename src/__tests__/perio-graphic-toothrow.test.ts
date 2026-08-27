@@ -15,7 +15,7 @@
 // `buildGrid()` fetch path is never touched (parity-safe by construction:
 // this module only ever READS the template asset text into its OWN new DOM,
 // same as `__renderActiveLayers` does).
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
@@ -27,6 +27,7 @@ import {
   type TemplateDocCache,
   type TemplateNo,
 } from "../perioGraphic";
+import { setToothAnatomy } from "../odontogram";
 
 const testFileUrl = import.meta.url;
 const svgText = (tplNo: TemplateNo) =>
@@ -47,6 +48,8 @@ const UPPER_ARCH = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 
 describe("getToothBaseGroupFromCache", () => {
   const cache = buildCache();
   const sample = [11, 12, 13, 14, 16, 21, 22, 31, 33, 46];
+
+  afterEach(() => setToothAnatomy("classic"));
 
   it("returns a group containing the tooth-base geometry and none of the excluded layers", () => {
     for (const toothNo of sample) {
@@ -127,6 +130,22 @@ describe("getToothBaseGroupFromCache", () => {
   it("throws if the requested template was not loaded into the cache", () => {
     const partial: TemplateDocCache = new Map([[11, cache.get(11)!]]);
     expect(() => getToothBaseGroupFromCache(partial, 13)).toThrow();
+  });
+
+  it("uses a generated primary template's class-specific tooth-base in the perio row", () => {
+    setToothAnatomy("measured");
+    const measured: TemplateDocCache = new Map([
+      [54, new DOMParser().parseFromString(
+        readFileSync(fileURLToPath(new URL("../assets/teeth-svgs/measured/54.svg", testFileUrl)), "utf8"),
+        "image/svg+xml",
+      )],
+    ]);
+
+    const group = getToothBaseGroupFromCache(measured, 14, { milktooth: true });
+    expect(group.getAttribute("data-tpl")).toBe("54");
+    expect(group.getAttribute("data-milktooth")).toBe("1");
+    expect(group.querySelector('[id="tooth-base"]')).toBeTruthy();
+    expect(group.querySelector('[id="milktooth-base"]')).toBeNull();
   });
 });
 

@@ -21,6 +21,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    // The measured profile parses 40 sizeable SVG documents in real jsdom.
+    // Bounding workers avoids CPU contention that can turn otherwise passing
+    // anatomy/rendering tests into host-dependent timeout failures.
+    maxWorkers: 2,
     setupFiles: ['./src/__tests__/setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
