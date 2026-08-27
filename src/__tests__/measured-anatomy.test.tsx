@@ -110,6 +110,19 @@ describe("measured anatomy profile", () => {
     expect(lower!.querySelectorAll(".tooth-tile.side-view").length).toBeGreaterThan(0);
     // Both arches present in the accessibility tree as presentation containers.
     expect(upper!.getAttribute("role")).toBe("presentation");
+
+    const side = upper!.querySelector('.tooth-tile.side-view[data-tooth="11"]') as HTMLElement;
+    expect(side.getAttribute("role")).toBe("option");
+    expect(side.getAttribute("tabindex")).toBe("0");
+    expect(side.getAttribute("aria-label")).toBeTruthy();
+
+    const placeholders = upper!.querySelectorAll(".tooth-tile.occl-view.placeholder");
+    expect(placeholders).toHaveLength(6);
+    for (const placeholder of placeholders) {
+      expect(placeholder.hasAttribute("data-tooth")).toBe(false);
+      expect(placeholder.hasAttribute("role")).toBe(false);
+      expect(placeholder.hasAttribute("tabindex")).toBe(false);
+    }
   });
 
   it("renders the id-different measured tiles (15/17/46) and their occlusal tile", async () => {
