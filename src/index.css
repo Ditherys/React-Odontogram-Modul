@@ -272,7 +272,7 @@ select:focus{
   padding:10px;
   position:relative;
 }
-/* Measured ("candidate anatomy") profile — a two-arch layout. The grid becomes
+/* Measured canonical-anatomy profile — a two-arch layout. The grid becomes
    a flex column of two `.tooth-arch` sub-grids (upper/lower), each giving every
    tooth its own measured column width so contacts fall where the anatomy puts
    them. Gated on the `data-anatomy="measured"` attribute (set by the chart
@@ -289,21 +289,21 @@ select:focus{
 }
 .tooth-grid[data-anatomy="measured"] .upper-arch{
   grid-template-columns:
-    minmax(28px, 63px) minmax(28px, 63px) minmax(28px, 72px)
-    minmax(28px, 51px) minmax(28px, 52px) minmax(28px, 54px)
+    minmax(28px, 62px) minmax(28px, 65px) minmax(28px, 72px)
+    minmax(28px, 49px) minmax(28px, 52px) minmax(28px, 55px)
     minmax(28px, 49px) minmax(28px, 62px)
     minmax(28px, 62px) minmax(28px, 49px)
-    minmax(28px, 54px) minmax(28px, 52px) minmax(28px, 51px)
-    minmax(28px, 72px) minmax(28px, 63px) minmax(28px, 63px);
+    minmax(28px, 55px) minmax(28px, 52px) minmax(28px, 49px)
+    minmax(28px, 72px) minmax(28px, 65px) minmax(28px, 62px);
 }
 .tooth-grid[data-anatomy="measured"] .lower-arch{
   grid-template-columns:
-    minmax(28px, 75px) minmax(28px, 75px) minmax(28px, 75px)
-    minmax(28px, 51px) minmax(28px, 51px) minmax(28px, 54px)
-    minmax(28px, 40px) minmax(28px, 40px)
-    minmax(28px, 40px) minmax(28px, 40px)
-    minmax(28px, 54px) minmax(28px, 51px) minmax(28px, 51px)
-    minmax(28px, 75px) minmax(28px, 75px) minmax(28px, 75px);
+    minmax(28px, 72px) minmax(28px, 75px) minmax(28px, 78px)
+    minmax(28px, 53px) minmax(28px, 52px) minmax(28px, 52px)
+    minmax(28px, 42px) minmax(28px, 39px)
+    minmax(28px, 39px) minmax(28px, 42px)
+    minmax(28px, 52px) minmax(28px, 52px) minmax(28px, 53px)
+    minmax(28px, 78px) minmax(28px, 75px) minmax(28px, 72px);
 }
 /* Round 2 (Stage 3): on-screen tooth spacing — inter-tooth gap in the live grid
    (distinct from the PDF/export spacing). "normal" keeps the default 4px gap. */
