@@ -14,7 +14,7 @@ import { applyFlagLayers, buildFlagCtx } from "./registry/svgActivate";
 import { validValues, validSurfaces } from "./registry/validate";
 import { optionsFor, isAxisFlagSatisfied } from "./registry/uiOptions";
 import {
-  composeRestorationLayers, restorationOptions, isValidRestoration, RESTORATION_MATRIX,
+  composeClinicalRestorationLayers, restorationOptions, isValidRestoration, RESTORATION_MATRIX,
   type RestorationType, type RestorationMaterial,
 } from "./registry/restorations";
 import {
@@ -3732,7 +3732,7 @@ function applyStateToSvgSingle(toothNo: Any, svg: Any, state: Any = toothState.g
         setActive(svgGetById(svg, layerPrefix + "-inflam-pulp"), true);
         setPulpInflamPaths(svg, !pulpTierMild);
       }
-    }else if(showHealthyPulp){
+    }else if(showHealthyPulp && !endoTreated){
       setActive(svgGetById(svg, layerPrefix + "-healthy-pulp"), true);
     }
   }else if(isToothPresent(state.toothSelection)){
@@ -3745,16 +3745,16 @@ function applyStateToSvgSingle(toothNo: Any, svg: Any, state: Any = toothState.g
       setActive(svgGetById(svg, state.toothSelection), true);
     }
     if(!underGum && !extraction){
-      // Pulpa: a diseased-pulp glyph is suppressed on an endodontically treated
-      // tooth (the endo artwork represents the filled canal). The healthy-pulp
-      // glyph is unchanged (legacy behaviour — a treated tooth may still show it
-      // under the endo layer).
+      // Pulpa: both diseased and healthy vital-pulp glyphs are suppressed on an
+      // endodontically treated tooth. The endodontic layer is the canal content;
+      // retaining a healthy pulp underneath creates clinically impossible
+      // combined anatomy and is especially misleading in multi-root templates.
       if(pulpDiseased){
         if(!endoTreated){
           setActive(svgGetById(svg, "tooth-inflam-pulp"), true);
           setPulpInflamPaths(svg, !pulpTierMild);
         }
-      }else if(showHealthyPulp){
+      }else if(showHealthyPulp && !endoTreated){
         setActive(svgGetById(svg, "tooth-healthy-pulp"), true);
       }
     }
@@ -3964,12 +3964,18 @@ function applyStateToSvgSingle(toothNo: Any, svg: Any, state: Any = toothState.g
   }
 
   // Restoration composition (crown / inlay / onlay / veneer / bridge × material).
-  // composeRestorationLayers is the single source of truth for which SVG layer
+  // composeClinicalRestorationLayers is the single source of truth for which SVG layer
   // ids activate; the chosen material's wrapper <g> is turned on so its children
   // (cleared to off in the clear-set) become visible. `restorations` stays on.
   if(state.restorationType !== "none" && state.restorationMaterial !== "none"){
     const wrapper = RESTORATION_WRAPPER_GROUP[state.restorationMaterial];
-    const ids = composeRestorationLayers(state.restorationType, state.restorationMaterial, restorationView);
+    const ids = composeClinicalRestorationLayers({
+      type: state.restorationType,
+      material: state.restorationMaterial,
+      view: restorationView,
+      bridgePillar: state.bridgePillar,
+      toothSelection: state.toothSelection,
+    });
     if(wrapper && ids.length){
       setActive(svgGetById(svg, "restorations"), true);
       setActive(svgGetById(svg, wrapper), true);

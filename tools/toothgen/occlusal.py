@@ -20,6 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import roots
 import fillings  # noqa: E402
+import overlays  # noqa: E402
 from build import ASSETS, SOURCE, rewrite_svg, namespace_paint_servers  # noqa: E402
 
 
@@ -353,8 +354,35 @@ def build_one(spec: OcclSpec, out_dir: Path, dry: bool) -> None:
     out = rewrite_svg(txt, fn, lambda y: y, vb_new)
     out = connect_fillings(out)
     out = namespace_paint_servers(out, spec.key)
+    out = overlays.normalize_crown_envelopes(out)
 
     got_w, got_h, _ = outline_extent(out)
+    base_i = out.find('id="tooth-base"')
+    base_match = re.search(r'\sd="([^"]+)"', out[base_i : base_i + 6000])
+    if base_i < 0 or not base_match:
+        raise SystemExit(f"{spec.key}: tooth-base not found after transform")
+    outline_d = base_match.group(1)
+    points = [point for sub in roots._polylines(outline_d) for point in sub]
+    crown_left = min(point[0] for point in points)
+    crown_right = max(point[0] for point in points)
+    crown_top = min(point[1] for point in points)
+    crown_bottom = max(point[1] for point in points)
+    bridge_y = (crown_top + crown_bottom) / 2.0
+    bridge_h = min(2.8, max(1.6, got_h * 0.10))
+    out, bridge = overlays.register_bridge_tabs(
+        out,
+        outline_d,
+        bridge_y,
+        bridge_h,
+        roots.crossings_at,
+        (vb_new[0], vb_new[0] + vb_new[2]),
+    )
+    out = overlays.add_svg_attributes(out, {
+        "data-crown-left": crown_left,
+        "data-crown-right": crown_right,
+        "data-bridge-anchor-y": bridge["y"],
+        "data-bridge-anchor-height": bridge["height"],
+    })
     meta = (
         f"<!-- toothgen: template={spec.key} src={spec.src} view=occlusal"
         f" ratio={got_h / got_w:.3f} target={spec.ratio:.2f}"

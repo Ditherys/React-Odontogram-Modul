@@ -269,9 +269,8 @@ type GridHandlers = {
 
 // Gather the ordered per-site {pd,gm} readings for one row (buccal MB/B/DB or
 // lingual ML/L/DL) plus each site's x for the pocket/margin curve. The 3 sites of a
-// tooth spread evenly across that tooth's width (reusing the SAME per-tooth
-// x/width `archToothLayout` gives the arch teeth, so the curve tracks them):
-// site j lands at x + width*(j+0.5)/3 → the 1/6, 1/2, 5/6 fractions. Reads
+// tooth use the template-derived cervical/implant span from `archToothLayout`,
+// in clinical mesial/centre/distal order. Reads
 // getToothPerio (active chart) → status/plan aware + live-updates.
 function collectCurveInput(
   layout: ArchLayout,
@@ -291,7 +290,7 @@ function collectCurveInput(
       const gm = pd === undefined ? undefined
         : (Object.prototype.hasOwnProperty.call(perio.gm, site) ? perio.gm[site] : 0);
       sites.push({ site, pd, gm });
-      xs.push(tooth.x + (tooth.width * (j + 0.5)) / 3);
+      xs.push(tooth.siteXs[j]);
     });
   }
   return { sites, xs };
@@ -324,7 +323,7 @@ function drawArchCurves(cache: TemplateDocCache, container: HTMLElement | null, 
   // Remove any stale curve layers first (safe to call on every state change).
   container.querySelectorAll(".perio-curve").forEach((el) => el.remove());
 
-  const layout = archToothLayout(cache, teeth);
+  const layout = archToothLayout(cache, teeth, TOOTH_GAP, getPerioToothKind);
   const opts = { cejY: layout.cejY, mmPx: PERIO_MM_PX };
 
   const buccalSvg = resolveAspectSvg(container, "perio-tooth-arch-buccal");
@@ -404,7 +403,7 @@ function collectOverlayInput(layout: ArchLayout, siteKeys: readonly PerioSite[])
     siteKeys.forEach((site, j) => {
       const charted = Object.prototype.hasOwnProperty.call(perio.pd, site);
       out.push({
-        x: tooth.x + (tooth.width * (j + 0.5)) / 3,
+        x: tooth.siteXs[j],
         pd: charted ? perio.pd[site] : undefined,
         gm: Object.prototype.hasOwnProperty.call(perio.gm, site) ? perio.gm[site] : undefined,
         bop: perio.bop.includes(site),
@@ -428,7 +427,7 @@ function collectMmHeatInput(layout: ArchLayout, siteKeys: readonly PerioSite[]):
     siteKeys.forEach((site, j) => {
       const charted = Object.prototype.hasOwnProperty.call(perio.pd, site);
       out.push({
-        x: tooth.x + (tooth.width * (j + 0.5)) / 3,
+        x: tooth.siteXs[j],
         pd: charted ? perio.pd[site] : undefined,
         gm: Object.prototype.hasOwnProperty.call(perio.gm, site) ? perio.gm[site] : undefined,
         cal: cal.has(site) ? cal.get(site) : undefined,
@@ -477,7 +476,7 @@ export function drawArchOverlay(
   const palatalParent = ((palatalSvg?.querySelector(".perio-tooth-row-palatal-inner") as SVGGElement | null) ??
     palatalSvg) as SVGGElement | Element | null;
 
-  const layout = archToothLayout(cache, teeth);
+  const layout = archToothLayout(cache, teeth, TOOTH_GAP, getPerioToothKind);
   const opts = { cejY: layout.cejY, mmPx: PERIO_MM_PX };
   const className = `perio-overlay-${layer}`;
 
@@ -485,6 +484,7 @@ export function drawArchOverlay(
     const plaqueTeeth = layout.teeth.map((tooth) => ({
       x: tooth.x,
       width: tooth.width,
+      siteXs: tooth.siteXs,
       surfaces: getToothPlaque(tooth.toothNo),
     }));
     buccalParent?.appendChild(
@@ -505,6 +505,7 @@ export function drawArchOverlay(
     const cairoTeeth: PerioCairoTooth[] = layout.teeth.map((tooth) => ({
       x: tooth.x,
       width: tooth.width,
+      siteXs: tooth.siteXs,
       rt: getToothRecessionType(tooth.toothNo),
     }));
     buccalParent?.appendChild(
@@ -521,6 +522,7 @@ export function drawArchOverlay(
     const kgTeeth: PerioKgTooth[] = layout.teeth.map((tooth) => ({
       x: tooth.x,
       width: tooth.width,
+      siteXs: tooth.siteXs,
       kg: getKeratinizedWidth(tooth.toothNo),
     }));
     buccalParent?.appendChild(
@@ -545,6 +547,7 @@ export function drawArchOverlay(
     const gradeTeeth: PerioGradeTooth[] = layout.teeth.map((tooth) => ({
       x: tooth.x,
       width: tooth.width,
+      siteXs: tooth.siteXs,
       grades: {
         mesial: getGrade(tooth.toothNo, "mesial"),
         distal: getGrade(tooth.toothNo, "distal"),
@@ -1451,7 +1454,7 @@ function applyArchColumns(
   scrollContainer: HTMLElement | null,
 ): void {
   if (!grid) return;
-  const layout = archToothLayout(cache, teeth);
+  const layout = archToothLayout(cache, teeth, TOOTH_GAP, getPerioToothKind);
   if (layout.teeth.length === 0) return;
   const containerWidth = scrollContainer?.clientWidth ?? 0;
   const available = containerWidth - ROW_LABEL_WIDTH - GRID_SCROLLBAR_ALLOWANCE;

@@ -9,6 +9,7 @@ servers are namespaced per template while clinical layer ids stay stable.
 from __future__ import annotations
 
 import argparse
+import math
 import re
 import sys
 from pathlib import Path
@@ -19,6 +20,7 @@ import roots  # noqa: E402
 import graft  # noqa: E402
 import gum  # noqa: E402
 import fillings  # noqa: E402
+import overlays  # noqa: E402
 from spec import (  # noqa: E402
     PRIMARY_PULP_SCALE,
     PRIMARY_ROOT_SPREAD,
@@ -628,7 +630,15 @@ def build_one(s: ToothSpec, out_dir: Path, dry: bool, root_scale: float | None =
     def ymap_shift(y):
         return ymap(y) + shift
 
-    vb_new = (vb_old[0], 0.0, vb_old[2], h_vb)
+    # A class may legitimately be wider than its donor viewBox (notably the
+    # mandibular first molar). Expand the canvas around the transformed crown
+    # rather than clipping class-registered crowns/wear at the donor boundary.
+    horizontal_margin = 2.0
+    vb_left = min(vb_old[0], cx - w_dst / 2.0 - horizontal_margin)
+    vb_right = max(vb_old[0] + vb_old[2], cx + w_dst / 2.0 + horizontal_margin)
+    vb_left = math.floor(vb_left * 10.0) / 10.0
+    vb_right = math.ceil(vb_right * 10.0) / 10.0
+    vb_new = (vb_left, 0.0, vb_right - vb_left, h_vb)
 
     out = rewrite_svg(txt, fn, ymap_shift, vb_new)
 
@@ -661,15 +671,68 @@ def build_one(s: ToothSpec, out_dir: Path, dry: bool, root_scale: float | None =
     )
 
     out = connect_fillings(out, n_inc)
+    out = overlays.normalize_crown_envelopes(out)
+
+    # Bridge connectors are not independent saddles. Regenerate two short
+    # proximal tabs from this class's transformed crown envelope so every
+    # material shares exact anatomy while retaining its historical id/style.
+    final_base_d = re.search(r'<path id="tooth-base" d="([^"]+)"', out).group(1)
+    bridge_y = n_cej + (n_inc - n_cej) * 0.64
+    bridge_h = min(2.8, max(1.8, (n_inc - n_cej) * 0.065))
+    out, bridge = overlays.register_bridge_tabs(
+        out,
+        final_base_d,
+        bridge_y,
+        bridge_h,
+        roots.crossings_at,
+        (vb_new[0], vb_new[0] + vb_new[2]),
+    )
 
     got_root = (n_cej - n_apex) / (n_inc - n_apex)
     got_total = n_inc - n_apex
     got_w = max(
         crown_width(
-            re.search(r'<path id="tooth-base" d="([^"]+)"', out).group(1), y
+            final_base_d, y
         )
         for y in [n_inc - (n_inc - n_cej) * f for f in (0.2, 0.35, 0.5, 0.65, 0.8)]
     )
+
+    im = re.search(r'<g id="implant-base".*?</g>', out, re.S)
+    n_impl = None
+    implant_left = implant_right = None
+    if im:
+        ds = re.findall(r'\sd="([^"]+)"', im.group(0))
+        pts = [pt for d2 in ds for sub in roots._polylines(d2) for pt in sub]
+        if pts:
+            n_impl = max(pt[1] for pt in pts)
+            implant_left = min(pt[0] for pt in pts)
+            implant_right = max(pt[0] for pt in pts)
+
+    cervical_y = n_cej + min(1.0, (n_inc - n_cej) * 0.04)
+    cervical_xs = roots.crossings_at(final_base_d, cervical_y)
+    if len(cervical_xs) < 2:
+        raise SystemExit(f"{s.key}: cannot derive cervical span")
+    crown_samples = [
+        roots.crossings_at(final_base_d, n_cej + (n_inc - n_cej) * frac)
+        for frac in (0.25, 0.5, 0.75)
+    ]
+    crown_left = min(xs[0] for xs in crown_samples if len(xs) >= 2)
+    crown_right = max(xs[-1] for xs in crown_samples if len(xs) >= 2)
+    registration = {
+        "data-cej-y": n_cej,
+        "data-cervical-left": cervical_xs[0],
+        "data-cervical-right": cervical_xs[-1],
+        "data-crown-left": crown_left,
+        "data-crown-right": crown_right,
+        "data-implant-platform-y": n_impl if n_impl is not None else n_cej,
+        "data-implant-left": implant_left if implant_left is not None else cervical_xs[0],
+        "data-implant-right": implant_right if implant_right is not None else cervical_xs[-1],
+        "data-bridge-anchor-y": bridge["y"],
+        "data-bridge-anchor-height": bridge["height"],
+    }
+    if s.roots > 1:
+        registration["data-furcation-y"] = n_cej - (n_cej - n_apex) * s.furc_frac
+    out = overlays.add_svg_attributes(out, registration)
 
     meta = (
         f"<!-- toothgen: template={s.key} src={s.src_template} roots={s.roots}"
@@ -682,14 +745,6 @@ def build_one(s: ToothSpec, out_dir: Path, dry: bool, root_scale: float | None =
         meta + f'<svg data-tooth-template="{s.key}" data-root-count="{s.roots}" ',
         1,
     )
-
-    im = re.search(r'<g id="implant-base".*?</g>', out, re.S)
-    n_impl = None
-    if im:
-        ds = re.findall(r'\sd="([^"]+)"', im.group(0))
-        pts = [pt for d2 in ds for sub in roots._polylines(d2) for pt in sub]
-        if pts:
-            n_impl = max(pt[1] for pt in pts)
 
     dst = out_dir / f"{s.key}.svg"
     if not dry:

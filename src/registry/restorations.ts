@@ -64,6 +64,25 @@ export function composeRestorationLayers(type: RestorationType, material: Restor
   return [`${material}-${type}`];
 }
 
+/** Renderer context that is deliberately separate from restoration geometry.
+ * A bridge abutment is stored as a crown plus `bridgePillar`; it must use the
+ * exact same crown geometry while also exposing the material connector used by
+ * pontics/ordinary bridge units. */
+export interface ClinicalRestorationContext {
+  type: RestorationType;
+  material: RestorationMaterial;
+  view: ToothView;
+  bridgePillar?: boolean;
+  toothSelection?: string;
+}
+
+export function composeClinicalRestorationLayers(ctx: ClinicalRestorationContext): string[] {
+  const layers = composeRestorationLayers(ctx.type, ctx.material, ctx.view);
+  if (!ctx.bridgePillar || ctx.material === "none" || ctx.type === "none") return layers;
+  const connector = `${ctx.material}-bridge-connector`;
+  return layers.includes(connector) ? layers : [...layers, connector];
+}
+
 // Every valid (type,material) combo layer id, for the render clear-set.
 export function allRestorationLayers(): string[] {
   const out = new Set<string>();

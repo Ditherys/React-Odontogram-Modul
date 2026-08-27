@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath, URL as NodeURL } from "node:url";
 import { AXES } from "../axes";
-import { allClearLayers, FIXED_CLEAR_LAYERS } from "../svgLayers";
+import { allClearLayers, CLINICAL_GROUP_ORDER, FIXED_CLEAR_LAYERS } from "../svgLayers";
 
 // Use Node's own URL (not the jsdom-provided global URL, which mis-resolves
 // relative `file:` URLs against `window.location` under the jsdom test
@@ -34,5 +34,24 @@ describe("clear-set derivation", () => {
     // axisClearLayers() only contributes ids already in FIXED_CLEAR_LAYERS
     // (caries/mods/endo/glyph/toothSelection layers) — so the union set must equal it.
     expect(new Set(allClearLayers())).toEqual(new Set(FIXED_CLEAR_LAYERS));
+  });
+});
+
+describe("clinical layer stacking", () => {
+  it("keeps every present top-level clinical family in the centralized order", () => {
+    const measuredFiles = ["11", "14", "16", "54", "14_occl", "16_occl"];
+    for (const name of measuredFiles) {
+      const text = readFileSync(
+        fileURLToPath(new NodeURL(`../../assets/teeth-svgs/measured/${name}.svg`, import.meta.url)),
+        "utf8",
+      );
+      const doc = new DOMParser().parseFromString(text, "image/svg+xml");
+      const topLevelIds = Array.from(doc.documentElement.children)
+        .map((el) => el.getAttribute("id"))
+        .filter((id): id is string => !!id);
+      const present = CLINICAL_GROUP_ORDER.filter((id) => topLevelIds.includes(id));
+      expect(topLevelIds.filter((id) => present.includes(id as typeof present[number])), name)
+        .toEqual(present);
+    }
   });
 });

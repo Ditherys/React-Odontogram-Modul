@@ -5,13 +5,14 @@
  * Multi-tooth bridge-span OVERLAY subsystem.
  *
  * Bridges are rendered PER-TOOTH by the core engine: each bridge tooth draws its
- * own `{material}-bridge-connector` saddle inside its own tile SVG. Because the
- * tiles sit in a CSS grid with a real, variable gap between them, a bridge that
- * spans several teeth shows visible breaks in the saddle at every inter-tile gap.
+ * own anatomy-derived `{material}-bridge-connector` proximal tabs inside its tile
+ * SVG. Because the tiles sit in a CSS grid with a real, variable gap between
+ * them, a bridge that spans several teeth still needs a small inter-tile join.
  *
  * This module derives the multi-tooth spans from tooth state and draws a single
  * engine-owned overlay `<svg>` over `#toothGrid` that fills those gaps with a
- * gum-line saddle bar, so a run of bridge teeth reads as one continuous bridge.
+ * proximal connector bar, so a run of bridge teeth reads as one continuous
+ * prosthesis while the individual crown boundaries remain legible.
  *
  * The overlay is purely presentational: it reads DOM geometry + tooth state and
  * introduces no new tooth-state field. The same bar geometry is reused by the
@@ -24,6 +25,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 
 /** Minimal shape of tooth state this module reads. */
 export interface BridgeToothState {
+  toothSelection?: string;
   restorationType?: string;
   restorationMaterial?: string;
   bridgePillar?: boolean;
@@ -45,8 +47,9 @@ const UPPER_ARCH = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 
 const LOWER_ARCH = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 const ARCHES: readonly (readonly number[])[] = [UPPER_ARCH, LOWER_ARCH];
 
-// Saddle bar geometry (fractions of the tile box). Shared by the live overlay
-// and the export pass so both stay byte-consistent.
+// Classic/fallback connector geometry (fractions of the tile box). Measured
+// templates supply anatomy-derived connector boxes instead. Both routes are
+// shared by the live overlay and export pass so those outputs stay consistent.
 /** Vertical center of the saddle bar, as a fraction of tile height (gum line),
  *  for an UPPER-arch tile. */
 export const SADDLE_Y_FRACTION = 0.72;
@@ -87,9 +90,18 @@ export function defaultMaterialColor(material: string): string {
   return DEFAULT_MATERIAL_COLORS[material] ?? "#8a8f98";
 }
 
+export type BridgeRole = "abutment" | "pontic" | "unit";
+
+/** Derive bridge semantics without coupling them to material or status color. */
+export function bridgeRoleForState(s: BridgeToothState | undefined | null): BridgeRole | null {
+  if (!s) return null;
+  if (s.bridgePillar === true) return "abutment";
+  if (s.restorationType !== "bridge") return null;
+  return s.toothSelection === "none" ? "pontic" : "unit";
+}
+
 function isBridgeTooth(s: BridgeToothState | undefined | null): boolean {
-  if(!s) return false;
-  return s.restorationType === "bridge" || s.bridgePillar === true;
+  return bridgeRoleForState(s) !== null;
 }
 
 /**
@@ -148,6 +160,16 @@ export interface GridRelativeRect {
   y: number;
   width: number;
   height: number;
+  /** Bounding box of the active anatomy-derived connector geometry, in the
+   * same grid-relative coordinates. Optional for classic/synthetic callers. */
+  connector?: GridRelativeConnector;
+}
+
+export interface GridRelativeConnector {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 /** Resolves a tooth's tile box in grid-relative coordinates, or null if hidden. */
@@ -199,13 +221,37 @@ export function computeBridgeBars(
       // ever diverge, derive from actual geometry.
       const leftRect = a.x <= b.x ? a : b;
       const rightRect = a.x <= b.x ? b : a;
+      const leftConnector = leftRect.connector;
+      const rightConnector = rightRect.connector;
+      // Generated connectors contain two proximal tabs in one path. Its box
+      // spans the crown, so use a tab-width slice at the facing edge. Tests and
+      // legacy integrations may supply a single-tab box; in that case retain
+      // the whole box. This keeps the bridge attached to the prosthetic units
+      // without painting a generic capsule deep across either crown.
+      const facingStart = (connector: GridRelativeConnector): number =>
+        connector.width > connector.height * 2.5
+          ? connector.x + connector.width - connector.height * 1.2
+          : connector.x;
+      const facingEnd = (connector: GridRelativeConnector): number =>
+        connector.width > connector.height * 2.5
+          ? connector.x + connector.height * 1.2
+          : connector.x + connector.width;
       const overlap = Math.min(leftRect.width, rightRect.width) * SADDLE_OVERLAP;
-      const x0 = leftRect.x + leftRect.width - overlap;
-      const x1 = rightRect.x + overlap;
+      const x0 = leftConnector
+        ? facingStart(leftConnector)
+        : leftRect.x + leftRect.width - overlap;
+      const x1 = rightConnector
+        ? facingEnd(rightConnector)
+        : rightRect.x + overlap;
       const width = x1 - x0;
       if(width <= 0) continue;
-      const height = leftRect.height * SADDLE_THICKNESS;
-      const midY = leftRect.y + leftRect.height * yFraction;
+      const height = leftConnector && rightConnector
+        ? Math.min(leftConnector.height, rightConnector.height)
+        : leftRect.height * SADDLE_THICKNESS;
+      const midY = leftConnector && rightConnector
+        ? ((leftConnector.y + leftConnector.height / 2)
+          + (rightConnector.y + rightConnector.height / 2)) / 2
+        : leftRect.y + leftRect.height * yFraction;
       bars.push({ x: x0, y: midY - height / 2, width, height, fill });
     }
   }
@@ -252,7 +298,28 @@ export function tileRectFor(
   if(!tile) return null;
   const r = tile.getBoundingClientRect();
   if(r.width === 0 || r.height === 0) return null;
-  return { x: r.left - gridRect.left, y: r.top - gridRect.top, width: r.width, height: r.height };
+  const activeConnector = tile.querySelector(
+    '[id$="-bridge-connector"][data-active="1"]',
+  ) as SVGGraphicsElement | null;
+  let connector: GridRelativeConnector | undefined;
+  if (activeConnector) {
+    const cr = activeConnector.getBoundingClientRect();
+    if (cr.width > 0 && cr.height > 0) {
+      connector = {
+        x: cr.left - gridRect.left,
+        y: cr.top - gridRect.top,
+        width: cr.width,
+        height: cr.height,
+      };
+    }
+  }
+  return {
+    x: r.left - gridRect.left,
+    y: r.top - gridRect.top,
+    width: r.width,
+    height: r.height,
+    ...(connector ? { connector } : {}),
+  };
 }
 
 /**
@@ -314,7 +381,7 @@ export function barRect(bar: BridgeBar): SVGRectElement {
   rect.setAttribute("y", String(bar.y));
   rect.setAttribute("width", String(bar.width));
   rect.setAttribute("height", String(bar.height));
-  const r = Math.min(bar.height / 2, bar.width / 2);
+  const r = Math.min(bar.height * 0.2, bar.width / 2);
   rect.setAttribute("rx", String(r));
   rect.setAttribute("ry", String(r));
   rect.setAttribute("fill", bar.fill);

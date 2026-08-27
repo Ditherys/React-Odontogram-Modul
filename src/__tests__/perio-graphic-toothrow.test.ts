@@ -22,7 +22,9 @@ import {
   getToothBaseGroupFromCache,
   buildBuccalArchSvg,
   buildPalatalArchSvg,
+  archToothLayout,
   CEJ_Y,
+  ROW_BASELINE_Y,
   EXCLUDED_TOOTH_BASE_IDS,
   type TemplateDocCache,
   type TemplateNo,
@@ -154,6 +156,69 @@ describe("CEJ_Y anchors", () => {
     for (const tpl of TEMPLATE_NOS) {
       expect(typeof CEJ_Y[tpl], String(tpl)).toBe("number");
       expect(CEJ_Y[tpl], String(tpl)).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("measured anatomy registration metadata", () => {
+  afterEach(() => setToothAnatomy("classic"));
+
+  it("places periodontal sites inside the template-specific cervical span", () => {
+    setToothAnatomy("measured");
+    const measured: TemplateDocCache = new Map();
+    for (const tplNo of [11, 14, 16, 36] as const) {
+      measured.set(tplNo, new DOMParser().parseFromString(
+        readFileSync(fileURLToPath(new URL(`../assets/teeth-svgs/measured/${tplNo}.svg`, testFileUrl)), "utf8"),
+        "image/svg+xml",
+      ));
+    }
+    const layout = archToothLayout(measured, [11, 14, 16, 46]);
+    for (const tooth of layout.teeth) {
+      expect(tooth.siteXs).toHaveLength(3);
+      expect(tooth.siteXs[0]).toBeGreaterThan(tooth.x);
+      expect(tooth.siteXs[2]).toBeLessThan(tooth.x + tooth.width);
+      const quadrant = Math.floor(tooth.toothNo / 10);
+      if (quadrant === 1 || quadrant === 4) {
+        expect(tooth.siteXs[0]).toBeGreaterThan(tooth.siteXs[1]);
+        expect(tooth.siteXs[1]).toBeGreaterThan(tooth.siteXs[2]);
+      } else {
+        expect(tooth.siteXs[0]).toBeLessThan(tooth.siteXs[1]);
+        expect(tooth.siteXs[1]).toBeLessThan(tooth.siteXs[2]);
+      }
+      const fullBoxThirds = [
+        tooth.x + tooth.width / 6,
+        tooth.x + tooth.width / 2,
+        tooth.x + tooth.width * 5 / 6,
+      ];
+      expect(tooth.siteXs).not.toEqual(fullBoxThirds);
+    }
+  });
+
+  it("converts raw CEJ, implant-platform, and primary anchors through the row flip", () => {
+    setToothAnatomy("measured");
+    const measured: TemplateDocCache = new Map();
+    for (const tplNo of [14, 16, 54] as const) {
+      measured.set(tplNo, new DOMParser().parseFromString(
+        readFileSync(fileURLToPath(new URL(`../assets/teeth-svgs/measured/${tplNo}.svg`, testFileUrl)), "utf8"),
+        "image/svg+xml",
+      ));
+    }
+    const cases = [
+      { tooth: 14, tpl: 14, kind: "normal" as const, attr: "data-cej-y" },
+      { tooth: 16, tpl: 16, kind: "implant" as const, attr: "data-implant-platform-y" },
+      { tooth: 14, tpl: 54, kind: "milktooth" as const, attr: "data-cej-y" },
+    ];
+    for (const item of cases) {
+      const kindFn = () => item.kind;
+      const svg = buildBuccalArchSvg(measured, [item.tooth], () => item.kind === "implant", undefined, kindFn);
+      const tooth = svg.querySelector(`[data-tooth="${item.tooth}"]`)!;
+      const translate = tooth.getAttribute("transform") || "";
+      const match = translate.match(/translate\([^ ]+ ([^)]+)\)/);
+      expect(match, translate).toBeTruthy();
+      const doc = measured.get(item.tpl as TemplateNo)!;
+      const [, , , height] = (doc.documentElement.getAttribute("viewBox") || "").split(/\s+/).map(Number);
+      const raw = Number(doc.documentElement.getAttribute(item.attr));
+      expect(Number(match![1])).toBeCloseTo(ROW_BASELINE_Y - (height - raw), 3);
     }
   });
 });

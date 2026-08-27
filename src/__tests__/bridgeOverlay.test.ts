@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   detectBridgeSpans,
+  bridgeRoleForState,
   computeBridgeBars,
   renderBridgeOverlay,
   defaultMaterialColor,
@@ -21,6 +22,16 @@ function stateGetter(map: Record<number, BridgeToothState>): GetToothState {
 }
 
 describe("detectBridgeSpans", () => {
+  it("derives membership role independently from material and treatment status", () => {
+    expect(bridgeRoleForState({ toothSelection: "tooth-base", bridgePillar: true, restorationType: "crown" }))
+      .toBe("abutment");
+    expect(bridgeRoleForState({ toothSelection: "none", restorationType: "bridge" }))
+      .toBe("pontic");
+    expect(bridgeRoleForState({ toothSelection: "implant", restorationType: "bridge" }))
+      .toBe("unit");
+    expect(bridgeRoleForState({ toothSelection: "tooth-base", restorationType: "crown" }))
+      .toBeNull();
+  });
   // NOTE ON ORDER: spans come out in VISUAL left-to-right order (the arch scan
   // order), which is the order the bars require so consecutive-in-array ==
   // visually-adjacent. The upper arch array runs 18..11 then 21..28, so within
@@ -109,6 +120,28 @@ describe("computeBridgeBars", () => {
     y: 10,
     width: 100,
     height: 120,
+  });
+
+  it("joins the facing anatomy connector bounds instead of a generic tile fraction", () => {
+    const spans = [[13, 14]];
+    const get = stateGetter({
+      13: { bridgePillar: true, restorationType: "crown", restorationMaterial: "zircon" },
+      14: { restorationType: "bridge", restorationMaterial: "zircon" },
+    });
+    const rectFor = (tn: number): GridRelativeRect => tn === 13
+      ? {
+          x: 0, y: 10, width: 80, height: 120,
+          connector: { x: 72, y: 77, width: 8, height: 6 },
+        }
+      : {
+          x: 88, y: 10, width: 110, height: 120,
+          connector: { x: 88, y: 79, width: 10, height: 8 },
+        };
+    const [bar] = computeBridgeBars(spans, get, rectFor, defaultMaterialColor);
+    expect(bar.x).toBe(72);
+    expect(bar.x + bar.width).toBe(98);
+    expect(bar.height).toBe(6);
+    expect(bar.y + bar.height / 2).toBe(81.5);
   });
 
   it("produces one bar per consecutive pair (2 bars for a 3-tooth span)", () => {

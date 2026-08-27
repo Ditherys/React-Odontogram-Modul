@@ -154,6 +154,15 @@ describe("PG-B Task 2: perioOverlayMarks (pure geometry)", () => {
 });
 
 describe("PG-B Task 2: perioPlaqueMarks (pure geometry)", () => {
+  it("uses anatomy-derived semantic site anchors when supplied", () => {
+    const marks = perioPlaqueMarks([{
+      x: 0,
+      width: 100,
+      siteXs: [78, 50, 22],
+      surfaces: ["mesial", "buccal", "distal"],
+    }], "buccal", { cejY: 40, mmPx: 3 });
+    expect(marks.map((mark) => mark.x)).toEqual([78, 50, 22]);
+  });
   const opts = { cejY: 40, mmPx: 3 };
   it("the buccal aspect renders mesial/buccal/distal surface marks; palatal renders lingual", () => {
     const teeth = [{ x: 0, width: 40, surfaces: ["mesial", "buccal", "distal", "lingual"] }];

@@ -2,7 +2,12 @@
 // Created by Zoltan Dul (https://github.com/ZoliQua) 2025-2026
 
 import { describe, it, expect } from "vitest";
-import { composeRestorationLayers, isValidRestoration, restorationOptions } from "../restorations";
+import {
+  composeClinicalRestorationLayers,
+  composeRestorationLayers,
+  isValidRestoration,
+  restorationOptions,
+} from "../restorations";
 
 describe("restoration matrix", () => {
   it("composes {material}-{type} with bridge/telescope/onlay special cases", () => {
@@ -38,6 +43,16 @@ describe("restoration matrix", () => {
     expect(front[0]).toEqual({ restorationType: "none", restorationMaterial: "none", labelKey: "restoration.none" });
     const occl = restorationOptions("occlusal", {});
     expect(occl.some(o => o.restorationType === "onlay")).toBe(true);
+  });
+
+  it("adds the same material connector geometry to a crown used as a bridge abutment", () => {
+    expect(composeClinicalRestorationLayers({
+      type: "crown",
+      material: "gold",
+      view: "front",
+      bridgePillar: true,
+      toothSelection: "tooth-base",
+    })).toEqual(["gold-crown", "gold-bridge-connector"]);
   });
 
   // SP3b FIX 2: the ONE combined dropdown lists "Fix:" (restorationType×material)

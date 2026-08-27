@@ -82,11 +82,26 @@ export type ToothKindFn = (toothNo: number) => PerioArtworkKind;
 /** The baseline anchor a tooth's graphic aligns on: the implant platform anchor
  *  for an implant, the milk-tooth anchor for a deciduous rendering, else the
  *  natural CEJ. */
-function anchorFor(tplNo: TemplateNo, kind: PerioArtworkKind): number {
+function registrationNumber(doc: Document, name: string): number | null {
+  const raw = doc.documentElement.getAttribute(name);
+  if (raw === null || raw.trim() === "") return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
+}
+
+function anchorFor(doc: Document, tplNo: TemplateNo, kind: PerioArtworkKind): number {
   const profile = activeAnatomyProfile();
-  if (kind === "implant") return profile.implantCejY[tplNo];
-  if (kind === "milktooth") return profile.milktoothCejY[tplNo];
-  return profile.cejY[tplNo];
+  const { h } = viewBoxOf(doc);
+  if (kind === "implant") {
+    const raw = registrationNumber(doc, "data-implant-platform-y");
+    return raw === null ? profile.implantCejY[tplNo] : h - raw;
+  }
+  if (kind === "milktooth") {
+    const raw = registrationNumber(doc, "data-cej-y");
+    return raw === null ? profile.milktoothCejY[tplNo] : h - raw;
+  }
+  const raw = registrationNumber(doc, "data-cej-y");
+  return raw === null ? profile.cejY[tplNo] : h - raw;
 }
 
 /** Canine (FDI position 3) root-elongation factor — position 3 renders
@@ -143,10 +158,10 @@ export function resetTemplateCache(): void {
   cachedPromise = null;
 }
 
-function viewBoxOf(doc: Document): { w: number; h: number } {
+function viewBoxOf(doc: Document): { x: number; y: number; w: number; h: number } {
   const raw = doc.documentElement.getAttribute("viewBox") || "0 0 40 71";
   const parts = raw.trim().split(/\s+/).map(Number);
-  return { w: parts[2] ?? 40, h: parts[3] ?? 71 };
+  return { x: parts[0] ?? 0, y: parts[1] ?? 0, w: parts[2] ?? 40, h: parts[3] ?? 71 };
 }
 
 /** FDI last digit (tooth "position" within its quadrant: 1=central incisor
@@ -284,7 +299,7 @@ export function getToothBaseGroupFromCache(
   const defsClone = cloneReferencedDefs(doc, referenced);
 
   const { w, h } = viewBoxOf(doc);
-  const cejY = anchorFor(tplNo, kind);
+  const cejY = anchorFor(doc, tplNo, kind);
 
   const outer = document.createElementNS(SVG_NS, "g") as unknown as SVGGElement;
   outer.setAttribute("data-tooth", String(toothNo));
@@ -306,7 +321,8 @@ export function getToothBaseGroupFromCache(
   const mirrorGroup = document.createElementNS(SVG_NS, "g") as unknown as SVGGElement;
   if (map.mirror) {
     mirrorGroup.setAttribute("data-perio-mirror", "1");
-    mirrorGroup.setAttribute("transform", `matrix(-1 0 0 1 ${fmt(w)} 0)`);
+    const { x } = viewBoxOf(doc);
+    mirrorGroup.setAttribute("transform", `matrix(-1 0 0 1 ${fmt(2 * x + w)} 0)`);
   }
   mirrorGroup.appendChild(flipGroup);
 
@@ -426,6 +442,10 @@ export interface ArchToothLayout {
   x: number;
   /** The tooth template's viewBox width. */
   width: number;
+  /** Three clinically ordered periodontal sites (mesial, centre, distal),
+   * derived from the actual cervical/implant span. Mirrored quadrants reverse
+   * visual x while retaining this semantic order. */
+  siteXs: [number, number, number];
 }
 
 /** The full geometric layout of one arch row — the SINGLE source of truth for
@@ -452,18 +472,53 @@ export function archToothLayout(
   cache: TemplateDocCache,
   teeth: readonly number[],
   gap: number = TOOTH_GAP,
+  kindFn?: ToothKindFn,
 ): ArchLayout {
   const out: ArchToothLayout[] = [];
   let cursorX = 0;
   const toothTemplate = activeAnatomyProfile().toothTemplate;
+  const primaryTemplate = activeAnatomyProfile().primaryToothTemplate;
   for (const toothNo of teeth) {
-    const map = toothTemplate.get(toothNo);
+    const kind = kindFn?.(toothNo) ?? "normal";
+    const map = kind === "milktooth"
+      ? (primaryTemplate?.get(toothNo) ?? toothTemplate.get(toothNo))
+      : toothTemplate.get(toothNo);
     if (!map) continue;
     const tplNo = map.tpl as TemplateNo;
     const doc = cache.get(tplNo);
     if (!doc) continue;
-    const { w } = viewBoxOf(doc);
-    out.push({ toothNo, x: cursorX, width: w });
+    const { x: vbX, w } = viewBoxOf(doc);
+    const rawLeft = registrationNumber(
+      doc,
+      kind === "implant" ? "data-implant-left" : "data-cervical-left",
+    );
+    const rawRight = registrationNumber(
+      doc,
+      kind === "implant" ? "data-implant-right" : "data-cervical-right",
+    );
+    let visualLeft = cursorX + w / 6;
+    let visualRight = cursorX + w * 5 / 6;
+    if (rawLeft !== null && rawRight !== null && rawRight > rawLeft) {
+      const transformed = map.mirror
+        ? [2 * vbX + w - rawRight, 2 * vbX + w - rawLeft]
+        : [rawLeft, rawRight];
+      visualLeft = cursorX + transformed[0] - vbX;
+      visualRight = cursorX + transformed[1] - vbX;
+    }
+    // In the chart's visual order, quadrants 1 and 4 have mesial on the right;
+    // quadrants 2 and 3 have mesial on the left. This is clinical semantics,
+    // not an accidental consequence of an SVG mirror transform.
+    const inset = (visualRight - visualLeft) * 0.12;
+    const visualSites: [number, number, number] = [
+      visualLeft + inset,
+      (visualLeft + visualRight) / 2,
+      visualRight - inset,
+    ];
+    const quadrant = Math.floor(toothNo / 10);
+    const siteXs = (quadrant === 1 || quadrant === 4
+      ? [...visualSites].reverse()
+      : visualSites) as [number, number, number];
+    out.push({ toothNo, x: cursorX, width: w, siteXs });
     cursorX += w + gap;
   }
   return { cejY: ROW_BASELINE_Y, totalWidth: cursorX, teeth: out };
@@ -484,7 +539,7 @@ function buildBuccalRowGroup(
 ): { group: SVGGElement; width: number } {
   const row = document.createElementNS(SVG_NS, "g") as unknown as SVGGElement;
   row.setAttribute("class", "perio-tooth-row-buccal");
-  const layout = archToothLayout(cache, teeth, gap);
+  const layout = archToothLayout(cache, teeth, gap, kindFn);
   for (const { toothNo, x } of layout.teeth) {
     // Resolve the artwork kind. A `kindFn` (active-chart aware) supersedes the
     // implant-only predicate, so the graphic tracks the odontogram: missing →
@@ -492,13 +547,14 @@ function buildBuccalRowGroup(
     // number rows aligned), milktooth → deciduous artwork, implant → fixture body.
     const kind: PerioArtworkKind = kindFn ? kindFn(toothNo) : (isImplant(toothNo) ? "implant" : "normal");
     if (kind === "missing") continue;
-    const tplNo = activeAnatomyProfile().toothTemplate.get(toothNo)!.tpl as TemplateNo;
     const toothGroup = getToothBaseGroupFromCache(cache, toothNo, {
       implant: kind === "implant",
       milktooth: kind === "milktooth",
     });
+    const tplNo = Number(toothGroup.getAttribute("data-tpl")) as TemplateNo;
+    const doc = cache.get(tplNo)!;
     // Align each tooth's baseline anchor onto the SAME shared ROW_BASELINE_Y.
-    const translateY = ROW_BASELINE_Y - anchorFor(tplNo, kind);
+    const translateY = ROW_BASELINE_Y - anchorFor(doc, tplNo, kind);
     toothGroup.setAttribute("transform", `translate(${fmt(x)} ${fmt(translateY)})`);
     row.appendChild(toothGroup);
   }
@@ -1009,6 +1065,7 @@ export function perioMmHeatMarks(
 export interface PerioPlaqueTooth {
   x: number;
   width: number;
+  siteXs?: readonly [number, number, number];
   surfaces: readonly string[];
 }
 
@@ -1029,12 +1086,15 @@ export function perioPlaqueMarks(
   const out: OverlayMark[] = [];
   for (const tooth of teeth) {
     const has = (surface: string) => tooth.surfaces.includes(surface);
+    const mesialX = tooth.siteXs?.[0] ?? tooth.x + tooth.width * 0.2;
+    const centreX = tooth.siteXs?.[1] ?? tooth.x + tooth.width * 0.5;
+    const distalX = tooth.siteXs?.[2] ?? tooth.x + tooth.width * 0.8;
     if (aspect === "buccal") {
-      if (has("mesial")) out.push({ x: tooth.x + tooth.width * 0.2, y: opts.cejY, kind: "plaque" });
-      if (has("buccal")) out.push({ x: tooth.x + tooth.width * 0.5, y: opts.cejY, kind: "plaque" });
-      if (has("distal")) out.push({ x: tooth.x + tooth.width * 0.8, y: opts.cejY, kind: "plaque" });
+      if (has("mesial")) out.push({ x: mesialX, y: opts.cejY, kind: "plaque" });
+      if (has("buccal")) out.push({ x: centreX, y: opts.cejY, kind: "plaque" });
+      if (has("distal")) out.push({ x: distalX, y: opts.cejY, kind: "plaque" });
     } else {
-      if (has("lingual")) out.push({ x: tooth.x + tooth.width * 0.5, y: opts.cejY, kind: "plaque" });
+      if (has("lingual")) out.push({ x: centreX, y: opts.cejY, kind: "plaque" });
     }
   }
   return out;
@@ -1057,6 +1117,7 @@ export function perioPlaqueMarks(
 export interface PerioCairoTooth {
   x: number;
   width: number;
+  siteXs?: readonly [number, number, number];
   rt: "none" | "rt1" | "rt2" | "rt3";
 }
 
@@ -1073,7 +1134,7 @@ export function perioCairoMarks(
   const out: OverlayMark[] = [];
   for (const tooth of teeth) {
     if (tooth.rt === "none") continue;
-    out.push({ x: tooth.x + tooth.width * 0.5, y: opts.cejY, kind: tooth.rt });
+    out.push({ x: tooth.siteXs?.[1] ?? tooth.x + tooth.width * 0.5, y: opts.cejY, kind: tooth.rt });
   }
   return out;
 }
@@ -1097,6 +1158,7 @@ export function perioCairoMarks(
 export interface PerioGradeTooth {
   x: number;
   width: number;
+  siteXs?: readonly [number, number, number];
   grades: Partial<Record<"mesial" | "distal" | "buccal" | "lingual", 0 | 1 | 2 | 3>>;
 }
 
@@ -1129,12 +1191,15 @@ export function perioGradeMarks(
       if (!g) return; // 0/undefined -> healthy/uncharted, no mark
       out.push({ x, y: opts.cejY, kind: `heat-${gradeHeatBucket(g)}` });
     };
+    const mesialX = tooth.siteXs?.[0] ?? tooth.x + tooth.width * 0.2;
+    const centreX = tooth.siteXs?.[1] ?? tooth.x + tooth.width * 0.5;
+    const distalX = tooth.siteXs?.[2] ?? tooth.x + tooth.width * 0.8;
     if (aspect === "buccal") {
-      mark(tooth.x + tooth.width * 0.2, tooth.grades.mesial);
-      mark(tooth.x + tooth.width * 0.5, tooth.grades.buccal);
-      mark(tooth.x + tooth.width * 0.8, tooth.grades.distal);
+      mark(mesialX, tooth.grades.mesial);
+      mark(centreX, tooth.grades.buccal);
+      mark(distalX, tooth.grades.distal);
     } else {
-      mark(tooth.x + tooth.width * 0.5, tooth.grades.lingual);
+      mark(centreX, tooth.grades.lingual);
     }
   }
   return out;
@@ -1146,6 +1211,7 @@ export function perioGradeMarks(
 export interface PerioKgTooth {
   x: number;
   width: number;
+  siteXs?: readonly [number, number, number];
   kg: number | null;
 }
 
@@ -1173,7 +1239,7 @@ export function perioKgMarks(teeth: readonly PerioKgTooth[], opts: { cejY: numbe
   const out: OverlayMark[] = [];
   for (const tooth of teeth) {
     if (tooth.kg === null) continue;
-    out.push({ x: tooth.x + tooth.width * 0.5, y: opts.cejY, kind: `heat-${kgHeatBucket(tooth.kg)}` });
+    out.push({ x: tooth.siteXs?.[1] ?? tooth.x + tooth.width * 0.5, y: opts.cejY, kind: `heat-${kgHeatBucket(tooth.kg)}` });
   }
   return out;
 }

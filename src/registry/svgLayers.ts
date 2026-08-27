@@ -4,6 +4,25 @@
 import { AXES } from "./axes";
 import { allRestorationLayers } from "./restorations";
 
+/** Deliberate document stacking contract for installed tooth templates.
+ * Missing families (for example endodontics in an occlusal asset) are skipped,
+ * but any families that are present must retain this relative order. Runtime
+ * exceptions such as a visible periapical lesion after resection are promoted
+ * explicitly by the renderer instead of silently changing this contract. */
+export const CLINICAL_GROUP_ORDER = [
+  "base",
+  "mods",
+  "tooth-variants",
+  "tooth",
+  "milktooth",
+  "endos",
+  "surfaces",
+  "restorations",
+  "ortho",
+  "specials",
+  "plan",
+] as const;
+
 /** Non-axis layers the render clears each pass (base/pulp/milktooth/bruxism/
  *  crown-branch intermediates/etc.), transcribed from odontogram.ts
  *  applyStateToSvgSingle's clear block. Also includes "implant" and "milktooth":

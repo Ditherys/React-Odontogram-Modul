@@ -174,7 +174,7 @@ function appendSiteRow(
     sites.forEach((site, j) => {
       const v = valueFor(tooth.toothNo, site);
       if (v === null) return;
-      items.push({ x: LABEL_WIDTH + tooth.x + (tooth.width * (j + 0.5)) / sites.length, v });
+      items.push({ x: LABEL_WIDTH + (sites.length === 3 ? tooth.siteXs[j] : tooth.x + (tooth.width * (j + 0.5)) / sites.length), v });
     });
   }
   if (perioSkipEmptyRows && items.length === 0) return false;
@@ -308,7 +308,7 @@ function appendArchGraphic(
     // A missing/extraction-socket tooth has no crown to probe — draw no curve
     // over its (now empty) column, even if stale perio data lingers.
     if (getPerioToothKind(tooth.toothNo) === "missing") {
-      sites.forEach((site, j) => { curveSites.push({ site, pd: undefined, gm: undefined }); xs.push(tooth.x + (tooth.width * (j + 0.5)) / 3); });
+      sites.forEach((site, j) => { curveSites.push({ site, pd: undefined, gm: undefined }); xs.push(tooth.siteXs[j]); });
       continue;
     }
     const perio = getToothPerio(tooth.toothNo);
@@ -322,7 +322,7 @@ function appendArchGraphic(
       const gm = pd === undefined ? undefined
         : (Object.prototype.hasOwnProperty.call(perio.gm, site) ? perio.gm[site] : 0);
       curveSites.push({ site, pd, gm });
-      xs.push(tooth.x + (tooth.width * (j + 0.5)) / 3);
+      xs.push(tooth.siteXs[j]);
     });
   }
   const curve = perioCurve(curveSites, { cejY: layout.cejY, mmPx: PERIO_MM_PX, siteX: (i) => xs[i] });
@@ -370,7 +370,12 @@ export async function buildPerioSvg(opts: {
    *  shrinking the chart width so it scales up taller in the PDF). */
   const respace = (l: ArchLayout): ArchLayout => {
     let x = 0;
-    const teeth = l.teeth.map((tt) => { const nt = { ...tt, x }; x += tt.width + toothGap; return nt; });
+    const teeth = l.teeth.map((tt) => {
+      const dx = x - tt.x;
+      const nt = { ...tt, x, siteXs: tt.siteXs.map((siteX) => siteX + dx) as [number, number, number] };
+      x += tt.width + toothGap;
+      return nt;
+    });
     return { ...l, teeth, totalWidth: x };
   };
 
@@ -393,7 +398,7 @@ export async function buildPerioSvg(opts: {
   const visible = getPerioRowVisibility();
 
   const buildOneArch = (teeth: readonly number[]) => {
-    const layout = respace(archToothLayout(cache, teeth));
+    const layout = respace(archToothLayout(cache, teeth, undefined, getPerioToothKind));
     if (layout.teeth.length === 0) return;
     maxWidth = Math.max(maxWidth, LABEL_WIDTH + layout.totalWidth);
     const isUpper = isUpperTooth(teeth[0]);

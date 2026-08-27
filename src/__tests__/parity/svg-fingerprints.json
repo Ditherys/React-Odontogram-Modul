@@ -3042,11 +3042,6 @@
         "cls": ""
       },
       {
-        "id": "tooth-healthy-pulp",
-        "opacity": "",
-        "cls": ""
-      },
-      {
         "id": "endos",
         "opacity": "",
         "cls": ""
@@ -3180,11 +3175,6 @@
       },
       {
         "id": "tooth-base-beauty",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp",
         "opacity": "",
         "cls": ""
       },
@@ -3326,11 +3316,6 @@
         "cls": ""
       },
       {
-        "id": "tooth-healthy-pulp",
-        "opacity": "",
-        "cls": ""
-      },
-      {
         "id": "endos",
         "opacity": "",
         "cls": ""
@@ -3464,11 +3449,6 @@
       },
       {
         "id": "tooth-base-beauty",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp",
         "opacity": "",
         "cls": ""
       },
@@ -3611,11 +3591,6 @@
       },
       {
         "id": "tooth-base-beauty",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp",
         "opacity": "",
         "cls": ""
       },
@@ -21190,11 +21165,6 @@
         "cls": ""
       },
       {
-        "id": "tooth-healthy-pulp",
-        "opacity": "",
-        "cls": ""
-      },
-      {
         "id": "endos",
         "opacity": "",
         "cls": ""
@@ -21328,11 +21298,6 @@
       },
       {
         "id": "tooth-base-beauty",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp",
         "opacity": "",
         "cls": ""
       },
@@ -21474,11 +21439,6 @@
         "cls": ""
       },
       {
-        "id": "tooth-healthy-pulp",
-        "opacity": "",
-        "cls": ""
-      },
-      {
         "id": "endos",
         "opacity": "",
         "cls": ""
@@ -21612,11 +21572,6 @@
       },
       {
         "id": "tooth-base-beauty",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp",
         "opacity": "",
         "cls": ""
       },
@@ -21759,11 +21714,6 @@
       },
       {
         "id": "tooth-base-beauty",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp",
         "opacity": "",
         "cls": ""
       },
@@ -39618,21 +39568,6 @@
         "cls": ""
       },
       {
-        "id": "tooth-healthy-pulp",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-1",
-        "opacity": "",
-        "cls": ""
-      },
-      {
         "id": "endos",
         "opacity": "",
         "cls": ""
@@ -39776,21 +39711,6 @@
       },
       {
         "id": "tooth-base-beauty-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-1",
         "opacity": "",
         "cls": ""
       },
@@ -39942,21 +39862,6 @@
         "cls": ""
       },
       {
-        "id": "tooth-healthy-pulp",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-1",
-        "opacity": "",
-        "cls": ""
-      },
-      {
         "id": "endos",
         "opacity": "",
         "cls": ""
@@ -40100,21 +40005,6 @@
       },
       {
         "id": "tooth-base-beauty-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-1",
         "opacity": "",
         "cls": ""
       },
@@ -40267,21 +40157,6 @@
       },
       {
         "id": "tooth-base-beauty-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-1",
         "opacity": "",
         "cls": ""
       },
@@ -59751,21 +59626,6 @@
         "cls": ""
       },
       {
-        "id": "tooth-healthy-pulp",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-1",
-        "opacity": "",
-        "cls": ""
-      },
-      {
         "id": "endos",
         "opacity": "",
         "cls": ""
@@ -59909,21 +59769,6 @@
       },
       {
         "id": "tooth-base-beauty-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-1",
         "opacity": "",
         "cls": ""
       },
@@ -60075,21 +59920,6 @@
         "cls": ""
       },
       {
-        "id": "tooth-healthy-pulp",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-1",
-        "opacity": "",
-        "cls": ""
-      },
-      {
         "id": "endos",
         "opacity": "",
         "cls": ""
@@ -60233,21 +60063,6 @@
       },
       {
         "id": "tooth-base-beauty-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-1",
         "opacity": "",
         "cls": ""
       },
@@ -60400,21 +60215,6 @@
       },
       {
         "id": "tooth-base-beauty-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-2",
-        "opacity": "",
-        "cls": ""
-      },
-      {
-        "id": "tooth-healthy-pulp-1",
         "opacity": "",
         "cls": ""
       },

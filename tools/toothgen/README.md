@@ -11,7 +11,7 @@ spec.py permanent/primary classes and FDI assignments
         ↓
 source/*.svg canonical donor geometry (manual-edit boundary)
         ↓
-build.py + roots.py + graft.py + gum.py + fillings.py
+build.py + roots.py + graft.py + gum.py + fillings.py + overlays.py
 occlusal.py class-specific outline/cusp/groove generation
         ↓
 src/assets/teeth-svgs/measured/*.svg (generated; never hand-edit)
@@ -31,6 +31,19 @@ All anatomy-dependent paths pass through the same coordinate maps. This keeps
 caries, fillings, crowns, pulp/endo, root fillings/posts, implants, fractures,
 gum, bone and periodontal artwork aligned. Clinical IDs are an API contract and
 remain unchanged. Paint-server IDs are namespaced per generated class.
+
+Each generated root SVG also carries registration metadata on its root element:
+the measured CEJ, cervical/crown span, furcation (when present), implant fixture
+span/platform, and bridge-tab Y/height. Runtime periodontal and bridge graphics
+consume these values after the same viewBox/orientation transform as the tooth;
+they do not maintain a second set of measured-tooth coordinates.
+
+`overlays.py` keeps geometry and presentation separate. Full-coverage material
+variants reuse the class-specific crown envelope while retaining their existing
+material IDs/styles. Bridge units receive paired proximal tabs derived from that
+same envelope; the cross-tile renderer only fills the measured gap between the
+facing tabs. Status/plan presentation is applied by the renderer and does not
+change any clinical path.
 
 ## Permanent side-view mapping
 
@@ -113,8 +126,16 @@ with `python` when `uv` is unavailable. A no-argument build produces both
 dentitions and all occlusal classes. `verify.py` checks XML, root/furcation
 topology, proportions, continuous contours, lumen bounds, clinical ID/tag
 parity, cusp/groove topology, duplicate IDs, paint-server resolution, filling
-continuity, CEJ/grid registration, occlusal alignment and frozen geometry
-digests. `check_roundtrip.py` covers canonical, classic and generated SVGs.
+continuity, CEJ/grid registration, clinical layer order, material-independent
+crown/connector geometry, connector bounds, occlusal alignment and frozen
+geometry digests. `test_overlay_geometry.py` adds tolerant containment and
+registration invariants for pulp/RCT/posts, root caries, crown and surface
+overlays, bridge tabs, viewBoxes and endodontic topology. `check_roundtrip.py`
+covers canonical, classic and generated SVGs.
+
+```bash
+python -m unittest tools.toothgen.test_overlay_geometry -v
+```
 
 Run the generator twice and compare the generated tree to confirm byte-for-byte
 determinism. Geometry digests may be changed only after intentional visual
