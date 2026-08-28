@@ -51,8 +51,9 @@ describe("measured odontogram continuous-arch layout", () => {
       .toContain("border-color:");
     expect(rule('.tooth-grid[data-anatomy="measured"] .tooth-tile:focus-visible'))
       .toContain("outline:");
-    expect(rule('.tooth-grid[data-anatomy="measured"] .tooth-tile.occl-view:not(.placeholder)'))
-      .toMatch(/opacity:\s*\.72/);
+    const occlusal = rule('.tooth-grid[data-anatomy="measured"] .tooth-tile.occl-view:not(.placeholder)');
+    expect(occlusal).toMatch(/min-height:\s*78px/);
+    expect(occlusal).toMatch(/opacity:\s*\.72/);
     expect(rule('.tooth-grid[data-anatomy="measured"] .tooth-tile.occl-view.active'))
       .toMatch(/opacity:\s*1/);
   });
